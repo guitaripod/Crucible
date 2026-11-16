@@ -72,13 +72,16 @@ public final class StatsPanelView: View {
     private let accessory: View?
     private let isFlush: Bool
     private var focus = Animated(0)
+    /// What a screen reader reads for the whole panel (`TVStatsPanel`'s summary); the chart inside is not read apart.
+    public var summary: String?
 
     /// `flush` drops the inner margins, for content with its own (a tile, a Wrapped card).
-    public init(title: String? = nil, accessory: View? = nil, content: View, flush: Bool = false) {
+    public init(title: String? = nil, accessory: View? = nil, content: View, flush: Bool = false, summary: String? = nil) {
         self.title = title
         self.accessory = accessory
         self.content = content
         isFlush = flush
+        self.summary = summary
         super.init()
         addSubview(content)
         if let accessory { addSubview(accessory) }
@@ -86,6 +89,9 @@ public final class StatsPanelView: View {
 
     public override var canBecomeFocused: Bool { true }
     public override var cursor: Cursor { onSelect == nil ? .default : .pointer }
+    public override var accessibilityLabel: String? { summary ?? content.accessibilityLabel ?? title }
+    public override var accessibilityRole: AccessibilityRole { onSelect == nil ? .label : .button }
+    public override var accessibilityExposesChildren: Bool { summary == nil && content.accessibilityLabel == nil }
 
     private var inset: Float { isFlush ? 0 : Theme.current.metrics.tv(40) }
     private var spacing: Float { Theme.current.metrics.tv(28) }

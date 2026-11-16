@@ -56,7 +56,8 @@ public final class RowView: View {
     }
 
     public override var canBecomeFocused: Bool { item.isEnabled && !item.isStatic }
-    public override var accessibilityLabel: String? { [item.title, item.subtitle, item.value].compactMap { $0 }.joined(separator: ", ") }
+    public override var accessibilityLabel: String? { [item.title, item.value].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", ") }
+    public override var accessibilityHint: String? { item.subtitle }
     public override var overdraw: Float { Theme.current.metrics.focusShadowRadius * 2 }
 
     private var rasterScale: Float { window?.scale ?? 1 }

@@ -278,7 +278,8 @@ enum StatsSections {
             return Margins(TileGrid(page.tiles.map { tile in
                 let view = StatTileView()
                 view.configure(title: tile.title, value: tile.value, symbol: Symbol(tile.systemImage), caption: tile.caption, sparkline: tile.sparkline, animate: animate)
-                return StatsPanelView(content: view, flush: true)
+                let summary = [tile.title, tile.value, tile.caption].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", ")
+                return StatsPanelView(content: view, flush: true, summary: summary)
             }))
         case .heatmap:
             let heatmap = ContributionHeatmapView()
@@ -286,7 +287,10 @@ enum StatsSections {
             heatmap.configure(columns: model.columns, lastDayIndex: model.lastDayEpoch - model.firstDayEpoch,
                               cells: model.cells.map { ContributionHeatmapView.Cell(column: $0.column, row: $0.row, level: $0.level) },
                               monthLabels: model.monthLabels.sorted { $0.key < $1.key }.map { (column: $0.key, text: $0.value) }, animate: animate)
-            return Margins(StatsPanelView(title: String(localized: "Activity"), accessory: StatsHeatLegendView(), content: heatmap))
+            let active = model.cells.count
+            let busiest = model.cells.map(\.count).max() ?? 0
+            return Margins(StatsPanelView(title: String(localized: "Activity"), accessory: StatsHeatLegendView(), content: heatmap,
+                                          summary: String(localized: "Activity heatmap. \(active) active days, busiest day with \(busiest) plays.")))
         case .topShows:
             return shelf(String(localized: "Top Shows"), items: page.topShows.map { show in
                 var subtitle = show.valueText
@@ -302,33 +306,39 @@ enum StatsSections {
         case .clock:
             let clock = ClockSection()
             clock.configure(page.clock, animate: animate)
-            return Margins(StatsPanelView(title: String(localized: "When You Watch"), content: clock))
+            return Margins(StatsPanelView(title: String(localized: "When You Watch"), content: clock,
+                                          summary: String(localized: "\(page.clock.verdict). \(page.clock.accessibilitySummary)")))
         case .momentum:
             guard let momentum = page.momentum else { return nil }
             let trend = TrendAreaView()
             trend.configure(values: momentum.values, peakText: momentum.peakText, animate: animate)
-            return Margins(StatsPanelView(title: String(localized: "Your Momentum"), content: trend))
+            return Margins(StatsPanelView(title: String(localized: "Your Momentum"), content: trend, summary: momentum.summary))
         case .libraries:
             let libraries = page.libraries
             let breakdown = LibrariesBreakdownView()
             breakdown.configure(slices: zip(libraries.segments, libraries.legend).map { segment, row in
                 LibrariesBreakdownView.Slice(title: row.title, value: segment.value, valueText: row.value, colorIndex: row.colorIndex)
             }, centerTitle: libraries.centerTitle, centerSubtitle: libraries.centerSubtitle, animate: animate)
-            return Margins(StatsPanelView(title: String(localized: "Your Libraries"), content: breakdown))
+            return Margins(StatsPanelView(title: String(localized: "Your Libraries"), content: breakdown, summary: libraries.accessibilitySummary))
         case .genres:
             let taste = TasteView()
+            let summary: String
             switch page.genres {
-            case .pending(let pending): taste.showPending(title: pending.title, fraction: pending.barFraction)
+            case .pending(let pending):
+                taste.showPending(title: pending.title, fraction: pending.barFraction)
+                summary = pending.accessibilityLabel
             case .ranked(let rows):
                 taste.show(rows: rows.map { TasteView.Row(title: $0.title, valueText: $0.valueText, fraction: $0.fraction, colorIndex: $0.colorIndex) })
+                summary = String(localized: "Top genres. \(rows.map(\.accessibilityLabel).joined(separator: ". "))")
             }
-            return Margins(StatsPanelView(title: String(localized: "Your Taste"), content: taste))
+            return Margins(StatsPanelView(title: String(localized: "Your Taste"), content: taste, summary: summary))
         case .binges:
             let shelf = PanelShelfView(title: String(localized: "Binges & Streaks"), height: BingeCardView.height)
             shelf.setPanels(page.binges.enumerated().map { index, session in
                 let count = session.episodeCount == 1 ? String(localized: "1 ep") : String(localized: "\(session.episodeCount) eps")
                 let panel = StatsPanelView(content: BingeCardView(title: session.showTitle, episodes: session.episodeCount, countText: count,
-                                                                  caption: session.endedCaption ?? "", colorIndex: index), flush: true)
+                                                                  caption: session.endedCaption ?? "", colorIndex: index), flush: true,
+                                           summary: [session.showTitle, count, session.endedCaption ?? ""].filter { !$0.isEmpty }.joined(separator: ", "))
                 if let key = session.showRatingKey { panel.onSelect = { open(.show(ratingKey: key)) } }
                 return panel
             })
@@ -337,7 +347,7 @@ enum StatsSections {
             let shelf = PanelShelfView(title: String(localized: "Wrapped Moments"), height: Theme.current.metrics.tv(380))
             shelf.setPanels(page.superlatives.map { moment in
                 StatsPanelView(content: SuperlativeCardView(symbol: Symbol(moment.symbol), headline: moment.headline, title: moment.title, caption: moment.caption),
-                               flush: true)
+                               flush: true, summary: [moment.headline, moment.title, moment.caption].filter { !$0.isEmpty }.joined(separator: ". "))
             })
             return shelf
         }

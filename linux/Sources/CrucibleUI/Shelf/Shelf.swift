@@ -44,6 +44,7 @@ public final class ShelfView: View {
         super.init()
         scroller.showsIndicator = false
         addSubview(scroller)
+        headerLabel.isHeading = true
         addSubview(headerLabel)
         addSubview(secondaryLabel)
         leadingArrow.onPress = { [weak self] in self?.page(-1) }
@@ -204,6 +205,9 @@ final class ShelfArrow: View {
 
     override var isPointerInteractive: Bool { shown.target > 0 }
     override var accessibilityLabel: String? { direction == .left ? Strings.text("Previous") : Strings.text("Next") }
+    /// Left out for screen readers, which walk a shelf card by card with the focus; the arrows serve a mouse without a
+    /// sideways wheel.
+    override var accessibilityRole: AccessibilityRole { .none }
 
     override func pointerEntered() {
         hover.set(1, animation: .focus)

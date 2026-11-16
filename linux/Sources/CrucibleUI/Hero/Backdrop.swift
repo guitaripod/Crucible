@@ -102,10 +102,13 @@ public struct HeroRating: Hashable, Sendable {
 
     public var mark: Mark?
     public var text: String
+    /// The score as a screen reader says it, the source named ("IMDb 8.1").
+    public var spoken: String?
 
-    public init(mark: Mark?, text: String) {
+    public init(mark: Mark?, text: String, spoken: String? = nil) {
         self.mark = mark
         self.text = text
+        self.spoken = spoken
     }
 }
 
@@ -121,9 +124,12 @@ public struct HeroInfo: Hashable, Sendable {
     public var synopsis: String?
     public var progress: Double?
     public var titleStyle: TitleStyle
+    /// What a screen reader reads for the whole block (`TVHeroInfo.accessibilityText`); built from the fields when nil.
+    public var spokenText: String?
 
     public init(eyebrow: String? = nil, title: String, metaParts: [String] = [], ratings: [HeroRating] = [], badges: [String] = [],
-                synopsis: String? = nil, progress: Double? = nil, titleStyle: TitleStyle = .title2) {
+                synopsis: String? = nil, progress: Double? = nil, titleStyle: TitleStyle = .title2, spokenText: String? = nil) {
+        self.spokenText = spokenText
         self.eyebrow = eyebrow
         self.title = title
         self.metaParts = metaParts
@@ -155,6 +161,22 @@ public final class HeroInfoView: View, TextSelecting {
     public func clearSelection() { selector.clear() }
     public override var isPointerInteractive: Bool { true }
     public override var cursor: Cursor { .text }
+
+    /// The block as one spoken summary (`TVHeroInfoView.spokenText`): title, eyebrow, facts and scores, badges, synopsis.
+    public override var accessibilityLabel: String? {
+        guard let info else { return nil }
+        if let spoken = info.spokenText, !spoken.isEmpty { return spoken }
+        let facts = (info.metaParts.filter { !$0.isEmpty } + info.ratings.map { $0.spoken ?? $0.text }).joined(separator: ", ")
+        let badges = info.badges.isEmpty ? nil : info.badges.joined(separator: ", ")
+        return [info.title, info.eyebrow, facts, badges, info.synopsis].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ". ")
+    }
+
+    public override var accessibilityValue: String? {
+        guard let progress = info?.progress, progress > 0, progress < 1 else { return nil }
+        return String(format: Strings.lookup("%lld percent watched"), Int((progress * 100).rounded()))
+    }
+
+    public override var accessibilityRole: AccessibilityRole { info == nil ? .none : .label }
 
     public override func hitTest(_ point: Point) -> View? {
         let hit = super.hitTest(point)

@@ -15,6 +15,8 @@ public struct CardItem: Hashable, Sendable {
     public var isWatched = false
     public var isDimmed = false
     public var badgeText: String?
+    /// What acting on the card does beyond opening it, read after its state ("Press the Menu key for more options").
+    public var accessibilityHint: String?
     public var placeholderSymbol: Symbol = "film"
     /// UTF-16 ranges of the title tinted in the accent (a search query's match).
     public var titleHighlights: [Range<Int>] = []
@@ -54,6 +56,17 @@ public struct CardItem: Hashable, Sendable {
 
     public var spokenLabel: String {
         [eyebrow, title, subtitle, detail].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", ")
+    }
+
+    /// The watch state a screen reader reads after the label (`TVCardItem.spokenValue`).
+    @MainActor
+    public var spokenValue: String? {
+        if hasProgress, let progress {
+            return String(format: Strings.lookup("%lld percent watched"), Int((progress * 100).rounded()))
+        }
+        if isWatched { return Strings.lookup("Watched") }
+        if isUnwatched { return Strings.lookup("Unwatched") }
+        return nil
     }
 }
 
@@ -156,6 +169,10 @@ public final class CardView: View {
 
     public override var canBecomeFocused: Bool { true }
     public override var accessibilityLabel: String? { item.spokenLabel }
+    public override var accessibilityValue: String? { item.spokenValue }
+    public override var accessibilityHint: String? {
+        item.accessibilityHint ?? (onContextMenu == nil ? nil : Strings.lookup("Press the Menu key for more options"))
+    }
     public override var overdraw: Float { Theme.current.metrics.focusShadowRadius * 2 + style.artworkSize.height * 0.1 }
 
     private func apply(_ old: CardItem) {

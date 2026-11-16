@@ -286,6 +286,7 @@ private final class PickTileContent: View {
     }
 
     override var isPointerInteractive: Bool { false }
+    override var accessibilityLabel: String? { [pick.title.title, WatchCopy.facts(pick.title), pick.why].filter { !$0.isEmpty }.joined(separator: ", ") }
 
     private var metrics: Metrics { Theme.current.metrics }
     private var posterSize: Size { Size(width: metrics.tv(180), height: metrics.tv(270)) }

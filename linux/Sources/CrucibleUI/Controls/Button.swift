@@ -104,8 +104,18 @@ public final class ButtonView: View {
         super.init()
     }
 
+    /// What a screen reader reads after the label: what pressing the button does when its title does not say.
+    public var hint: String?
+    /// The name read for a button that shows only a symbol.
+    public var spokenTitle: String?
+
     public override var canBecomeFocused: Bool { isEnabled }
-    public override var accessibilityLabel: String? { title }
+    public override var accessibilityLabel: String? { title ?? spokenTitle }
+    public override var accessibilityHint: String? { hint }
+    public override var accessibilityIsSelected: Bool? {
+        if case .chip(let selected) = style { return selected }
+        return nil
+    }
     public override var overdraw: Float { Theme.current.metrics.tv(40) }
 
     private var font: Font {

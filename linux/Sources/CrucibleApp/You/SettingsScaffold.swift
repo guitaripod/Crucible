@@ -170,7 +170,7 @@ private final class SplitSection: View {
 /// A raised read-only panel for the scaffold's left column: an icon well, a title, lines under it and a footnote
 /// (`TVReadOnlyPanel` with `TVServerCardView`'s or About's content).
 @MainActor
-final class ContextPanel: View {
+final class ContextPanel: ReadOnlyPanelView {
     struct Content {
         var symbol: Symbol
         /// Initials drawn in a circle in place of the symbol's well (an account).
@@ -196,6 +196,10 @@ final class ContextPanel: View {
     init(content: Content) {
         self.content = content
         super.init()
+    }
+
+    override var accessibilityLabel: String? {
+        [content.title, content.subtitle, content.status, content.body].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", ")
     }
 
     private var inset: Float { Theme.current.metrics.tv(36) }

@@ -48,6 +48,8 @@ final class HomeWeekSection: View {
 private final class HomeWeekContent: View {
     var model: HomeWeekCardModel?
 
+    override var accessibilityLabel: String? { model?.accessibilityLabel }
+
     private static let barAreaHeight: Float = 120
     private static let barWidth: Float = 26
     private static let minimumBarHeight: Float = 8

@@ -21,6 +21,9 @@ public final class TabBarView: View {
 
     public var tabs: [Tab] = [] { didSet { rebuild() } }
     public private(set) var selectedID: String?
+    /// The menu button's identity among the tab items.
+    static let menuID = "tabbar.menu"
+    public override var accessibilityRole: AccessibilityRole { .tabList }
     public var onSelect: ((Tab) -> Void)?
     /// When set, a menu button closes the bar's end and opens the app's menu, told where the button sits in the window.
     public var onMenu: ((Rect) -> Void)? { didSet { rebuild() } }
@@ -76,7 +79,7 @@ public final class TabBarView: View {
             return item
         }
         if onMenu != nil {
-            let item = TabItemView(tab: Tab(id: "tabbar.menu", title: menuTitle, symbol: "line.3.horizontal"))
+            let item = TabItemView(tab: Tab(id: TabBarView.menuID, title: menuTitle, symbol: "line.3.horizontal"))
             item.isCompact = true
             item.onPress = { [weak self, weak item] in
                 guard let self, let item else { return }
@@ -179,6 +182,8 @@ final class TabItemView: View {
 
     override var canBecomeFocused: Bool { true }
     override var accessibilityLabel: String? { tab.title }
+    override var accessibilityRole: AccessibilityRole { tab.id == TabBarView.menuID ? .button : .tab }
+    override var accessibilityIsSelected: Bool? { accessibilityRole == .tab ? isSelected : nil }
 
     override func tooltip(at point: Point) -> String? { isCompact ? tab.title : nil }
 

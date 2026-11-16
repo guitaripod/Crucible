@@ -31,6 +31,9 @@ public final class StateView: View {
     private var title: String?
     private var message: String?
 
+    /// What the state says (loading, nothing here, what went wrong), read as text; its buttons read on their own.
+    public override var accessibilityLabel: String? { [title, message].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ". ") }
+
     public override init(frame: Rect = .zero) {
         super.init(frame: frame)
         addSubview(spinner)
@@ -241,6 +244,13 @@ public final class ScreenTitleView: View {
         self.summary = summary
         self.detail = detail
         super.init()
+    }
+
+    public override var accessibilityRole: AccessibilityRole { title.isEmpty ? .none : .heading }
+    public override var accessibilityLabel: String? { title }
+    public override var accessibilityHint: String? {
+        let lines = [summary, detail].compactMap { $0 }.filter { !$0.isEmpty }
+        return lines.isEmpty ? nil : lines.joined(separator: " ")
     }
 
     private var rasterScale: Float { window?.scale ?? 1 }

@@ -87,6 +87,11 @@ public final class StatsHeroView: View {
     }
 
     public override var canBecomeFocused: Bool { true }
+    public override var accessibilityRole: AccessibilityRole { .label }
+    public override var accessibilityExposesChildren: Bool { false }
+    public override var accessibilityLabel: String? {
+        [eyebrow, "\(value) \(unit)", detail, since].map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }.joined(separator: ", ")
+    }
 
     /// Fills the hero; with `animate` the figure counts up from where it stood over about a second.
     public func configure(eyebrow: String, value: Int, unit: String, detail: String, since: String, stripLevels: [Int], animate: Bool) {
@@ -281,6 +286,10 @@ public final class YearInReviewCardView: View {
     }
 
     public override var canBecomeFocused: Bool { true }
+    public override var accessibilityExposesChildren: Bool { false }
+    public override var accessibilityLabel: String? {
+        [caption, "\(primary) \(unit)", detail].map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }.joined(separator: ", ")
+    }
 
     public func configure(caption: String, primary: String, unit: String, detail: String, strip levels: [Int]) {
         self.caption = caption

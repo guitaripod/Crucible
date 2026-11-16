@@ -118,8 +118,10 @@ final class DiagnosticsScreen: ScreenView {
 
 /// The log's counts as label and value rows on a raised panel.
 @MainActor
-private final class StatsPanel: View {
+private final class StatsPanel: ReadOnlyPanelView {
     var rows: [(String, String)] = [] { didSet { superview?.setNeedsLayout(); setNeedsDisplay() } }
+
+    override var accessibilityLabel: String? { rows.map { "\($0.0) \($0.1)" }.joined(separator: ", ") }
 
     private var rowHeight: Float { Theme.current.metrics.tv(46) }
     private var inset: Float { Theme.current.metrics.tv(28) }
@@ -163,6 +165,8 @@ private final class LogView: View {
 
     override var canBecomeFocused: Bool { true }
     override var isPointerInteractive: Bool { true }
+    override var accessibilityRole: AccessibilityRole { .paragraph }
+    override var accessibilityLabel: String? { lines.suffix(12).joined(separator: "\n") }
 
     private var inset: Float { Theme.current.metrics.tv(28) }
 

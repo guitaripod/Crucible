@@ -263,6 +263,45 @@ enum SharedGPU {
         button.removeFromSuperview()
     }
 
+    @Test func aReadOnlyPanelIsAFocusStopOnlyWhileAScreenReaderListens() {
+        let panel = ReadOnlyPanelView(frame: Rect(x: 0, y: 0, width: 300, height: 120))
+        window.contentView.addSubview(panel)
+        #expect(!panel.canBecomeFocused)
+        window.simulatesScreenReader = true
+        #expect(panel.canBecomeFocused)
+        #expect(panel.accessibilityRole == .label)
+        #expect(!panel.accessibilityExposesChildren)
+        window.focus.focus(panel, animated: false)
+        window.render()
+        window.simulatesScreenReader = false
+        panel.removeFromSuperview()
+    }
+
+    @Test func cardsReadTheirWatchStateAndMenuHint() {
+        var item = CardItem(id: "a", title: "Halcyon", subtitle: "2021", progress: 0.45)
+        #expect(item.spokenValue == "45 percent watched")
+        item.progress = nil
+        item.isWatched = true
+        #expect(item.spokenValue == "Watched")
+        let card = CardView(item: item, style: .poster)
+        #expect(card.accessibilityLabel == "Halcyon, 2021")
+        #expect(card.accessibilityHint == nil)
+        card.onContextMenu = { _, _ in }
+        #expect(card.accessibilityHint == "Press the Menu key for more options")
+    }
+
+    @Test func theHeroReadsAsOneSummary() {
+        let hero = HeroInfoView()
+        #expect(hero.accessibilityRole == .none)
+        hero.configure(HeroInfo(eyebrow: "Movie", title: "Halcyon", metaParts: ["2021", "2 h 14 m"],
+                                ratings: [HeroRating(mark: .star, text: "8.1", spoken: "IMDb 8.1")], badges: ["4K", "HDR10"], progress: 0.3),
+                       animated: false)
+        #expect(hero.accessibilityLabel == "Halcyon. Movie. 2021, 2 h 14 m, IMDb 8.1. 4K, HDR10")
+        #expect(hero.accessibilityValue == "30 percent watched")
+        hero.configure(HeroInfo(title: "Halcyon", spokenText: "Halcyon, movie, 2021"), animated: false)
+        #expect(hero.accessibilityLabel == "Halcyon, movie, 2021")
+    }
+
     @Test func closingAMenuOrAlertHandsFocusStraightBack() {
         let anchor = ButtonView(style: .glass, title: "Manage")
         let neighbour = ButtonView(style: .glass, title: "Neighbour")

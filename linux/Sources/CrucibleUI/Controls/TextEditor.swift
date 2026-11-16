@@ -36,7 +36,9 @@ public final class TextEditorView: View, TextInputClient {
 
     public override var canBecomeFocused: Bool { true }
     public override var cursor: Cursor { .text }
-    public override var accessibilityLabel: String? { text.isEmpty ? placeholder : text }
+    public override var accessibilityLabel: String? { placeholder }
+    public override var accessibilityValue: String? { text }
+    public override var accessibilityRole: AccessibilityRole { .multilineTextInput }
 
     /// Replaces the text and puts the caret at its end.
     public func setText(_ value: String, notify: Bool = true) {

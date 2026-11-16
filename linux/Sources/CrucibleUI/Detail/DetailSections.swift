@@ -22,12 +22,15 @@ public final class SynopsisView: View, TextSelecting {
         self.text = text
         super.init()
         more.onPress = { [weak self] in self?.onMore?() }
+        more.hint = Strings.lookup("Shows the full synopsis")
         selector.onChange = { [weak self] in self?.setNeedsDisplay() }
         addSubview(more)
     }
 
     public var selectedText: String? { selector.selectedText }
     public func clearSelection() { selector.clear() }
+    public override var accessibilityRole: AccessibilityRole { text.isEmpty ? .none : .paragraph }
+    public override var accessibilityLabel: String? { text }
     public override var isPointerInteractive: Bool { true }
     public override func cursor(at point: Point) -> Cursor { SelectableText.cursor(at: point, selector: selector, otherwise: .default) }
 
@@ -103,7 +106,8 @@ public final class InformationView: View, TextSelecting {
     public override func pointerReleased(_ button: MouseButton, at point: Point, inside: Bool) { selector.release() }
 
     public override var canBecomeFocused: Bool { !facts.isEmpty }
-    public override var accessibilityLabel: String? { facts.map { "\($0.key) \($0.value)" }.joined(separator: ", ") }
+    public override var accessibilityLabel: String? { ([heading] + facts.map { "\($0.key) \($0.value)" }).joined(separator: ", ") }
+    public override var accessibilityRole: AccessibilityRole { facts.isEmpty ? .none : .label }
 
     private var heading: String { Strings.lookup("Information") }
     private var inset: Float { Theme.current.metrics.tv(36) }

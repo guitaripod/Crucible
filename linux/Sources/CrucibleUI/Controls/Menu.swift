@@ -73,6 +73,8 @@ public final class MenuView: View {
 
     public override var preferredFocusView: View? { rows.first }
     public override var isFocusScope: Bool { true }
+    public override var accessibilityRole: AccessibilityRole { .menu }
+    public override var accessibilityLabel: String? { header }
     public override var isPointerInteractive: Bool { true }
     public override var cursor: Cursor { .default }
 
@@ -161,6 +163,9 @@ final class MenuRowView: View {
 
     override var canBecomeFocused: Bool { true }
     override var accessibilityLabel: String? { item.title }
+    override var accessibilityRole: AccessibilityRole { .menuItem }
+    override var accessibilityValue: String? { [item.detail, item.shortcut].compactMap { $0 }.joined(separator: ", ") }
+    override var accessibilityIsSelected: Bool? { item.isChecked ? true : nil }
 
     func preferredWidth(scale: Float) -> Float {
         let metrics = Theme.current.metrics

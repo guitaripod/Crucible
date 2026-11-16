@@ -19,6 +19,16 @@ final class CommunityPulseContent: View {
 
     override var isPointerInteractive: Bool { false }
 
+    /// The score and its votes, who is watching now, then each count with its name.
+    override var accessibilityLabel: String? {
+        guard let snapshot else { return nil }
+        var parts = [TraktCommunityCopy.title]
+        if let score = snapshot.score { parts += [TraktCopy.value(score), TraktCopy.detail(score)] }
+        if !snapshot.watching.isEmpty { parts.append(TraktCommunityCopy.watchingNow(snapshot.watching.count)) }
+        parts += stats.map { "\(Formatters.compactCount($0.value)) \($0.label)" }
+        return parts.joined(separator: ", ")
+    }
+
     func apply(_ snapshot: TraktCommunity.Snapshot, animatesBars: Bool) {
         self.snapshot = snapshot
         mark.isHidden = snapshot.score == nil
@@ -155,6 +165,7 @@ final class CommentCardContent: View {
     }
 
     override var isPointerInteractive: Bool { false }
+    override var accessibilityLabel: String? { comment.map { TraktCommunityCopy.accessibilityLabel($0, hidingSpoilers: !isRevealed) } }
 
     static var size: Size { Size(width: Theme.current.metrics.tv(640), height: Theme.current.metrics.tv(380)) }
 
@@ -294,6 +305,13 @@ final class CommunityActionContent: View {
     init(_ kind: Kind) {
         self.kind = kind
         super.init()
+    }
+
+    override var accessibilityLabel: String? {
+        switch kind {
+        case .write: return "\(TraktCommunityCopy.writeReview), \(TraktCommunityCopy.emptyMessage)"
+        case .seeAll(let count): return "\(TraktCommunityCopy.seeAll), \(TraktCommunityCopy.commentCount(count))"
+        }
     }
 
     override var isPointerInteractive: Bool { false }

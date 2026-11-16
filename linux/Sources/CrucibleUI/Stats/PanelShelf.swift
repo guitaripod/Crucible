@@ -26,6 +26,7 @@ public final class PanelShelfView: View {
         self.height = height
         super.init()
         scroller.showsIndicator = false
+        headerLabel.isHeading = true
         headerLabel.text = title
         [scroller, headerLabel, leadingArrow, trailingArrow].forEach(addSubview)
         leadingArrow.onPress = { [weak self] in self?.page(-1) }

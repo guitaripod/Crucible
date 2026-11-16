@@ -59,6 +59,10 @@ public final class AlertView: View {
         }
     }
 
+    public override var accessibilityRole: AccessibilityRole { .alertDialog }
+    public override var accessibilityLabel: String? { heading }
+    public override var accessibilityHint: String? { message }
+
     /// An alert with only OK, for a result or a failure.
     public static func notice(title: String, message: String? = nil, in window: Window) {
         AlertView(title: title, message: message, actions: [Action(Strings.lookup("OK"), role: .cancel)]).present(in: window)

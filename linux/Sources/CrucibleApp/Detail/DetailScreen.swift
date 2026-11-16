@@ -314,15 +314,15 @@ class DetailScreen: ScreenView {
 enum DetailMapping {
     static func hero(_ info: DetailHeroInfo, progress: Double?) -> HeroInfo {
         HeroInfo(eyebrow: info.eyebrow, title: info.title, metaParts: info.meta.leading, ratings: info.meta.ratings.map(rating),
-                 badges: info.badges, progress: progress, titleStyle: .title1)
+                 badges: info.badges, progress: progress, titleStyle: .title1, spokenText: info.accessibilityText)
     }
 
     /// A score under its source's mark, as `RatingLine` draws it: Rotten Tomatoes' rotten splat below 60%, Letterboxd's
     /// dots in the appearance's colour.
     static func rating(_ rating: DetailRating) -> HeroRating {
         switch rating.mark {
-        case .none: return HeroRating(mark: nil, text: rating.text)
-        case .star: return HeroRating(mark: .star, text: rating.text)
+        case .none: return HeroRating(mark: nil, text: rating.text, spoken: rating.spoken)
+        case .star: return HeroRating(mark: .star, text: rating.text, spoken: rating.spoken)
         case .score(let score):
             let mark: HeroRating.Mark
             switch score.source {
@@ -334,7 +334,7 @@ enum DetailMapping {
             case .letterboxd: mark = .brand(Theme.current.palette.appearance == .dark ? "letterboxd-dark" : "letterboxd-light", isWordmark: false)
             case .myAnimeList: mark = .brand("myanimelist", isWordmark: true)
             }
-            return HeroRating(mark: mark, text: rating.text)
+            return HeroRating(mark: mark, text: rating.text, spoken: rating.spoken)
         }
     }
 

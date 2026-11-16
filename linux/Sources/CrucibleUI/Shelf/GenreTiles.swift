@@ -6,6 +6,9 @@ import Kiln
 public final class SectionTitleView: View {
     public var title: String { didSet { setNeedsDisplay() } }
 
+    public override var accessibilityRole: AccessibilityRole { title.isEmpty ? .none : .heading }
+    public override var accessibilityLabel: String? { title }
+
     public init(title: String) {
         self.title = title
         super.init()

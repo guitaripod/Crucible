@@ -49,7 +49,9 @@ public final class TextFieldView: View, TextInputClient {
 
     public override var canBecomeFocused: Bool { true }
     public override var cursor: Cursor { .text }
-    public override var accessibilityLabel: String? { text.isEmpty || isSecure ? placeholder : text }
+    public override var accessibilityLabel: String? { placeholder }
+    public override var accessibilityValue: String? { isSecure ? nil : text }
+    public override var accessibilityRole: AccessibilityRole { isSecure ? .passwordInput : symbol == "magnifyingglass" ? .searchInput : .textInput }
     public override var overdraw: Float { Theme.current.metrics.tv(40) }
 
     public override func sizeThatFits(_ size: Size) -> Size {
