@@ -8,7 +8,7 @@ import Foundation
 enum OwnModel {
     private static let addressKey = "ownModel.address"
     private static let modelKey = "ownModel.model"
-    private static let secretKey = "ownModel.key"
+    private nonisolated static let secretKey = "ownModel.key"
 
     static var address: URL? {
         UserDefaults.standard.string(forKey: addressKey).flatMap(URL.init(string:))
@@ -18,7 +18,8 @@ enum OwnModel {
         UserDefaults.standard.string(forKey: modelKey).flatMap { $0.isEmpty ? nil : $0 }
     }
 
-    static var hasKey: Bool { KeychainHelper.load(key: secretKey)?.isEmpty == false }
+    /// Whether a key is saved; it asks the keyring, so screens read it off the main thread.
+    nonisolated static var hasKey: Bool { KeychainHelper.load(key: secretKey)?.isEmpty == false }
 
     static var isConfigured: Bool { address != nil && model != nil }
 

@@ -76,6 +76,9 @@ final class OwnModelSettingsScreen: SettingsScaffold {
 
     private let panel = ContextPanel(content: .init(symbol: "sparkles", title: OwnModelCopy.title, body: OwnModelCopy.explanation))
     private var isChecking = false
+    /// Whether a key is saved, read from the keyring off the main thread (a locked or slow keyring must not hold up the
+    /// screen); nil until the first read answers.
+    private var keySaved: Bool?
 
     init() {
         super.init(title: OwnModelCopy.title)
@@ -85,13 +88,20 @@ final class OwnModelSettingsScreen: SettingsScaffold {
 
     override func screenDidAppear() {
         render()
+        Task { [weak self] in
+            let saved = await Task.detached { OwnModel.hasKey }.value
+            guard let self, self.keySaved != saved else { return }
+            self.keySaved = saved
+            self.render()
+        }
     }
 
     private func render() {
         var items = [
             RowItem(id: RowID.address, title: OwnModelCopy.address, value: OwnModel.address.map(Self.shortAddress) ?? OwnModelCopy.notSet, symbol: "link", accessory: .chevron),
             RowItem(id: RowID.model, title: OwnModelCopy.model, value: OwnModel.model ?? OwnModelCopy.notSet, symbol: "sparkles", accessory: .chevron),
-            RowItem(id: RowID.key, title: OwnModelCopy.key, value: OwnModel.hasKey ? OwnModelCopy.saved : OwnModelCopy.notSet, symbol: "key", accessory: .chevron),
+            RowItem(id: RowID.key, title: OwnModelCopy.key, value: keySaved.map { $0 ? OwnModelCopy.saved : OwnModelCopy.notSet } ?? "",
+                    symbol: "key", accessory: .chevron),
         ]
         if OwnModel.isConfigured {
             items.append(RowItem(id: RowID.check, title: isChecking ? OwnModelCopy.checking : OwnModelCopy.check, symbol: "checkmark.circle", isEnabled: !isChecking))
@@ -126,6 +136,7 @@ final class OwnModelSettingsScreen: SettingsScaffold {
         case RowID.key:
             ask(OwnModelCopy.key, placeholder: OwnModelCopy.keyPlaceholder, text: "", secure: true) { [weak self] typed in
                 OwnModel.setKey(typed)
+                self?.keySaved = !typed.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 self?.render()
             }
         case RowID.check:
@@ -133,6 +144,7 @@ final class OwnModelSettingsScreen: SettingsScaffold {
         case RowID.remove:
             AlertView.confirm(title: OwnModelCopy.remove, message: nil, confirm: OwnModelCopy.remove, in: window) { [weak self] in
                 OwnModel.remove()
+                self?.keySaved = false
                 self?.render()
             }
         default:
