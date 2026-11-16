@@ -1,4 +1,8 @@
 import Foundation
+import MidgarCore
+#if canImport(os)
+import os
+#endif
 
 /// Plex's GDM, which finds Plex Media Servers on the local network without plex.tv: a client sends `M-SEARCH * HTTP/1.0`
 /// to the multicast group 239.0.0.250 on UDP 32414, and every server answers with HTTP-style headers naming itself, its
