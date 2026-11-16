@@ -13,9 +13,9 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | Search, Pro features (free on Linux) and demo | 55 | 0 | 0 | 8 |
 | You, profiles, history, statistics and manage | 84 | 0 | 0 | 3 |
 | Settings and integrations | 67 | 0 | 0 | 2 |
-| Design system | 96 | 1 | 0 | 0 |
+| Design system | 97 | 0 | 0 | 0 |
 | Linux-only requirements (docs/LINUX.md) | 100 | 2 | 1 | 0 |
-| **All** | 682 | 3 | 1 | 16 |
+| **All** | 683 | 2 | 1 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -638,7 +638,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `design-tab-bar-hide-on-scroll` (S) Tab bar slides away as content scrolls down and returns at the top; Search keeps it _Apple TV: Sources/CrucibleTV/DesignSystem/Focus/TVScreenViewController.swift:52-57_
 - [x] `design-tab-bar-focus-pill` (S) Focused tab turns into the light pill with dark text, and the pointer lights the glass under it _Apple TV: Sources/CrucibleTV/DesignSystem/Controls/TVButton.swift:7-10_
 - [x] `design-scroll-overdraw` (S) Focused cards and buttons draw beyond their cells without clipping, so the lift is never cut off _Apple TV: Sources/CrucibleTV/DesignSystem/Focus/TVCollectionView.swift:15-24_
-- [ ] `design-gallery` (M) **partial** Component gallery showing every card, control, state and hero in focused and hovered states, for review Gap: A gallery exists, but the golden-image and offscreen-capture checks that docs/LINUX.md section 11 requires were not verified in this pass, and the gallery lacks the missing components (brand marks, monogram, tiles, panels). _Apple TV: Sources/CrucibleTV/DesignSystem/Gallery/TVDesignGalleryViewController.swift:1-387_
+- [x] `design-gallery` (M) Component gallery showing every card, control, state and hero in focused and hovered states, for review _Apple TV: Sources/CrucibleTV/DesignSystem/Gallery/TVDesignGalleryViewController.swift:1-387_
 
 ## Linux-only requirements (docs/LINUX.md)
 
