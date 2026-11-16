@@ -50,6 +50,11 @@ Rust's real advantage would be its UI crates, and §4 explains why none of them 
 | SF Pro and SF Symbols are licensed for Apple platforms only | Apple font licence | Inter for type, an open icon set mapped from SF Symbol names (§5.6) |
 | NVIDIA's driver exposes no HDMI-CEC | open-gpu-kernel-modules; kernel CEC docs | No TV-remote control over CEC; gamepad, keyboard and pointer instead |
 | libdispatch on Linux exports `_dispatch_get_main_queue_handle_4CF` and `_dispatch_main_queue_callback_4CF`, the hooks CoreFoundation's run loop uses | `nm -D libdispatch.so` (Swift 6.4.2) | The main actor runs on Kiln's own event loop (§4.2) |
+| gamescope reports only XWayland windows to Steam as focusable, so a Wayland toplevel launched from Steam's Game Mode is never shown: Steam stays on its launch screen while the app draws unseen | gamescope 3.16 `steamcompmgr.cpp` (`determine_and_apply_focus`); measured on a Steam Deck OLED, SteamOS 3.9.5 (2026-11-16) | In Game Mode Kiln opens an X11 window (§9.1) |
+| gamescope's WSI layer, which Game Mode turns on for every launch, looks queues up without their creation flags and aborts on an internally synchronised queue | crash on the Deck in `vkroots` under `pl_vulkan_create` | Under the layer the device's queues are left to libplacebo's locking |
+| On an HDR output gamescope shows SDR content (Steam's interface) at `GAMESCOPE_SDR_ON_HDR_CONTENT_BRIGHTNESS` times the SDR gain and multiplies HDR content by the HDR gain; Steam's brightness slider sets both gains on the root window | gamescope `steamcompmgr.cpp` (colour LUTs) | Kiln scales its scRGB output so its white lands on Steam's, and draws SDR when the output is SDR (§9.1) |
+| swift-corelibs-foundation's URLSession only ever adds libdispatch sources for a socket: after libcurl has sent a request and only waits to read, the write source stays and fires as fast as the socket is writable. Any request that stays open (the server-events stream) spins a core for as long as the app runs: 99% CPU measured on the desktop, 108% on the Deck | `MultiHandle.swift` (`_SocketSources.createSources`); perf on both machines | `CLinuxServices/crucible_curl.c` relays URLSession's socket callback and drops the sources libcurl no longer wants |
+| RADV on the Deck exposes no Vulkan Video decode, and the gpu-next libmpv backend handed mpv no display, so VA-API fell back to copying every frame through system memory (`vaapi-copy`) | mpv's log on the Deck | mpv patch 0012 opens the GPU's render node for the VA-API interop: zero-copy VA-API |
 
 ## 4. Architecture
 
@@ -242,13 +247,48 @@ A Linux job in CI (`.github/workflows/linux-core.yml`) runs `CRUCIBLE_CORE_ONLY=
 | Need | Mechanism |
 | --- | --- |
 | Media keys and desktop media controls | MPRIS over sd-bus: metadata, artwork, position, seek |
-| Keep the screen awake | `zwp_idle_inhibit_v1` on the window while playing, with `org.freedesktop.ScreenSaver.Inhibit` as fallback (gamescope lacks idle inhibit) |
+| Keep the screen awake | `zwp_idle_inhibit_v1` on the window while playing, with `org.freedesktop.ScreenSaver.Inhibit` as fallback (gamescope lacks idle inhibit; in Game Mode Steam itself owns that name and honours it) |
 | Find servers | Plex GDM over UDP (an `M-SEARCH` to the multicast group 239.0.0.250 and the broadcast address on port 32414; 32412 is where players answer, not servers) beside plex.tv resources and the tailnet routes Core already probes, and on their own when plex.tv cannot be reached |
 | `crucible://` links and one instance | A desktop entry with `MimeType=x-scheme-handler/crucible;` and the D-Bus name `org.guitaripod.Crucible`, which hands a second launch's link to the running app and Core's deep-link parser |
 | Notifications | `org.freedesktop.Notifications` for `LibraryNews` while the app runs; a systemd user timer for background refresh can follow |
 | Output HDR and refresh rate | `kde_output_management_v2` (§7.4) |
-| Steam Deck layout | `crucible --steam-deck` as a non-Steam shortcut for Big Picture and Game Mode: `linux/scripts/steam-shortcut.py` adds it to every Steam account with Steam closed and picks Steam Input's own gamepad templates for it (gamepad and trackpad mouse on the Steam Deck and DualSense, gamepad elsewhere) |
+| Steam Deck layout | `crucible --steam-deck` as a non-Steam shortcut for Big Picture and Game Mode: `linux/scripts/steam-library.py` adds it to the running Steam with its library artwork (§9.1); `linux/scripts/steam-shortcut.py` does it with Steam closed on a desktop, picking Steam Input's own gamepad templates (gamepad and trackpad mouse on the Steam Deck and DualSense, gamepad elsewhere) |
 | Clean exit | SIGTERM, SIGINT and SIGHUP save resume positions and send the stopped timeline before exiting (the Tailscode lesson that an unhandled SIGTERM counts as a crash) |
+
+### 9.1 Steam Deck
+
+Crucible runs in the Deck's Game Mode in the Steam Deck layout: the tvOS canvas at two thirds on the 1280 x 800 screen
+(grown to 1920 x 1200 points), launched from Steam's library.
+
+| Part | How |
+| --- | --- |
+| Build | SteamOS trails Arch (FFmpeg 8 where Arch has 9), so `linux/scripts/steamdeck.sh build` builds in a container made from SteamOS's own repositories (`linux/packaging/steamos`), with the vendored libmpv and libplacebo built against them; `install [HOST]` builds and installs on the Deck over SSH (`deck@steamdeck` by default) into `~/.local`, and refuses an install whose libraries the Deck lacks |
+| Library | `linux/scripts/steam-library.py` adds the shortcut to the running Steam through its debugger port (no restart, so Game Mode is never interrupted) with the capsule, wide capsule, hero and logo of `linux/packaging/steamos/steam-art` (drawn by `make-steam-art.py` from the Apple TV icon's layers); `--run`, `--quit` and `--status` drive it |
+| Window | Under gamescope Kiln opens an X11 window (`X11Window`, `CKiln/kiln_x11.c`) carrying the Steam app ID (`STEAM_GAME`), since Steam never focuses a Wayland toplevel there; gamescope's WSI layer takes its Vulkan swapchain straight to the compositor. X11 has no frame callbacks, so the swapchain presents FIFO at the RandR refresh (90 Hz on the OLED); `KILN_BACKEND=x11|wayland` overrides the choice |
+| Colour | gamescope's colour state is read from its root XWayland server and followed as Steam changes it: on an HDR output the scRGB swapchain's light is scaled so Kiln's 203 cd/m² white lands on Steam's SDR white under the slider's gains, leaving the panel's peak for HDR video; on an SDR output the window draws SDR |
+| Input | Steam Input's virtual pad through SDL (polled at 60 Hz while in use and 20 Hz while idle), the trackpad as the pointer, and the touchscreen through XInput 2: a tap clicks, a drag scrolls with the touchpad's momentum |
+| Sign-in | The browser does not open by itself in Game Mode, where it would cover Crucible; the code and QR code serve a phone, and Open plex.tv still opens the Deck's browser |
+| Measure | `linux/scripts/steamdeck-bench.py ui|play|compare` on the Deck launches through Steam on a throwaway profile signed in to the bundled demo, scripts a launch, a resting Home and a browse, or plays a file, and samples CPU, memory, APU power (`amdgpu` hwmon) and GPU load beside Kiln's per-frame timings (`KILN_FRAMES`) |
+
+Measured on a Steam Deck OLED (SteamOS 3.9.5, 90 Hz, HDR on), warm launch, before (0.16.8) and after (0.17.0). 0.16.8 cannot show
+in Game Mode at all, so its interface numbers come from forcing it onto gamescope's Wayland socket, where it draws unseen;
+its playback numbers come from 0.16.8 with only the X11 window added.
+
+| | 0.16.8 | 0.17.0 |
+| --- | --- | --- |
+| Launch, first 16 s: process CPU, APU power | 16.1 s, 8.1 W | 1.3 s, 2.9 W |
+| Resting on Home: process CPU, APU power | 108%, 9.1 W | 2%, 3.0 W |
+| Browsing (shelves, a title page, a library grid): process CPU, APU power | 95%, 8.6 W | 23%, 4.6 W |
+| Browsing: frames late at 90 Hz, 99th percentile frame interval | 1.9%, 22.2 ms | 0.7%, 15.6 ms |
+| 720p H.264: process CPU, APU power | 16.5%, 4.2 W | 10.7%, 4.2 W |
+| 1080p H.264 at 10 Mb/s: process CPU, APU power | 21.4%, 4.3 W | 11.0%, 4.5 W |
+| 4K HEVC 10-bit HDR10 at 25 Mb/s: process CPU, APU power, resident memory | 51%, 5.9 W, 639 MB | 12%, 5.5 W, 493 MB |
+
+What moved them: the URLSession spin (both machines), a main loop that slept in 16 ms turns, an idle pad polled at 60 Hz,
+ambient animations (spinner, skeletons, the welcome crystal) drawing the whole scene at the display's rate, lifted text
+re-rasterised on nearly every frame of a spring, a glass luminance readback with its own submit every other frame, VA-API
+copying every decoded frame, and memory-pressure purges set off by other programs' stalls. The artwork disk cache now
+stops at 512 MB (the Deck's disk is small and shared with games).
 
 ## 10. Layout, build and install
 
