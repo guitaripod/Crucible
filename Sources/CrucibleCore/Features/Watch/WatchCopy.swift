@@ -15,7 +15,14 @@ package enum WatchCopy {
         guard HostedBrain.takesAnyRequest else {
             return String(localized: "The demo answers these four requests with picks prepared ahead, and nothing leaves this device. With your own library you can ask for anything.", comment: "What to Watch in the demo, under its four example requests")
         }
-        return String(localized: "Say what you feel like and Crucible picks from your own library. Your words and the titles, years, genres, lengths, ratings and watched state of your films and series go to Crucible's AI to choose. Nothing else leaves this device.", comment: "What to Watch: what is sent to the hosted model")
+        switch HostedBrain.route(for: [WatchPicker.planAlias, WatchPicker.pickAlias]) {
+        case .onDevice:
+            return String(localized: "Say what you feel like and Apple Intelligence picks from your own library, on this device. Nothing leaves it.", comment: "What to Watch: the device's own model chooses and nothing is sent")
+        case .onDeviceFirst:
+            return String(localized: "Say what you feel like and Apple Intelligence picks from your own library, on this device. Only if it can't do your words and the titles, years, genres, lengths, ratings and watched state of your films and series go to Crucible's AI. Nothing else leaves this device.", comment: "What to Watch: the device's own model chooses, with the hosted model as the fallback")
+        case .hosted:
+            return String(localized: "Say what you feel like and Crucible picks from your own library. Your words and the titles, years, genres, lengths, ratings and watched state of your films and series go to Crucible's AI to choose. Nothing else leaves this device.", comment: "What to Watch: what is sent to the hosted model")
+        }
     }
 
     /// Requests a person can pick to see what to ask for.

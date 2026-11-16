@@ -19,26 +19,37 @@ package enum HostedBrainError: Error, Equatable, Sendable {
     case failed
 }
 
-/// The hosted model behind What to Watch and a Previously On written from episode descriptions. The App Store build
-/// supplies it from `CrucibleStore`, on the anonymous Midgar ID that Crucible Pro already uses; a source build has none.
+/// The model behind What to Watch and a Previously On written from episode descriptions. The App Store build supplies
+/// the hosted one from `CrucibleStore`, on the anonymous Midgar ID that Crucible Pro already uses; a source build has
+/// none. A device with Apple Intelligence also answers on its own model, which goes first wherever it can.
 package protocol HostedBrainProviding: Sendable {
     /// Sends `input` to the named alias, which holds the instructions and the shape of the reply on the service, and
     /// returns the reply's text. `language` is the English name of the language to answer in.
     func ask(alias: String, input: String, language: String) async throws(HostedBrainError) -> String
 
     /// Whether this model has an answer for `input`. The hosted one always tries; the demo's holds only the answers
-    /// prepared for it.
+    /// prepared for it, and the device's own only what fits it in a language it writes.
     func answers(alias: String, input: String, language: String) -> Bool
+
+    /// Whether the model can answer at all right now: the device's own waits until Apple Intelligence is ready.
+    var isReady: Bool { get }
+
+    /// Whether the answer is written on this device, so nothing is sent to answer it.
+    var isOnDevice: Bool { get }
 }
 
 extension HostedBrainProviding {
     package func answers(alias: String, input: String, language: String) -> Bool { true }
+    package var isReady: Bool { true }
+    package var isOnDevice: Bool { false }
 }
 
-/// The one hosted model of the process, installed at launch. Nothing reaches it unless a person asks for an answer.
-/// The demo uses no network, so while it runs the answers come from the ones prepared for its library instead.
+/// The models of the process, installed at launch: the device's own first, then the hosted one. Nothing reaches the
+/// hosted model unless a person asks for an answer and the device's own cannot give it. The demo uses no network, so
+/// while it runs the answers come from the ones prepared for its library instead.
 package enum HostedBrain {
     private static let provider = OSAllocatedUnfairLock<(any HostedBrainProviding)?>(initialState: nil)
+    private static let onDeviceProvider = OSAllocatedUnfairLock<(any HostedBrainProviding)?>(initialState: nil)
     private static let demoProvider = OSAllocatedUnfairLock<(any HostedBrainProviding)?>(initialState: nil)
 
     package static func install(_ brain: any HostedBrainProviding) {
@@ -50,6 +61,12 @@ package enum HostedBrain {
         provider.withLock { $0 = nil }
     }
 
+    /// Installs the model on this device, which answers ahead of the hosted one. Called once at launch where Apple
+    /// Intelligence can run.
+    package static func installOnDevice(_ brain: any HostedBrainProviding) {
+        onDeviceProvider.withLock { $0 = brain }
+    }
+
     /// Installs the answers the demo gives. Called once by an app entry point that links `CrucibleDemo`.
     package static func installDemo(_ brain: any HostedBrainProviding) {
         demoProvider.withLock { $0 = brain }
@@ -57,24 +74,32 @@ package enum HostedBrain {
 
     private static var isDemo: Bool { UserDefaults.standard.bool(forKey: DemoMode.activeKey) }
 
-    private static var current: (any HostedBrainProviding)? {
-        (isDemo ? demoProvider : provider).withLock { $0 }
+    /// The models that can answer now, in the order they are asked: the demo's alone while it runs, else the device's own
+    /// and then the hosted one.
+    private static var layers: HostedBrainLayers {
+        if isDemo { return HostedBrainLayers(demoProvider.withLock { $0 }.map { [$0] } ?? []) }
+        return HostedBrainLayers([onDeviceProvider.withLock { $0 }, provider.withLock { $0 }].compactMap { $0 })
     }
 
-    /// Whether an answer can be asked for at all: the hosted model with a server, the prepared answers in the demo.
-    package static var isAvailable: Bool { current != nil }
+    /// Whether an answer can be asked for at all: the device's own model or the hosted one, the prepared answers in the demo.
+    package static var isAvailable: Bool { layers.isAvailable }
 
     /// Whether a person's own words are answered. The demo answers only the requests it was prepared for.
     package static var takesAnyRequest: Bool { !isDemo }
 
     /// Whether `input` would get an answer, which in the demo is true only for what was prepared.
     package static func canAnswer(alias: String, input: String) -> Bool {
-        current?.answers(alias: alias, input: input, language: language) ?? false
+        layers.canAnswer(alias: alias, input: input, language: language)
     }
 
+    /// Where the answers to `aliases` come from, which each feature's words about what leaves the device follow.
+    package static func route(for aliases: [String], input: String = "") -> HostedBrainRoute {
+        layers.route(for: aliases, input: input, language: language)
+    }
+
+    /// The answer from the first model that gives one: the device's own, and when it cannot answer, the hosted one.
     package static func ask(alias: String, input: String) async throws(HostedBrainError) -> String {
-        guard let brain = current else { throw .unavailable }
-        return try await brain.ask(alias: alias, input: input, language: language)
+        try await layers.ask(alias: alias, input: input, language: language)
     }
 
     /// The English name of the language the app is shown in, which the service's instructions answer in:
@@ -101,6 +126,54 @@ package enum HostedBrain {
         }
         #endif
     }
+}
+
+/// Models in the order they are asked, the ones not ready left out.
+package struct HostedBrainLayers: Sendable {
+    private let brains: [any HostedBrainProviding]
+
+    package init(_ brains: [any HostedBrainProviding]) {
+        self.brains = brains.filter(\.isReady)
+    }
+
+    package var isAvailable: Bool { !brains.isEmpty }
+
+    package func canAnswer(alias: String, input: String, language: String) -> Bool {
+        brains.contains { $0.answers(alias: alias, input: input, language: language) }
+    }
+
+    /// Where the answers to `aliases` come from: all on this device, on this device with the hosted model as the fallback,
+    /// or the hosted model.
+    package func route(for aliases: [String], input: String, language: String) -> HostedBrainRoute {
+        let answering = brains.filter { brain in aliases.allSatisfy { brain.answers(alias: $0, input: input, language: language) } }
+        guard answering.first?.isOnDevice == true else { return .hosted }
+        return answering.contains { !$0.isOnDevice } ? .onDeviceFirst : .onDevice
+    }
+
+    /// The answer from the first model that gives one. A model on the device that fails hands the request on to the next;
+    /// the last one's refusal is the one the person sees.
+    package func ask(alias: String, input: String, language: String) async throws(HostedBrainError) -> String {
+        let answering = brains.filter { $0.answers(alias: alias, input: input, language: language) }
+        guard let last = answering.last else { throw .unavailable }
+        for brain in answering.dropLast() {
+            do {
+                return try await brain.ask(alias: alias, input: input, language: language)
+            } catch {
+                MidgarLog.notice("On-device model gave no answer for \(alias) (\(error)); asking the next model", category: .lifecycle)
+            }
+        }
+        return try await last.ask(alias: alias, input: input, language: language)
+    }
+}
+
+/// Where a feature's answers come from, for what it tells the person leaves the device.
+package enum HostedBrainRoute: Equatable, Sendable {
+    /// Apple Intelligence answers on this device and nothing is sent.
+    case onDevice
+    /// Apple Intelligence answers on this device; only when it cannot does the hosted model get the request.
+    case onDeviceFirst
+    /// The hosted model answers.
+    case hosted
 }
 
 #if DEBUG

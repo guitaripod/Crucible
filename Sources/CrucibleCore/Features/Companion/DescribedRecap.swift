@@ -10,7 +10,8 @@ package struct DescribedEpisode: Equatable, Sendable, Identifiable {
 }
 
 /// A Previously On without Crucible Server: the last finished episodes' own descriptions from Plex, shown as they
-/// are, and written into one recap by Crucible's hosted model when the person asks for that. Only the name of the
+/// are, and written into one recap when the person asks for that, by Apple Intelligence on the device where it can and
+/// by Crucible's hosted model otherwise. Only the name of the
 /// series and those descriptions are sent. With Crucible Server the recap comes from what was said.
 package enum DescribedRecap {
     package static let alias = "recap.describe.v1"
@@ -64,7 +65,7 @@ package enum DescribedRecap {
         !episodes.isEmpty && HostedBrain.canAnswer(alias: alias, input: input(show: show, episodes: episodes))
     }
 
-    /// The recap of these episodes, written by the hosted model.
+    /// The recap of these episodes, written by the device's own model or the hosted one.
     package static func write(show: String, episodes: [DescribedEpisode]) async throws(HostedBrainError) -> String {
         let reply = try await HostedBrain.ask(alias: alias, input: input(show: show, episodes: episodes))
         guard let recap = recap(from: reply) else { throw .failed }
@@ -89,7 +90,14 @@ package enum DescribedRecapCopy {
         guard HostedBrain.takesAnyRequest else {
             return String(localized: "In the demo this recap was prepared ahead, and nothing leaves this device.", comment: "Shown in the demo in place of what a recap sends")
         }
-        return String(localized: "Writing a recap sends the name of the series and these descriptions to Crucible's AI. Nothing else leaves this device.", comment: "What a described Previously On sends to the hosted model")
+        switch HostedBrain.route(for: [DescribedRecap.alias]) {
+        case .onDevice:
+            return String(localized: "Apple Intelligence writes the recap on this device from these descriptions. Nothing leaves it.", comment: "What a described Previously On sends when the device's own model writes it")
+        case .onDeviceFirst:
+            return String(localized: "Apple Intelligence writes the recap on this device. Only if it can't are the name of the series and these descriptions sent to Crucible's AI. Nothing else leaves this device.", comment: "What a described Previously On sends when the device's own model writes it and the hosted model is the fallback")
+        case .hosted:
+            return String(localized: "Writing a recap sends the name of the series and these descriptions to Crucible's AI. Nothing else leaves this device.", comment: "What a described Previously On sends to the hosted model")
+        }
     }
     package static let withServer = String(localized: "With Crucible Server on the computer with Plex, it is written from what was said in the episodes.", comment: "Hint under a Previously On made from descriptions")
 
