@@ -315,6 +315,32 @@ enum SharedGPU {
         grid.removeFromSuperview()
     }
 
+    @Test func aSidebarSelectsWithAClickAndNamesItsRowsWhenCollapsed() {
+        let sidebar = SidebarView()
+        var chosen: [String] = []
+        sidebar.sections = [.init(items: [.init(id: "home", title: "Home", symbol: "house"), .init(id: "search", title: "Search", symbol: "magnifyingglass")]),
+                            .init(title: "Libraries", items: [.init(id: "movies", title: "Movies", symbol: "film", shortcut: "Ctrl+3")])]
+        sidebar.footer = [.init(id: "settings", title: "Settings", symbol: "gearshape")]
+        sidebar.onSelect = { item, _ in chosen.append(item.id) }
+        sidebar.select("home")
+        sidebar.frame = Rect(x: 0, y: 0, width: sidebar.width, height: 720)
+        window.contentView.addSubview(sidebar)
+        window.render()
+        guard let movies = sidebar.frameOfRow("movies"), let settings = sidebar.frameOfRow("settings") else { Issue.record("rows missing"); return }
+        click(Point(x: movies.midX, y: movies.midY))
+        click(Point(x: settings.midX, y: settings.midY))
+        #expect(chosen == ["movies", "settings"])
+        #expect(settings.maxY <= 720 && settings.minY > movies.maxY, "the footer sits at the bottom")
+        sidebar.isCollapsed = true
+        sidebar.frame = Rect(x: 0, y: 0, width: sidebar.width, height: 720)
+        window.render()
+        let rail = sidebar.frameOfRow("movies") ?? .zero
+        let row = sidebar.subviews.flatMap { [$0] + $0.subviews }.compactMap { $0 as? SidebarRow }.first { $0.item.id == "movies" }
+        #expect(row?.tooltip(at: Point(x: 4, y: 4)) == "Movies (Ctrl+3)")
+        #expect(rail.width < movies.width)
+        sidebar.removeFromSuperview()
+    }
+
     @Test func aDesktopScrollbarPagesOnAClickAndDragsItsThumb() {
         ScrollView.desktopScrollbars = true
         defer { ScrollView.desktopScrollbars = false }

@@ -42,7 +42,8 @@ public struct Metrics {
     public var shelfBottomInset: Float { tv(64) }
     public var shelfHeaderHeight: Float { tv(84) }
     public var sectionSpacing: Float { tv(24) }
-    public var tabBarClearance: Float { tv(150) }
+    /// Room a page leaves at its top: below the floating tab bar on a couch, a margin beside the sidebar on a desk.
+    public var tabBarClearance: Float { density == .desk ? tv(70) : tv(150) }
 
     public var formColumn: Float { tv(1000) }
     public var wideColumn: Float { tv(1100) }

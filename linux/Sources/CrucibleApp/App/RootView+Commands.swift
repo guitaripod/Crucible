@@ -22,7 +22,7 @@ extension RootView {
     }
 
     private var goCommands: AppCommandGroup {
-        let tabs = tabBar.tabs.prefix(9).enumerated().map { index, tab in
+        let tabs = destinations.prefix(9).enumerated().map { index, tab in
             let extra = tab.id == "search" ? [KeyName.chord(KeyName.ctrl, "F"), "/"] : []
             return AppCommand(tab.title, keys: [KeyName.chord(KeyName.ctrl, "\(index + 1)")] + extra) { [weak self] in self?.select(tab.id) }
         }
@@ -45,6 +45,8 @@ extension RootView {
                 LinuxDisplay.toggleDensity(in: self?.window)
             },
             AppCommand(String(localized: "Appearance")) { [weak self] in LinuxDisplay.toggleAppearance(in: self?.window) },
+            AppCommand(String(localized: "Show or Hide Sidebar", comment: "Linux app menu: narrows the sidebar to a rail of symbols or widens it"),
+                       keys: [KeyName.chord(KeyName.ctrl, "B")]) { [weak self] in self?.toggleSidebar() },
             AppCommand(AppCommandCopy.shortcuts, keys: [KeyName.chord(KeyName.ctrl, "?")]) { [weak self] in self?.presentShortcuts() },
             AppCommand(AppCommandCopy.newWindow, keys: [KeyName.chord(KeyName.ctrl, "N")]) { [weak self] in self?.onNewWindow?(nil) },
             AppCommand(AppCommandCopy.closeWindow, keys: [KeyName.chord(KeyName.ctrl, "W")]) { [weak self] in self?.onCloseWindow?() },
@@ -113,7 +115,11 @@ extension RootView {
     func presentCommandMenu(anchor: Rect? = nil) {
         guard let window else { return }
         let groups = commandGroups.filter(\.inMenu)
-        let place = anchor ?? tabBar.menuAnchor ?? Rect(x: bounds.midX, y: Theme.current.metrics.tabBarTop, width: 1, height: 1)
+        let place = anchor ?? (usesSidebar ? sidebar.frameOfRow("menu") : tabBar.menuAnchor) ?? Rect(x: bounds.midX, y: Theme.current.metrics.tabBarTop, width: 1, height: 1)
+        if usesSidebar {
+            presentDeskCommandMenu(groups, anchor: place)
+            return
+        }
         let menu = MenuView(title: AppCommandCopy.menu, items: groups.enumerated().map { index, group in
             MenuView.Item(id: "\(index)", title: group.title, symbol: "chevron.right")
         }, anchor: place)
@@ -122,6 +128,20 @@ extension RootView {
             self.presentCommands(groups[index], anchor: place)
         }
         menu.present(in: window)
+    }
+
+    /// On a desk, the app's menu as a desktop menu: each group a submenu of its commands with their keys.
+    private func presentDeskCommandMenu(_ groups: [AppCommandGroup], anchor: Rect) {
+        guard let window else { return }
+        let entries: [ContextMenuView.Entry] = groups.map { group in
+            .submenu(group.title) {
+                group.commands.compactMap { command in
+                    guard let run = command.run else { return nil }
+                    return .action(ContextMenuView.Action(command.title, shortcut: command.keys.first) { run() })
+                }
+            }
+        }
+        ContextMenuView(anchor: anchor, highlightingFirstRow: false) { entries }.present(in: window)
     }
 
     private func presentCommands(_ group: AppCommandGroup, anchor: Rect) {

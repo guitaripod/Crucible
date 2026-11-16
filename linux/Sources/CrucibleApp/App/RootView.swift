@@ -4,8 +4,11 @@ import Foundation
 import Kiln
 import MidgarCore
 
-/// The main UI: the floating glass tab bar over one navigation stack per tab, as on the Apple TV. Escape pops the current
-/// stack and, at its root, moves focus up to the tab bar; Ctrl with a number picks a tab.
+/// The main UI: one navigation stack per destination, reached in the Steam Deck layout from the floating glass tab bar as
+/// on the Apple TV, and in the Desktop layout from a sidebar down the window's leading edge with Back and Forward at its
+/// head, every library listed (no More), and Settings and the app's menu at its foot (Ctrl+B narrows it to a rail of
+/// symbols, as does a narrow window). Escape pops the current stack and, at its root, moves focus to the tab bar or the
+/// sidebar; Ctrl with a number picks a destination in the order they show.
 @MainActor
 final class RootView: View, WindowRestoration.Restorable {
     let payload: LaunchPayload
@@ -23,6 +26,7 @@ final class RootView: View, WindowRestoration.Restorable {
     var onCloseWindow: (() -> Void)?
 
     let tabBar = TabBarView()
+    let sidebar = SidebarView()
     private var stacks: [String: NavigationView] = [:]
     private(set) var current: NavigationView?
     private var currentID = "home"
@@ -47,7 +51,85 @@ final class RootView: View, WindowRestoration.Restorable {
         tabBar.menuTitle = AppCommandCopy.menu
         tabBar.onMenu = { [weak self] anchor in self?.presentCommandMenu(anchor: anchor) }
         addSubview(tabBar)
+        installSidebar()
         select("home")
+    }
+
+    /// Whether the Desktop layout's sidebar stands in for the tab bar.
+    var usesSidebar: Bool { Theme.current.density == .desk }
+
+    /// Every library, the tab bar's and More's, each its own destination in the sidebar.
+    private var allLibraries: [PlexDirectory] { libraryLayout.tabs + libraryLayout.overflow }
+
+    /// The destinations in the order the layout shows them, which Ctrl with a number and the shoulder buttons follow:
+    /// the tab bar's, or the sidebar's (Home, Search, the libraries, You).
+    var destinations: [TabBarView.Tab] {
+        guard usesSidebar else { return tabBar.tabs }
+        return sidebar.sections.flatMap(\.items).map { TabBarView.Tab(id: $0.id, title: $0.title, symbol: $0.symbol) }
+    }
+
+    private func installSidebar() {
+        var libraries: [SidebarView.Item] = []
+        for directory in allLibraries {
+            guard let key = directory.key, let title = directory.title else { continue }
+            libraries.append(.init(id: "library-\(key)", title: title, symbol: directory.type == "show" ? "tv" : "film"))
+        }
+        let top: [SidebarView.Item] = [
+            .init(id: "home", title: String(localized: "Home"), symbol: "house"),
+            .init(id: "search", title: String(localized: "Search"), symbol: "magnifyingglass"),
+        ]
+        var sections = [SidebarView.Section(items: top)]
+        if !libraries.isEmpty { sections.append(.init(title: String(localized: "Libraries"), items: libraries)) }
+        sections.append(.init(items: [.init(id: "you", title: String(localized: "You"), symbol: "person.crop.circle")]))
+        var numbered = 0
+        sidebar.sections = sections.map { section in
+            var section = section
+            section.items = section.items.map { item in
+                numbered += 1
+                var item = item
+                var keys = numbered <= 9 ? [KeyName.chord(KeyName.ctrl, "\(numbered)")] : []
+                if item.id == "search" { keys.append(KeyName.chord(KeyName.ctrl, "F")) }
+                item.shortcut = keys.isEmpty ? nil : keys.joined(separator: ", ")
+                return item
+            }
+            return section
+        }
+        sidebar.footer = [
+            .init(id: "settings", title: String(localized: "Settings"), symbol: "gearshape", shortcut: KeyName.chord(KeyName.ctrl, ",")),
+            .init(id: "menu", title: AppCommandCopy.menu, symbol: "line.3.horizontal", shortcut: "F10"),
+        ]
+        sidebar.isCollapsed = UserDefaults.standard.bool(forKey: Self.sidebarCollapsedKey)
+        sidebar.onSelect = { [weak self] item, rect in
+            guard let self else { return }
+            switch item.id {
+            case "settings": self.openSettings()
+            case "menu": self.presentCommandMenu(anchor: rect)
+            default:
+                if item.id == self.currentID, let stack = self.current, stack.screens.count > 1 { stack.popToRoot() } else { self.select(item.id) }
+            }
+        }
+        sidebar.onBack = { [weak self] in _ = self?.handleBack() }
+        sidebar.onForward = { [weak self] in _ = self?.handleForward() }
+        addSubview(sidebar)
+    }
+
+    private static let sidebarCollapsedKey = "linux.sidebarCollapsed"
+
+    /// Narrows the sidebar to its rail or widens it again (Ctrl+B), and keeps the choice.
+    func toggleSidebar() {
+        let collapsed = !UserDefaults.standard.bool(forKey: Self.sidebarCollapsedKey)
+        UserDefaults.standard.set(collapsed, forKey: Self.sidebarCollapsedKey)
+        setNeedsLayout()
+    }
+
+    /// The sidebar's Back and Forward follow the current stack, and its selection the destination (Settings while a
+    /// settings page is on top of You).
+    private func updateSidebar() {
+        guard usesSidebar else { return }
+        sidebar.canGoBack = (current?.screens.count ?? 0) > 1
+        sidebar.canGoForward = current?.canGoForward ?? false
+        let inSettings = currentID == "you" && (current?.screens.contains { $0 is SettingsScreen } ?? false)
+        sidebar.select(inSettings ? "settings" : currentID)
     }
 
     /// Opens the tab and title `state` kept (the window's when Crucible last ran on this server), then starts remembering
@@ -57,7 +139,7 @@ final class RootView: View, WindowRestoration.Restorable {
             remembersWindow = true
             if !DemoMode.shared.isActive { WindowRestoration.track(self) }
         }
-        guard !DemoMode.shared.isActive, let state, tabBar.tabs.contains(where: { $0.id == state.tab }) else { return }
+        guard !DemoMode.shared.isActive, let state, (tabBar.tabs + destinations).contains(where: { $0.id == state.tab }) else { return }
         select(state.tab)
         if let route = state.route { push(DetailScreen.make(api: payload.api, route: route)) }
     }
@@ -99,7 +181,7 @@ final class RootView: View, WindowRestoration.Restorable {
     private func makeStack(for id: String) -> NavigationView {
         if let existing = stacks[id] { return existing }
         let screen: ScreenView
-        if id.hasPrefix("library-"), let directory = libraryLayout.tabs.first(where: { "library-\($0.key ?? "")" == id }) {
+        if id.hasPrefix("library-"), let directory = allLibraries.first(where: { "library-\($0.key ?? "")" == id }) {
             screen = LibraryScreen(api: payload.api, directory: directory)
         } else if id == "more" {
             screen = MoreScreen(api: payload.api, libraries: libraryLayout.overflow)
@@ -131,17 +213,18 @@ final class RootView: View, WindowRestoration.Restorable {
         current = stack
         insertSubview(stack, below: tabBar)
         stack.isHidden = player != nil
-        stack.frame = bounds
+        stack.frame = contentFrame
         tabBar.setHidden(false, animated: true)
         window?.focus.focus(stack, animated: false)
         if existed { stack.top?.screenDidAppear() }
+        updateSidebar()
         rememberWindow()
     }
 
     /// The next or the previous tab (a gamepad's shoulder buttons, Ctrl with Page Down or Page Up), stopping at the ends
     /// as the tvOS tab bar does.
     private func stepTab(forward: Bool) {
-        let ids = tabBar.tabs.map(\.id)
+        let ids = destinations.map(\.id)
         guard let index = ids.firstIndex(of: currentID) else { return }
         let next = index + (forward ? 1 : -1)
         guard ids.indices.contains(next) else { return }
@@ -151,12 +234,13 @@ final class RootView: View, WindowRestoration.Restorable {
 
     /// Opens the first library's tab, or More when every library is there (the demo tour's Browse a library).
     func selectFirstLibrary() {
-        guard let tab = tabBar.tabs.first(where: { $0.id.hasPrefix("library-") || $0.id == "more" }) else { return }
+        guard let tab = destinations.first(where: { $0.id.hasPrefix("library-") || $0.id == "more" }) else { return }
         select(tab.id)
     }
 
     private func navigationChanged() {
         tabBar.setHidden(false, animated: true)
+        updateSidebar()
         rememberWindow()
     }
 
@@ -169,9 +253,10 @@ final class RootView: View, WindowRestoration.Restorable {
         guard let current else { return false }
         if let top = current.top, top.handleBack() { return true }
         if current.pop() { return true }
-        if window?.focusedView?.isDescendant(of: tabBar) == false {
+        let bar: View = usesSidebar ? sidebar : tabBar
+        if window?.focusedView?.isDescendant(of: bar) == false {
             tabBar.setHidden(false, animated: true)
-            window?.focus.focus(tabBar, animated: true)
+            window?.focus.focus(bar, animated: true)
             return true
         }
         return false
@@ -249,9 +334,14 @@ final class RootView: View, WindowRestoration.Restorable {
             onCloseWindow?()
             return true
         }
+        if event.key == Key.character("b") && event.modifiers == .control, usesSidebar, player == nil {
+            toggleSidebar()
+            return true
+        }
         let digit = Int(event.key.rawValue) - 0x30
-        if event.modifiers == .control, digit >= 1, digit <= min(9, tabBar.tabs.count) {
-            select(tabBar.tabs[digit - 1].id)
+        let ordered = destinations
+        if event.modifiers == .control, digit >= 1, digit <= min(9, ordered.count) {
+            select(ordered[digit - 1].id)
             return true
         }
         return false
@@ -303,7 +393,8 @@ final class RootView: View, WindowRestoration.Restorable {
     /// shows them again (their animations carry on) when it closes.
     private func showUnderPlayer(_ shown: Bool) {
         current?.isHidden = !shown
-        tabBar.isHidden = !shown
+        tabBar.isHidden = !shown || usesSidebar
+        sidebar.isHidden = !shown || !usesSidebar
     }
 
     /// Shows `item`'s page from anywhere: the player closes, Home's stack unwinds to its root and the page goes on top.
@@ -316,7 +407,7 @@ final class RootView: View, WindowRestoration.Restorable {
 
     /// Whether nothing covers the tabs: no player, alert, menu, sheet or launch gate on its way out.
     var isUnobstructed: Bool {
-        player == nil && subviews.allSatisfy { $0 === tabBar || $0 === current }
+        player == nil && subviews.allSatisfy { $0 === tabBar || $0 === sidebar || $0 === current }
     }
 
     /// Ends playback if a player is up; the server hears where it stopped.
@@ -332,14 +423,27 @@ final class RootView: View, WindowRestoration.Restorable {
     /// The tab bar slides away while a screen's content scrolls down, and comes back at the top or when focus reaches it.
     /// The tab bar slides away while content scrolls down, except on Search, where it stays.
     func contentScrolled(offset: Float) {
+        guard !usesSidebar else { return }
         tabBar.setHidden(currentID != "search" && offset > Theme.current.metrics.tv(40), animated: true)
+    }
+
+    /// Where the current destination's screens go: beside the sidebar, or the whole window under the floating tab bar.
+    private var contentFrame: Rect {
+        guard usesSidebar else { return bounds }
+        let width = sidebar.width
+        return Rect(x: width, y: 0, width: max(frame.width - width, 0), height: frame.height)
     }
 
     override func layoutSubviews() {
         let metrics = Theme.current.metrics
-        current?.frame = bounds
+        sidebar.isCollapsed = UserDefaults.standard.bool(forKey: Self.sidebarCollapsedKey) || frame.width < metrics.tv(1900)
+        tabBar.isHidden = usesSidebar || player != nil
+        sidebar.isHidden = !usesSidebar || player != nil
+        sidebar.frame = Rect(x: 0, y: 0, width: sidebar.width, height: frame.height)
+        current?.frame = contentFrame
         player?.frame = bounds
         tabBar.frame = Rect(x: 0, y: 0, width: frame.width, height: metrics.tabBarTop + metrics.tabBarHeight + metrics.tv(20))
+        updateSidebar()
     }
 }
 

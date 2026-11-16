@@ -34,6 +34,8 @@ final class NavigationView: View {
     private var forwardScreens: [ScreenView] = []
 
     var top: ScreenView? { screens.last }
+    /// Whether Forward has a screen Back popped to bring back.
+    var canGoForward: Bool { !forwardScreens.isEmpty }
     var onChange: (() -> Void)?
 
     init(root: ScreenView) {
