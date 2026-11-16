@@ -96,10 +96,12 @@ final class SceneRenderer {
 
     /// `layout`'s text rasterised at `pixelScale` pixels per point when that differs from the window's (a lifted card or
     /// row), so it is drawn at its own size and stays sharp instead of a stretched mask; nil when the scales match, or when
-    /// this frame has rasterised its share and the text is not ready yet (it then draws stretched for a frame or two).
+    /// this frame has rasterised its share and the text is not ready yet (it then draws stretched for a frame or two). The
+    /// scale is taken in steps of 1/64, under half a pixel on any title, so a lift reuses a handful of rasterisations
+    /// instead of shaping and uploading the text anew on almost every frame of the spring.
     func sharpText(_ layout: TextLayout, pixelScale: Float) -> Texture? {
         guard !layout.text.isEmpty, abs(pixelScale / scale - 1) > 0.002, pixelScale / scale < 2 else { return nil }
-        let style = layout.style(atScale: (pixelScale * 512).rounded() / 512)
+        let style = layout.style(atScale: (pixelScale * 64).rounded() / 64)
         if !text.hasTexture(for: layout.text, style: style) {
             guard sharpTextBudget > 0 else { return nil }
             sharpTextBudget -= 1
