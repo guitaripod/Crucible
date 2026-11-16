@@ -107,13 +107,15 @@ public struct TextLayout {
     public var isInColor: Bool { style.inColor }
 
     /// The style this layout's text takes rasterised at `pixelScale` pixels per point (a lifted card's or row's), with the
-    /// same text and line breaks.
+    /// same text and line breaks: glyph widths do not grow exactly with the size, so the width gets a little slack, or a
+    /// title that just fit would be cut short with an ellipsis while lifted.
     func style(atScale pixelScale: Float) -> TextStyle {
         var scaled = style
         let factor = Double(pixelScale / scale)
         scaled.sizePixels *= factor
         scaled.letterSpacingPixels *= factor
-        scaled.maxWidthPixels = maxWidth > 0 ? Int((maxWidth * pixelScale).rounded(.down)) : 0
+        let width = maxWidth * pixelScale
+        scaled.maxWidthPixels = maxWidth > 0 ? Int(width.rounded(.up) + 2 + width * 0.01) : 0
         return scaled
     }
 
