@@ -17,6 +17,8 @@ public struct CardItem: Hashable, Sendable {
     public var badgeText: String?
     /// What acting on the card does beyond opening it, read after its state ("Press the Menu key for more options").
     public var accessibilityHint: String?
+    /// The title's `crucible://` link, which a middle click opens in a new window.
+    public var link: URL?
     public var placeholderSymbol: Symbol = "film"
     /// UTF-16 ranges of the title tinted in the accent (a search query's match).
     public var titleHighlights: [Range<Int>] = []
@@ -237,6 +239,10 @@ public final class CardView: View {
         case .secondary:
             onContextMenu?(item, transformToWindow.apply(point))
             return onContextMenu != nil
+        case .middle:
+            guard let link = item.link, let window else { return false }
+            window.openInNewWindow(link)
+            return true
         default:
             return false
         }
