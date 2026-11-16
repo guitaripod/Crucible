@@ -389,9 +389,7 @@ final class TraktCommentComposerViewController: UIViewController, UITextViewDele
 
     /// Offers Translate to English while the draft reads as another language and the device can translate it.
     private func refreshTranslateButton(_ text: String) {
-        let center = TranslationCenter.shared
-        let words = TraktCommentDraft(text).wordCount
-        let foreign = center.isAvailable && words >= 3 && center.language(ofDraft: text).map { !TranslationLanguages.isSame($0, "en") } == true
+        let foreign = TraktCommentDraft(text).wordCount >= 3 && TranslationCenter.shared.canTranslateDraft(text, into: "en")
         guard translateButton.isHidden == foreign || isTranslating else { return }
         translateButton.isHidden = !foreign && !isTranslating
     }

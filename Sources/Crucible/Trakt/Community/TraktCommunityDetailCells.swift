@@ -257,7 +257,7 @@ final class TraktSentimentsContentView: UIView, UIContentView {
     private let veil = UIVisualEffectView(effect: UIBlurEffect(style: .systemThinMaterial))
     private let unlockButton = UIButton(configuration: .plain())
     private let lockLabel = UILabel()
-    private var shown: (TraktSentiments, Bool)?
+    private var shown: (sentiments: TraktSentiments, isLocked: Bool, words: [String])?
 
     init(configuration: TraktSentimentsConfiguration) {
         self.configuration = configuration
@@ -351,8 +351,9 @@ final class TraktSentimentsContentView: UIView, UIContentView {
         veil.isHidden = !config.isLocked
         groups.accessibilityElementsHidden = config.isLocked
         footnote.text = TraktCommunityCopy.sentimentSource(config.sentiments.commentCount)
-        if let shown, shown.0 == config.sentiments, shown.1 == config.isLocked { return }
-        shown = (config.sentiments, config.isLocked)
+        let words = (config.sentiments.good + config.sentiments.bad).map(TraktSentimentsTranslation.text)
+        if let shown, shown.sentiments == config.sentiments, shown.isLocked == config.isLocked, shown.words == words { return }
+        shown = (config.sentiments, config.isLocked, words)
         groups.arrangedSubviews.forEach { $0.removeFromSuperview() }
         if !config.sentiments.good.isEmpty {
             groups.addArrangedSubview(group(TraktCommunityCopy.theGood, symbol: "hand.thumbsup.fill", tint: .systemGreen, aspects: config.sentiments.good, enabled: !config.isLocked))

@@ -37,6 +37,7 @@ final class TraktCommentsViewController: UICollectionViewController {
     private var revealed = Set<Int>()
     private var loadTask: Task<Void, Never>?
     private var changeObserver: NSObjectProtocol?
+    private var translationObserver: NSObjectProtocol?
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
     private lazy var sortItem = UIBarButtonItem(image: UIImage(systemName: "arrow.up.arrow.down"), menu: sortMenu())
 
@@ -55,6 +56,7 @@ final class TraktCommentsViewController: UICollectionViewController {
 
     deinit {
         if let changeObserver { NotificationCenter.default.removeObserver(changeObserver) }
+        if let translationObserver { NotificationCenter.default.removeObserver(translationObserver) }
     }
 
     override func viewDidLoad() {
@@ -82,7 +84,20 @@ final class TraktCommentsViewController: UICollectionViewController {
             guard let change = note.object as? TraktCommunity.Change else { return }
             MainActor.assumeIsolated { self?.handle(change) }
         }
+        translationObserver = NotificationCenter.default.addObserver(forName: .translationChanged, object: nil, queue: .main) { [weak self] note in
+            let key = note.object as? String
+            MainActor.assumeIsolated { self?.aspectTranslationChanged(key) }
+        }
         reload()
+    }
+
+    /// Redraws the aspect heading once its translation lands; the comments' own cells follow their translations.
+    private func aspectTranslationChanged(_ key: String?) {
+        guard case .aspect = source, key == nil || key?.hasPrefix(TraktSentimentsTranslation.prefix) == true else { return }
+        var snapshot = dataSource.snapshot()
+        guard snapshot.indexOfItem(.aspect) != nil else { return }
+        snapshot.reconfigureItems([.aspect])
+        dataSource.apply(snapshot, animatingDifferences: false)
     }
 
     private func configureDataSource() {

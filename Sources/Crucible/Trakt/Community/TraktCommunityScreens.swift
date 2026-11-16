@@ -150,7 +150,9 @@ enum TraktCommunityScreens {
                 UIPasteboard.general.string = TraktCommentText(TranslationCenter.shared.displayed(comment).text).plainText
             },
         ]
-        if let translation = translationAction(for: comment) { share.insert(translation, at: 0) }
+        share.insert(UIDeferredMenuElement.uncached { completion in
+            completion(translationAction(for: comment).map { [$0] } ?? [])
+        }, at: 0)
         if let url = comment.webURL {
             share.append(UIAction(title: TraktCommunityCopy.openOnTrakt, image: UIImage(systemName: "safari")) { _ in
                 UIApplication.shared.open(url)

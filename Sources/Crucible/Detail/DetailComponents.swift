@@ -439,6 +439,7 @@ final class DetailOverviewContentView: UIView, UIContentView {
     private let toggleButton = UIButton(configuration: .plain())
     private let translationButton = TranslationLineButton()
     private var translationObservers: [NSObjectProtocol] = []
+    private var measuredWidth: CGFloat = 0
 
     init(configuration: DetailOverviewConfiguration) {
         self.configuration = configuration
@@ -497,8 +498,7 @@ final class DetailOverviewContentView: UIView, UIContentView {
         let refresh: @Sendable (Notification) -> Void = { [weak self] note in
             let key = note.object as? String
             MainActor.assumeIsolated {
-                guard let self, let config = self.configuration as? DetailOverviewConfiguration, let translationKey = config.translationKey,
-                      key == nil || key == translationKey else { return }
+                guard let self, let translationKey = self.translationKey, key == nil || key == translationKey else { return }
                 self.apply()
                 self.invalidateIntrinsicContentSize()
             }
@@ -509,8 +509,25 @@ final class DetailOverviewContentView: UIView, UIContentView {
         ]
     }
 
+    /// The description's key with its words in it, so an edited description is translated afresh.
+    private var translationKey: String? {
+        guard let config = configuration as? DetailOverviewConfiguration, let key = config.translationKey else { return nil }
+        return "\(key).\(config.text.hashValue)"
+    }
+
+    /// Measures again once the width is known or changes, since a translation can need more lines than the description
+    /// the page measured.
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        guard bounds.width != measuredWidth else { return }
+        measuredWidth = bounds.width
+        let toggleWasHidden = toggleButton.isHidden
+        apply()
+        if toggleButton.isHidden != toggleWasHidden { invalidateIntrinsicContentSize() }
+    }
+
     private func translationTapped() {
-        guard let config = configuration as? DetailOverviewConfiguration, let key = config.translationKey else { return }
+        guard let config = configuration as? DetailOverviewConfiguration, let key = translationKey else { return }
         let center = TranslationCenter.shared
         switch translationButton.phase {
         case .offer, .failed: center.translate(key: key, text: config.text)
@@ -522,7 +539,7 @@ final class DetailOverviewContentView: UIView, UIContentView {
 
     private func apply() {
         guard let config = configuration as? DetailOverviewConfiguration else { return }
-        let translation = config.translationKey.map { TranslationCenter.shared.presentation(key: $0, text: config.text) } ?? .none
+        let translation = translationKey.map { TranslationCenter.shared.presentation(key: $0, text: config.text) } ?? .none
         let text = translation.showsTranslation ? translation.translation.map { TraktCommentText($0).plainText } ?? config.text : config.text
         translationButton.show(translation)
         label.attributedText = DetailOverviewConfiguration.attributedText(text)
