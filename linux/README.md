@@ -20,6 +20,7 @@ From the repository root:
 
 ```bash
 linux/scripts/build-mpv.sh                      # libmpv and libplacebo from linux/Vendor/mpv into linux/.build/mpv (once, about 35 s)
+linux/scripts/build-accesskit.sh                # AccessKit (screen readers over AT-SPI) from linux/Vendor/accesskit, beside them (once, about 25 s)
 export PKG_CONFIG_PATH=$PWD/linux/.build/mpv/lib/pkgconfig LD_LIBRARY_PATH=$PWD/linux/.build/mpv/lib
 swift build --product crucible-gallery
 linux/scripts/test.sh --filter 'KilnTests|CrucibleUITests'  # needs a Vulkan GPU; with no filter it runs Core too, its defaults kept out of ~/.config

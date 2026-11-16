@@ -10,7 +10,7 @@ depends=('vulkan-icd-loader' 'wayland' 'libxkbcommon' 'pango' 'cairo' 'fontconfi
          'libsecret' 'qrencode' 'systemd-libs' 'ffmpeg' 'libass' 'shaderc' 'lcms2' 'libplacebo' 'pipewire' 'xdg-utils' 'sqlite' 'curl' 'openssl' 'libxml2')
 optdepends=('noto-fonts-emoji: emoji in comments, reactions and titles drawn in colour'
             'noto-fonts-cjk: Chinese, Japanese and Korean titles and names')
-makedepends=('git' 'meson' 'ninja' 'patchelf' 'imagemagick' 'vulkan-headers' 'swift-bin')
+makedepends=('git' 'meson' 'ninja' 'patchelf' 'imagemagick' 'vulkan-headers' 'swift-bin' 'cargo')
 provides=('crucible')
 conflicts=('crucible')
 options=('!lto' '!debug' '!strip')
@@ -27,6 +27,7 @@ pkgver() {
 build() {
     cd Crucible
     linux/scripts/build-mpv.sh
+    linux/scripts/build-accesskit.sh
     PKG_CONFIG_PATH="$PWD/linux/.build/mpv/lib/pkgconfig" swift build -c release --product crucible --static-swift-stdlib
 }
 

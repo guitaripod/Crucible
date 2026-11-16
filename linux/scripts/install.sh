@@ -10,6 +10,7 @@ lib="$prefix/lib/crucible"
 mpv="$repo/linux/.build/mpv"
 
 [ -f "$mpv/lib/libmpv.so.2" ] || "$repo/linux/scripts/build-mpv.sh"
+[ -f "$mpv/lib/libaccesskit.a" ] || "$repo/linux/scripts/build-accesskit.sh"
 
 # Trakt's Client ID lives in a file kept out of the public repository; a build without it compiles but has no Trakt.
 # Take it from the main checkout or the vault copy, as scripts/store-build.sh does, and refuse to install without it.
