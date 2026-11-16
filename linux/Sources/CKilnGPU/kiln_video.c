@@ -54,7 +54,8 @@ kiln_video *kiln_video_create(kiln_gpu *g, char *error, size_t error_size) {
     }
     const char *options[][2] = {
         { "vo", "libmpv" }, { "hwdec", "auto-safe" }, { "terminal", "no" }, { "idle", "yes" }, { "keep-open", "yes" },
-        { "target-trc", "linear" }, { "target-prim", "bt.709" }, { "target-peak", "10000" }, { "target-colorspace-hint", "no" },
+        { "target-trc", "linear" }, { "target-prim", "bt.709" }, { "target-peak", "10000" }, { "target-min-luma", "0.000001" },
+        { "target-colorspace-hint", "no" },
         { "tone-mapping", "clip" }, { "gamut-mapping-mode", "clip" }, { "hdr-compute-peak", "no" }, { "dither", "no" },
         { "video-sync", "audio" }, { "cache", "yes" }, { "demuxer-max-bytes", "256MiB" }, { "demuxer-readahead-secs", "30" },
         { "input-default-bindings", "no" }, { "input-vo-keyboard", "no" }, { "osc", "no" }, { "ytdl", "no" },
