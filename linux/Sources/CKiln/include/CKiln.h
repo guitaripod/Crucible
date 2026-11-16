@@ -217,6 +217,8 @@ typedef struct {
     bool hdr_capable;
     bool hdr;
     bool wide_color_gamut;
+    /** The screen follows a fullscreen window's frame rate (variable refresh, KWin's policy Automatic or Always). */
+    bool adaptive_sync;
     int mode_count;
     kiln_display_mode modes[KILN_DISPLAY_MODES];
 } kiln_display_state;

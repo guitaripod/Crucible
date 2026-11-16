@@ -40,4 +40,15 @@ struct MatchContentTests {
         #expect(plan(24, hdr: true, on: true).hdr == nil, "already on")
         #expect(plan(24, hdr: false, on: true).hdr == nil, "an SDR title leaves HDR as the viewer set it")
     }
+
+    @Test func aScreenWithVariableRefreshKeepsItsModeAndOnlyTurnsOnHDR() {
+        let fast = DisplayMode(width: 3840, height: 2160, refreshMilliHertz: 165_000)
+        let film = DisplayMode(width: 3840, height: 2160, refreshMilliHertz: 119_880)
+        let sdr = MatchContentPlan.make(frameRate: 23.976, isHDR: false, current: fast, modes: [fast, film], hdrCapable: true, hdrOn: false, adaptiveSync: true)
+        #expect(sdr.changesNothing)
+        let hdr = MatchContentPlan.make(frameRate: 23.976, isHDR: true, current: fast, modes: [fast, film], hdrCapable: true, hdrOn: false, adaptiveSync: true)
+        #expect(hdr.refreshMilliHertz == nil && hdr.hdr == true)
+        let fixed = MatchContentPlan.make(frameRate: 23.976, isHDR: false, current: fast, modes: [fast, film], hdrCapable: true, hdrOn: false)
+        #expect(fixed.refreshMilliHertz == 119_880)
+    }
 }

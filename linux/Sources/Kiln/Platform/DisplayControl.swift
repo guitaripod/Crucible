@@ -23,6 +23,8 @@ public final class DisplayControl: @unchecked Sendable {
         public var hdrCapable: Bool
         public var hdr: Bool
         public var wideColorGamut: Bool
+        /// The screen follows a fullscreen window's frame rate (variable refresh), so no refresh needs choosing.
+        public var adaptiveSync: Bool = false
     }
 
     private let handle: OpaquePointer
@@ -43,7 +45,8 @@ public final class DisplayControl: @unchecked Sendable {
         let modes = withUnsafeBytes(of: raw.modes) { buffer in
             Array(buffer.bindMemory(to: kiln_display_mode.self).prefix(Int(raw.mode_count))).map(Self.mode)
         }
-        return State(current: Self.mode(raw.current), modes: modes, hdrCapable: raw.hdr_capable, hdr: raw.hdr, wideColorGamut: raw.wide_color_gamut)
+        return State(current: Self.mode(raw.current), modes: modes, hdrCapable: raw.hdr_capable, hdr: raw.hdr, wideColorGamut: raw.wide_color_gamut,
+                     adaptiveSync: raw.adaptive_sync)
     }
 
     /// Switches `output` to `mode` and to HDR and wide colour gamut as given; nil keeps each as it is. True once KWin applied

@@ -23,6 +23,7 @@ typedef struct {
     char name[64];
     struct kde_output_device_mode_v2 *current;
     uint32_t capabilities;
+    uint32_t vrr_policy;
     bool hdr;
     bool wcg;
     display_mode modes[MAX_MODES];
@@ -123,7 +124,10 @@ static void device_capabilities(void *data, struct kde_output_device_v2 *proxy, 
 }
 
 static void device_overscan(void *data, struct kde_output_device_v2 *proxy, uint32_t overscan) {}
-static void device_vrr(void *data, struct kde_output_device_v2 *proxy, uint32_t policy) {}
+static void device_vrr(void *data, struct kde_output_device_v2 *proxy, uint32_t policy) {
+    display_device *device = device_of(data, proxy);
+    if (device) device->vrr_policy = policy;
+}
 static void device_rgb_range(void *data, struct kde_output_device_v2 *proxy, uint32_t range) {}
 
 static void device_name(void *data, struct kde_output_device_v2 *proxy, const char *name) {
@@ -263,6 +267,7 @@ bool kiln_display_read(kiln_display *d, const char *output, kiln_display_state *
     state->hdr_capable = (device->capabilities & KDE_OUTPUT_DEVICE_V2_CAPABILITY_HIGH_DYNAMIC_RANGE) != 0 && d->management_version >= 4;
     state->hdr = device->hdr;
     state->wide_color_gamut = device->wcg;
+    state->adaptive_sync = (device->capabilities & KDE_OUTPUT_DEVICE_V2_CAPABILITY_VRR) != 0 && device->vrr_policy != KDE_OUTPUT_DEVICE_V2_VRR_POLICY_NEVER;
     for (int mode = 0; mode < device->mode_count && state->mode_count < KILN_DISPLAY_MODES; mode++) {
         display_mode *each = &device->modes[mode];
         state->modes[state->mode_count++] = (kiln_display_mode) { each->width, each->height, each->refresh };

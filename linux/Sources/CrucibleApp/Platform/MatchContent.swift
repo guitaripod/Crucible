@@ -63,7 +63,7 @@ enum MatchContent {
                 return
             }
             let plan = MatchContentPlan.make(frameRate: frameRate, isHDR: isHDR, current: DisplayMode(state.current), modes: state.modes.map(DisplayMode.init),
-                                             hdrCapable: state.hdrCapable, hdrOn: state.hdr)
+                                             hdrCapable: state.hdrCapable, hdrOn: state.hdr, adaptiveSync: state.adaptiveSync)
             MidgarLog.notice("Match Content on \(output): \(Self.describe(state)), \(frameRate.map { "\($0) fps" } ?? "no frame rate")\(isHDR ? " HDR" : ""): "
                              + (plan.changesNothing ? "nothing to change" : "refresh \(plan.refreshMilliHertz.map(String.init) ?? "kept"), HDR \(plan.hdr.map { $0 ? "on" : "off" } ?? "kept")"),
                              category: .playback)
@@ -165,7 +165,7 @@ enum MatchContent {
 
     private nonisolated static func describe(_ state: DisplayControl.State) -> String {
         "\(state.current.width)x\(state.current.height) at \(state.current.refreshMilliHertz) mHz, \(state.modes.count) modes, HDR "
-            + (state.hdr ? "on" : state.hdrCapable ? "off" : "unsupported")
+            + (state.hdr ? "on" : state.hdrCapable ? "off" : "unsupported") + (state.adaptiveSync ? ", variable refresh" : "")
     }
 }
 
