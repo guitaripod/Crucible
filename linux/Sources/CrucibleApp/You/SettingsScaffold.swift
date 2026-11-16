@@ -125,9 +125,12 @@ private final class SplitSection: View {
         context == nil || width - Theme.current.metrics.sideMargin * 2 < contextWidth + gap + Theme.current.metrics.tv(800)
     }
 
+    /// The rows' column: never wider than the wide column, so on a big window the titles and their values stay a readable
+    /// distance apart beside the panel instead of running to the far edge.
     private func rowsWidth(_ width: Float) -> Float {
         let metrics = Theme.current.metrics
-        return isStacked(width) ? min(width - metrics.sideMargin * 2, metrics.wideColumn) : width - metrics.sideMargin * 2 - contextWidth - gap
+        let room = isStacked(width) ? width - metrics.sideMargin * 2 : width - metrics.sideMargin * 2 - contextWidth - gap
+        return min(room, metrics.wideColumn)
     }
 
     /// The rows' height, or the state's room in their place while it shows.
