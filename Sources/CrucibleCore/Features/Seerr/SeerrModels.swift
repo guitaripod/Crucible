@@ -48,6 +48,8 @@ package struct SeerrPermissions: OptionSet, Codable, Sendable, Hashable {
     package static let requestView = SeerrPermissions(rawValue: 16_384)
     package static let requestMovie = SeerrPermissions(rawValue: 262_144)
     package static let requestTV = SeerrPermissions(rawValue: 524_288)
+    package static let manageIssues = SeerrPermissions(rawValue: 1_048_576)
+    package static let createIssues = SeerrPermissions(rawValue: 4_194_304)
 
     package func canRequest(_ kind: SeerrMediaKind) -> Bool {
         if contains(.admin) || contains(.request) { return true }
@@ -61,6 +63,9 @@ package struct SeerrPermissions: OptionSet, Codable, Sendable, Hashable {
 
     /// Approves, declines and sees everyone's requests.
     package var managesRequests: Bool { contains(.admin) || contains(.manageRequests) }
+
+    /// Reports a problem with a title the server has, such as missing episodes, as a Seerr issue.
+    package var reportsIssues: Bool { contains(.admin) || contains(.manageIssues) || contains(.createIssues) }
 }
 
 package struct SeerrUser: Codable, Equatable, Sendable {

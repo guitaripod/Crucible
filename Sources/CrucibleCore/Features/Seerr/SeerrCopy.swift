@@ -72,6 +72,26 @@ package enum SeerrCopy {
     package static let allMissing = String(localized: "All Missing Seasons", comment: "Choice that requests every season the server lacks")
     package static let onlyAllSeasons = String(localized: "This Seerr takes whole shows only, so every missing season is requested.", comment: "Note when Seerr does not allow requesting single seasons")
     package static let withdraw = String(localized: "Withdraw Request", comment: "Button that withdraws the viewer's pending request")
+    package static let reportMissing = String(localized: "Report Missing Episodes", comment: "Button that files a Seerr issue for episodes the server lacks")
+    package static let reporting = String(localized: "Reporting…", comment: "Report Missing Episodes button while the issue is being sent to Seerr")
+    package static let reported = String(localized: "Reported to Seerr", comment: "Shown once the missing episodes were reported as a Seerr issue")
+    package static let missingNote = String(localized: "Seerr won't take a request for a season it already has some of.",
+                                            comment: "Request sheet, under Report Missing Episodes: why a season the server has part of cannot be requested")
+
+    /// "S1 E2 “Open Ocean”", or "S1 E2" without a title.
+    package static func missingEpisodeName(_ episode: SeerrMissingEpisode) -> String {
+        let code = Formatters.episodeCode(episode.season, episode.episode) ?? "S\(episode.season) E\(episode.episode)"
+        guard let title = episode.title, !title.isEmpty else { return code }
+        return String(localized: "\(code) “\(title)”", comment: "An episode in a Seerr issue, its code and title, as in S01E02 “Open Ocean”")
+    }
+
+    package static func missingEpisodesMessage(_ names: String) -> String {
+        String(localized: "Missing from the server: \(names).", comment: "Message of a Seerr issue reported from Crucible, listing the missing episodes")
+    }
+
+    package static func missingSeasonMessage(_ season: Int) -> String {
+        String(localized: "Season \(season) is missing episodes on the server.", comment: "Message of a Seerr issue reported from Crucible for a season")
+    }
     package static let play = String(localized: "Play", comment: "Button that opens a requested title once it arrived")
     package static let alsoWatchlist = String(localized: "Added to your Watchlist, so you'll hear when it arrives.", comment: "Note after requesting: the title was saved to the Plex watchlist")
     package static let requested = String(localized: "Requested", comment: "Toast after a request was sent")

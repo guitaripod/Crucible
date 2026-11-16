@@ -181,12 +181,15 @@ final class SeerrRequestScreen: SettingsScaffold {
         static let withdraw = "seerr.request.withdraw"
         static let play = "seerr.request.play"
         static let requests = "seerr.request.requests"
+        static let report = "seerr.request.report"
         static let seasonPrefix = "seerr.season."
     }
 
     private let api: APIClient
     private let item: PlexMetadata
     private let isOnServer: Bool
+    /// The episodes the page that opened the sheet knows the server lacks, named in a report of missing episodes.
+    private let missing: [SeerrMissingEpisode]
     private let panel: ContextPanel
     private var state: SeerrTitleState?
     private var failure: String?
@@ -194,12 +197,15 @@ final class SeerrRequestScreen: SettingsScaffold {
     private var isWorking = false
     private var addedToWatchlist = false
     private var hasRequested = false
+    private var isReporting = false
+    private var hasReported = false
     private var loadTask: Task<Void, Never>?
 
-    init(api: APIClient, item: PlexMetadata, isOnServer: Bool) {
+    init(api: APIClient, item: PlexMetadata, isOnServer: Bool, missing: [SeerrMissingEpisode] = []) {
         self.api = api
         self.item = item
         self.isOnServer = isOnServer
+        self.missing = missing
         panel = ContextPanel(content: .init(symbol: "plus.circle", title: item.title))
         super.init(title: SeerrCopy.request)
         installContext(panel)
@@ -207,8 +213,9 @@ final class SeerrRequestScreen: SettingsScaffold {
         load()
     }
 
-    /// Opens Request for `item` over `screen`, or says how to set requests up when Seerr is not connected.
-    static func open(_ item: PlexMetadata, api: APIClient, isOnServer: Bool, from screen: ScreenView) {
+    /// Opens Request for `item` over `screen`, or says how to set requests up when Seerr is not connected; `missing` names
+    /// the episodes the server lacks, for a season Seerr takes no request for.
+    static func open(_ item: PlexMetadata, api: APIClient, isOnServer: Bool, missing: [SeerrMissingEpisode] = [], from screen: ScreenView) {
         guard SeerrAccount.shared.isConnected else {
             guard let window = screen.window else { return }
             let message = isOnServer ? SeerrCopy.notConnectedMessage : WatchlistService.notInLibraryText + "\n\n" + SeerrCopy.notConnectedMessage
@@ -218,7 +225,7 @@ final class SeerrRequestScreen: SettingsScaffold {
             ]).present(in: window)
             return
         }
-        screen.rootView?.push(SeerrRequestScreen(api: api, item: item, isOnServer: isOnServer))
+        screen.rootView?.push(SeerrRequestScreen(api: api, item: item, isOnServer: isOnServer, missing: missing))
     }
 
     override var preferredFocusView: View? {
@@ -226,12 +233,22 @@ final class SeerrRequestScreen: SettingsScaffold {
         return row
     }
 
-    /// The row the screen opens on: Request while it can, Withdraw while the viewer's request waits, Play once it is here.
+    /// The row the screen opens on: Request while it can, Withdraw while the viewer's request waits, Report Missing
+    /// Episodes when only that is left, Play once it is here.
     private func focusRowID(for state: SeerrTitleState) -> String? {
         if hasRequested { return showsPlay ? RowID.play : RowID.requests }
         if state.canRequest(with: SeerrAccount.shared.permissions) { return RowID.submit }
         if state.ownPendingRequest != nil { return RowID.withdraw }
+        if offersReport(state) { return RowID.report }
         return showsPlay ? RowID.play : nil
+    }
+
+    /// Whether the sheet offers Report Missing Episodes: nothing is left to request, yet the server lacks episodes of a
+    /// season Seerr has seen (the page that opened the sheet named them, or Seerr has the season only in part).
+    private func offersReport(_ state: SeerrTitleState) -> Bool {
+        guard state.canReportMissing(with: SeerrAccount.shared.permissions), !state.canRequest(with: SeerrAccount.shared.permissions) else { return false }
+        let requestable = Set(state.requestableSeasons)
+        return missing.contains { !requestable.contains($0.season) } || !state.partlyAvailableSeasons.isEmpty
     }
 
     override func screenWillDisappear() {
@@ -305,6 +322,12 @@ final class SeerrRequestScreen: SettingsScaffold {
         if state.ownPendingRequest != nil {
             items.append(RowItem(id: RowID.withdraw, title: SeerrCopy.withdraw, symbol: "xmark.circle", isDestructive: true))
         }
+        if hasReported {
+            items.append(RowItem(id: "seerr.request.reported", title: SeerrCopy.reported, symbol: "checkmark.circle", isStatic: true))
+        } else if offersReport(state) {
+            items.append(RowItem(id: RowID.report, title: isReporting ? SeerrCopy.reporting : SeerrCopy.reportMissing, subtitle: SeerrCopy.missingNote,
+                                 symbol: "exclamationmark.bubble", isEnabled: !isReporting))
+        }
         if hasRequested { items.append(RowItem(id: RowID.requests, title: SeerrCopy.seeRequests, symbol: "tray.full", accessory: .chevron)) }
         if addedToWatchlist { items.append(RowItem(id: "seerr.request.watchlisted", title: SeerrCopy.alsoWatchlist, symbol: "bookmark", isStatic: true)) }
         if state.kind == .tv, !partial, !state.requestableSeasons.isEmpty {
@@ -341,6 +364,7 @@ final class SeerrRequestScreen: SettingsScaffold {
         case RowID.withdraw: withdraw()
         case RowID.play: play()
         case RowID.requests: navigation?.push(SeerrRequestsScreen(api: api))
+        case RowID.report: report()
         default:
             guard id.hasPrefix(RowID.seasonPrefix), partial, let number = Int(id.dropFirst(RowID.seasonPrefix.count)),
                   state?.requestableSeasons.contains(number) == true else { return }
@@ -377,6 +401,26 @@ final class SeerrRequestScreen: SettingsScaffold {
                 self.render()
                 self.alert(SeerrCopy.connectFailed, message: error.localizedDescription)
             }
+        }
+    }
+
+    /// Reports the missing episodes the sheet knows of (those of seasons nobody can request) as Seerr issues.
+    private func report() {
+        guard let state, !isReporting, !hasReported else { return }
+        let requestable = Set(state.requestableSeasons)
+        let episodes = missing.filter { !requestable.contains($0.season) }
+        isReporting = true
+        render()
+        Task { [weak self] in
+            do {
+                try await SeerrTitles.shared.reportMissing(state, episodes: episodes)
+                self?.hasReported = true
+            } catch {
+                MidgarLog.error("Seerr issue failed: \(error)", category: .seerr)
+                self?.alert(SeerrCopy.connectFailed, message: error.localizedDescription)
+            }
+            self?.isReporting = false
+            self?.render()
         }
     }
 

@@ -56,6 +56,39 @@ package enum SeerrAvailability: Hashable, Sendable {
     }
 }
 
+/// An episode the server lacks, for a report of missing episodes.
+package struct SeerrMissingEpisode: Equatable, Sendable {
+    package let season: Int
+    package let episode: Int
+    package let title: String?
+
+    package init(season: Int, episode: Int, title: String?) {
+        self.season = season
+        self.episode = episode
+        self.title = title
+    }
+}
+
+/// One Seerr issue of a report of missing episodes: a season, the one episode when only one is missing (else 0), and the
+/// message naming what is missing.
+package struct SeerrMissingReport: Equatable, Sendable {
+    package let season: Int
+    package let episode: Int
+    package let message: String
+
+    /// One report per season of `episodes`, or per partly available season when no episode is known.
+    package static func reports(episodes: [SeerrMissingEpisode], partlyAvailableSeasons: [Int]) -> [SeerrMissingReport] {
+        guard !episodes.isEmpty else {
+            return partlyAvailableSeasons.map { SeerrMissingReport(season: $0, episode: 0, message: SeerrCopy.missingSeasonMessage($0)) }
+        }
+        return Dictionary(grouping: episodes, by: \.season).sorted { $0.key < $1.key }.map { season, missing in
+            let ordered = missing.sorted { $0.episode < $1.episode }
+            let names = ordered.map { SeerrCopy.missingEpisodeName($0) }.joined(separator: ", ")
+            return SeerrMissingReport(season: season, episode: ordered.count == 1 ? ordered[0].episode : 0, message: SeerrCopy.missingEpisodesMessage(names))
+        }
+    }
+}
+
 /// One season of a show and how much of it the server has or will have.
 package struct SeerrSeasonState: Equatable, Sendable {
     package enum Status: Equatable, Sendable {
@@ -94,6 +127,8 @@ package struct SeerrTitleState: Equatable, Sendable {
     package let ratingKey: String?
     /// The viewer's own request while it waits for approval, which they may still withdraw.
     package let ownPendingRequest: SeerrRequest?
+    /// Seerr's own id for the title once it tracks it (has it, or was asked for it), which issues are filed against.
+    package let mediaID: Int?
 
     package init(details: SeerrTitleDetails, kind: SeerrMediaKind, viewerID: Int?) {
         tmdbID = details.id
@@ -105,6 +140,7 @@ package struct SeerrTitleState: Equatable, Sendable {
         posterPath = details.posterPath
         availability = SeerrAvailability(media: details.mediaInfo)
         ratingKey = details.mediaInfo?.ratingKey
+        mediaID = details.mediaInfo?.id
         let requests = (details.mediaInfo?.requests ?? []).filter { $0.is4k != true }
         ownPendingRequest = viewerID.flatMap { id in requests.first { $0.requestedBy?.id == id && $0.requestStatus == .pending } }
         seasons = kind == .tv ? Self.seasons(details: details, requests: requests) : []
@@ -132,6 +168,15 @@ package struct SeerrTitleState: Equatable, Sendable {
 
     /// The seasons nobody has asked for that the server does not have.
     package var requestableSeasons: [Int] { seasons.filter { $0.status == .missing }.map(\.number) }
+
+    /// The seasons the server has some of, which Seerr takes no request for (it refuses any season it has seen): their
+    /// missing episodes can only be reported.
+    package var partlyAvailableSeasons: [Int] { seasons.filter { $0.status == .partiallyAvailable }.map(\.number) }
+
+    /// Whether the viewer can report missing episodes of this show: Seerr tracks it and lets them file issues.
+    package func canReportMissing(with permissions: SeerrPermissions) -> Bool {
+        kind == .tv && mediaID != nil && permissions.reportsIssues
+    }
 
     /// Whether the viewer may ask for this title, or for more of it, now.
     package func canRequest(with permissions: SeerrPermissions) -> Bool {
@@ -282,6 +327,18 @@ package final class SeerrTitles {
     }
 
     /// Withdraws the viewer's own request while it still waits for approval.
+    /// Files a Seerr issue for each season with missing episodes: the episodes the caller knows are missing, named, or
+    /// when it knows none, each season the server has only some of.
+    package func reportMissing(_ state: SeerrTitleState, episodes: [SeerrMissingEpisode]) async throws {
+        guard let mediaID = state.mediaID else { throw SeerrError.notFound }
+        let reports = SeerrMissingReport.reports(episodes: episodes, partlyAvailableSeasons: state.partlyAvailableSeasons)
+        guard !reports.isEmpty else { throw SeerrError.nothingToRequest }
+        for report in reports {
+            try await client.sendVoid(.reportIssue(mediaID: mediaID, season: report.season, episode: report.episode, message: report.message))
+        }
+        MidgarLog.notice("Seerr issue filed for missing episodes of \(state.tmdbID) (\(reports.count) seasons)", category: .seerr)
+    }
+
     package func withdraw(_ request: SeerrRequest, of state: SeerrTitleState) async throws -> SeerrTitleState {
         try await client.sendVoid(.cancelRequest(id: request.id))
         MidgarLog.notice("Seerr request \(request.id) withdrawn", category: .seerr)

@@ -162,6 +162,53 @@ struct SeerrStateTests {
         #expect(!state.canRequest(with: [.requestMovie]))
     }
 
+    @Test func aSeasonTheServerHasSomeOfCanOnlyBeReported() throws {
+        let details = SeerrFixtures.details(#"""
+        {"id":5,"name":"Blue Deep","seasons":[{"seasonNumber":1},{"seasonNumber":2}],
+         "mediaInfo":{"id":41,"status":4,"seasons":[{"seasonNumber":1,"status":4},{"seasonNumber":2,"status":5}]}}
+        """#)
+        let state = SeerrTitleState(details: details, kind: .tv, viewerID: 7)
+        #expect(state.mediaID == 41)
+        #expect(state.requestableSeasons.isEmpty)
+        #expect(state.partlyAvailableSeasons == [1])
+        #expect(!state.canRequest(with: [.admin]))
+        #expect(state.canReportMissing(with: [.createIssues]))
+        #expect(state.canReportMissing(with: [.admin]))
+        #expect(!state.canReportMissing(with: [.request]))
+        let untracked = SeerrTitleState(details: SeerrFixtures.details(#"{"id":6,"name":"Low Tide","seasons":[{"seasonNumber":1}]}"#), kind: .tv, viewerID: 7)
+        #expect(!untracked.canReportMissing(with: [.admin]))
+    }
+
+    @Test func aReportNamesTheMissingEpisodesOneIssueASeason() throws {
+        let one = SeerrMissingReport.reports(episodes: [SeerrMissingEpisode(season: 1, episode: 2, title: "Open Ocean")], partlyAvailableSeasons: [1])
+        #expect(one.count == 1)
+        #expect(one[0].season == 1)
+        #expect(one[0].episode == 2)
+        #expect(one[0].message.contains("S01E02"))
+        #expect(one[0].message.contains("Open Ocean"))
+        let several = SeerrMissingReport.reports(episodes: [SeerrMissingEpisode(season: 2, episode: 5, title: nil), SeerrMissingEpisode(season: 1, episode: 4, title: nil),
+                                                           SeerrMissingEpisode(season: 1, episode: 3, title: nil)], partlyAvailableSeasons: [])
+        #expect(several.map(\.season) == [1, 2])
+        #expect(several[0].episode == 0)
+        #expect(several[0].message.range(of: "S01E03")!.lowerBound < several[0].message.range(of: "S01E04")!.lowerBound)
+        #expect(several[1].episode == 5)
+        let unnamed = SeerrMissingReport.reports(episodes: [], partlyAvailableSeasons: [3])
+        #expect(unnamed.map(\.season) == [3])
+        #expect(unnamed[0].episode == 0)
+        #expect(SeerrMissingReport.reports(episodes: [], partlyAvailableSeasons: []).isEmpty)
+
+        let body = try JSONSerialization.jsonObject(with: SeerrEndpoint.reportIssue(mediaID: 41, season: 1, episode: 2, message: "m").body!) as! [String: Any]
+        #expect(body["mediaId"] as? Int == 41)
+        #expect(body["issueType"] as? Int == SeerrIssueKind.other)
+        #expect(body["problemSeason"] as? Int == 1)
+        #expect(body["problemEpisode"] as? Int == 2)
+        #expect(body["message"] as? String == "m")
+        let whole = try JSONSerialization.jsonObject(with: SeerrEndpoint.reportIssue(mediaID: 41, season: 0, episode: 4, message: "m").body!) as! [String: Any]
+        #expect(whole["problemEpisode"] as? Int == 0)
+        #expect(SeerrEndpoint.reportIssue(mediaID: 41, season: 1, episode: 2, message: "m").method == "POST")
+        #expect(SeerrEndpoint.reportIssue(mediaID: 41, season: 1, episode: 2, message: "m").path == "issue")
+    }
+
     @Test func aMovieCanBeRequestedOnlyWhileNobodyHas() {
         let fresh = SeerrTitleState(details: SeerrFixtures.details(#"{"id":1,"title":"Halcyon","releaseDate":"2021-05-01"}"#), kind: .movie, viewerID: 7)
         #expect(fresh.canRequest(with: [.requestMovie]))

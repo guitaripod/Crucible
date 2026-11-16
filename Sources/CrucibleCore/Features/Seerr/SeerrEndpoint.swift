@@ -16,10 +16,13 @@ package enum SeerrEndpoint: Sendable, Equatable {
     case retry(id: Int)
     case quota(userID: Int)
     case search(query: String)
+    /// A Seerr issue on the title Seerr knows as `mediaID` (its own media id, not TMDB's): `season` and `episode` 0 mean
+    /// the whole title or season.
+    case reportIssue(mediaID: Int, season: Int, episode: Int, message: String)
 
     package var method: String {
         switch self {
-        case .signInWithPlex, .signOut, .createRequest, .moderate, .retry: return "POST"
+        case .signInWithPlex, .signOut, .createRequest, .moderate, .retry, .reportIssue: return "POST"
         case .cancelRequest: return "DELETE"
         default: return "GET"
         }
@@ -40,6 +43,7 @@ package enum SeerrEndpoint: Sendable, Equatable {
         case .retry(let id): return "request/\(id)/retry"
         case .quota(let id): return "user/\(id)/quota"
         case .search: return "search"
+        case .reportIssue: return "issue"
         }
     }
 
@@ -80,6 +84,10 @@ package enum SeerrEndpoint: Sendable, Equatable {
             if let tvdbID { object["tvdbId"] = tvdbID }
             if kind == .tv { object["seasons"] = seasons.map { $0 as Any } ?? "all" }
             return try? JSONSerialization.data(withJSONObject: object, options: [.sortedKeys])
+        case .reportIssue(let mediaID, let season, let episode, let message):
+            let object: [String: Any] = ["issueType": SeerrIssueKind.other, "message": message, "mediaId": mediaID,
+                                         "problemSeason": season, "problemEpisode": season > 0 ? episode : 0]
+            return try? JSONSerialization.data(withJSONObject: object, options: [.sortedKeys])
         default:
             return nil
         }
@@ -92,6 +100,14 @@ package enum SeerrEndpoint: Sendable, Equatable {
         components?.queryItems = items.isEmpty ? nil : items
         return components?.url
     }
+}
+
+/// Seerr's issue types (`IssueType` in Seerr): missing episodes are filed as Other.
+package enum SeerrIssueKind {
+    package static let video = 1
+    package static let audio = 2
+    package static let subtitles = 3
+    package static let other = 4
 }
 
 /// Artwork Seerr fetches from TMDB on the server's behalf, so the device asks only the viewer's own Seerr.
