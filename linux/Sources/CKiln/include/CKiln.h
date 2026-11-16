@@ -168,6 +168,40 @@ void kiln_wl_text_input_enable(kiln_wl *wl, bool enabled);
 void kiln_wl_text_input_update(kiln_wl *wl, const char *surrounding, int32_t cursor, int32_t anchor, int32_t x, int32_t y, int32_t width,
                                int32_t height, uint32_t hint, uint32_t purpose);
 
+/** The name of the screen the window is on ("DP-3"), as KWin's output devices name it too; NULL before it shows. */
+const char *kiln_wl_output_name(kiln_wl *wl);
+
+/** KWin's output management on a connection of its own (kde_output_management_v2), for Match Content and its guard: the
+ * modes, HDR and wide colour gamut of a screen, and switching them. Blocking; use it off the main thread. */
+typedef struct kiln_display kiln_display;
+
+enum { KILN_DISPLAY_MODES = 96 };
+
+typedef struct {
+    int32_t width;
+    int32_t height;
+    /** Millihertz. */
+    int32_t refresh;
+} kiln_display_mode;
+
+typedef struct {
+    kiln_display_mode current;
+    bool hdr_capable;
+    bool hdr;
+    bool wide_color_gamut;
+    int mode_count;
+    kiln_display_mode modes[KILN_DISPLAY_MODES];
+} kiln_display_state;
+
+/** Connects and reads the screens; NULL when the compositor has no output management (not KWin). */
+kiln_display *kiln_display_open(void);
+void kiln_display_close(kiln_display *display);
+/** The state of the screen named `output`; false when there is none. */
+bool kiln_display_read(kiln_display *display, const char *output, kiln_display_state *state);
+/** Switches the screen to `mode` (a refresh of 0 keeps the mode) and HDR and wide colour gamut (-1 keeps each), waiting up
+ * to five seconds for KWin; true when it applied or nothing needed changing. */
+bool kiln_display_apply(kiln_display *display, const char *output, kiln_display_mode mode, int hdr, int wide_color_gamut);
+
 /** Hands libdispatch's main-queue handle to the event loop, as CoreFoundation's run loop does. */
 int kiln_dispatch_main_queue_handle(void);
 void kiln_dispatch_drain_main_queue(void);

@@ -111,6 +111,11 @@ public final class WaylandWindow {
         return String(cString: raw)
     }
 
+    /// The name of the screen the window is on ("DP-3").
+    public var outputName: String? {
+        kiln_wl_output_name(connection).map { String(cString: $0) }
+    }
+
     /// The physical size of the screen the window is on, in millimetres, when the screen reports one.
     public var screenSizeMillimetres: (width: Int, height: Int)? {
         var width: Int32 = 0

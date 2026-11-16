@@ -16,6 +16,7 @@ extern "C" {
  * @section page_ifaces_kde_output_management_v2 Interfaces
  * - @subpage page_iface_kde_output_management_v2 - configuration of server outputs through clients
  * - @subpage page_iface_kde_output_configuration_v2 - configure single output devices
+ * - @subpage page_iface_kde_mode_list_v2 - a list of custom modes
  * @section page_copyright_kde_output_management_v2 Copyright
  * <pre>
  *
@@ -29,6 +30,7 @@ extern "C" {
  * SPDX-License-Identifier: MIT-CMU
  * </pre>
  */
+struct kde_mode_list_v2;
 struct kde_output_configuration_v2;
 struct kde_output_device_mode_v2;
 struct kde_output_device_v2;
@@ -172,14 +174,74 @@ extern const struct wl_interface kde_output_management_v2_interface;
  */
 extern const struct wl_interface kde_output_configuration_v2_interface;
 #endif
+#ifndef KDE_MODE_LIST_V2_INTERFACE
+#define KDE_MODE_LIST_V2_INTERFACE
+/**
+ * @page page_iface_kde_mode_list_v2 kde_mode_list_v2
+ * @section page_iface_kde_mode_list_v2_desc Description
+ *
+ * This list is populated by first setting each relevant property,
+ * and then calling add_mode to add a mode with these properties.
+ * One would for example call
+ * - set_resolution
+ * - set_refresh_rate
+ * - set_reduced_blanking
+ * - add_mode
+ *
+ * add_mode does not reset the properties that were previously set,
+ * they are valid until the object is destroyed.
+ * The compositor may additionally have sensible defaults for some
+ * properties like reduced_blanking, but for consistent results,
+ * it's best to always set each known property every time.
+ *
+ * One can also specify custom modes with CVT timings, for example
+ * - add_cvt
+ * - add_cvt
+ *
+ * The parameters resolution and refresh rate are required, if they
+ * are not set, the missing_parameters error will be emitted.
+ * @section page_iface_kde_mode_list_v2_api API
+ * See @ref iface_kde_mode_list_v2.
+ */
+/**
+ * @defgroup iface_kde_mode_list_v2 The kde_mode_list_v2 interface
+ *
+ * This list is populated by first setting each relevant property,
+ * and then calling add_mode to add a mode with these properties.
+ * One would for example call
+ * - set_resolution
+ * - set_refresh_rate
+ * - set_reduced_blanking
+ * - add_mode
+ *
+ * add_mode does not reset the properties that were previously set,
+ * they are valid until the object is destroyed.
+ * The compositor may additionally have sensible defaults for some
+ * properties like reduced_blanking, but for consistent results,
+ * it's best to always set each known property every time.
+ *
+ * One can also specify custom modes with CVT timings, for example
+ * - add_cvt
+ * - add_cvt
+ *
+ * The parameters resolution and refresh rate are required, if they
+ * are not set, the missing_parameters error will be emitted.
+ */
+extern const struct wl_interface kde_mode_list_v2_interface;
+#endif
 
 #define KDE_OUTPUT_MANAGEMENT_V2_CREATE_CONFIGURATION 0
+#define KDE_OUTPUT_MANAGEMENT_V2_CREATE_MODE_LIST 1
 
 
 /**
  * @ingroup iface_kde_output_management_v2
  */
 #define KDE_OUTPUT_MANAGEMENT_V2_CREATE_CONFIGURATION_SINCE_VERSION 1
+/**
+ * @ingroup iface_kde_output_management_v2
+ */
+#define KDE_OUTPUT_MANAGEMENT_V2_CREATE_MODE_LIST_SINCE_VERSION 1
 
 /** @ingroup iface_kde_output_management_v2 */
 static inline void
@@ -223,6 +285,23 @@ kde_output_management_v2_create_configuration(struct kde_output_management_v2 *k
 			 KDE_OUTPUT_MANAGEMENT_V2_CREATE_CONFIGURATION, &kde_output_configuration_v2_interface, wl_proxy_get_version((struct wl_proxy *) kde_output_management_v2), 0, NULL);
 
 	return (struct kde_output_configuration_v2 *) id;
+}
+
+/**
+ * @ingroup iface_kde_output_management_v2
+ *
+ * For details, see the description of kde_mode_list_v2 and
+ * kde_output_configuration_v2.set_custom_modes.
+ */
+static inline struct kde_mode_list_v2 *
+kde_output_management_v2_create_mode_list(struct kde_output_management_v2 *kde_output_management_v2)
+{
+	struct wl_proxy *id;
+
+	id = wl_proxy_marshal_flags((struct wl_proxy *) kde_output_management_v2,
+			 KDE_OUTPUT_MANAGEMENT_V2_CREATE_MODE_LIST, &kde_mode_list_v2_interface, wl_proxy_get_version((struct wl_proxy *) kde_output_management_v2), 0, NULL);
+
+	return (struct kde_mode_list_v2 *) id;
 }
 
 #ifndef KDE_OUTPUT_CONFIGURATION_V2_ERROR_ENUM
@@ -320,6 +399,18 @@ enum kde_output_configuration_v2_color_power_tradeoff {
 };
 #endif /* KDE_OUTPUT_CONFIGURATION_V2_COLOR_POWER_TRADEOFF_ENUM */
 
+#ifndef KDE_OUTPUT_CONFIGURATION_V2_EDR_POLICY_ENUM
+#define KDE_OUTPUT_CONFIGURATION_V2_EDR_POLICY_ENUM
+/**
+ * @ingroup iface_kde_output_configuration_v2
+ * when the compositor may make use of EDR
+ */
+enum kde_output_configuration_v2_edr_policy {
+	KDE_OUTPUT_CONFIGURATION_V2_EDR_POLICY_NEVER = 0,
+	KDE_OUTPUT_CONFIGURATION_V2_EDR_POLICY_ALWAYS = 1,
+};
+#endif /* KDE_OUTPUT_CONFIGURATION_V2_EDR_POLICY_ENUM */
+
 /**
  * @ingroup iface_kde_output_configuration_v2
  * @struct kde_output_configuration_v2_listener
@@ -387,6 +478,16 @@ kde_output_configuration_v2_add_listener(struct kde_output_configuration_v2 *kde
 #define KDE_OUTPUT_CONFIGURATION_V2_SET_BRIGHTNESS 20
 #define KDE_OUTPUT_CONFIGURATION_V2_SET_COLOR_POWER_TRADEOFF 21
 #define KDE_OUTPUT_CONFIGURATION_V2_SET_DIMMING 22
+#define KDE_OUTPUT_CONFIGURATION_V2_SET_REPLICATION_SOURCE 23
+#define KDE_OUTPUT_CONFIGURATION_V2_SET_DDC_CI_ALLOWED 24
+#define KDE_OUTPUT_CONFIGURATION_V2_SET_MAX_BITS_PER_COLOR 25
+#define KDE_OUTPUT_CONFIGURATION_V2_SET_EDR_POLICY 26
+#define KDE_OUTPUT_CONFIGURATION_V2_SET_SHARPNESS 27
+#define KDE_OUTPUT_CONFIGURATION_V2_SET_CUSTOM_MODES 28
+#define KDE_OUTPUT_CONFIGURATION_V2_SET_AUTO_BRIGHTNESS 29
+#define KDE_OUTPUT_CONFIGURATION_V2_SET_HDR_ICC_PROFILE_PATH 30
+#define KDE_OUTPUT_CONFIGURATION_V2_SET_HDR_COLOR_PROFILE_SOURCE 31
+#define KDE_OUTPUT_CONFIGURATION_V2_SET_ABM_LEVEL 32
 
 /**
  * @ingroup iface_kde_output_configuration_v2
@@ -493,6 +594,46 @@ kde_output_configuration_v2_add_listener(struct kde_output_configuration_v2 *kde
  * @ingroup iface_kde_output_configuration_v2
  */
 #define KDE_OUTPUT_CONFIGURATION_V2_SET_DIMMING_SINCE_VERSION 11
+/**
+ * @ingroup iface_kde_output_configuration_v2
+ */
+#define KDE_OUTPUT_CONFIGURATION_V2_SET_REPLICATION_SOURCE_SINCE_VERSION 13
+/**
+ * @ingroup iface_kde_output_configuration_v2
+ */
+#define KDE_OUTPUT_CONFIGURATION_V2_SET_DDC_CI_ALLOWED_SINCE_VERSION 14
+/**
+ * @ingroup iface_kde_output_configuration_v2
+ */
+#define KDE_OUTPUT_CONFIGURATION_V2_SET_MAX_BITS_PER_COLOR_SINCE_VERSION 15
+/**
+ * @ingroup iface_kde_output_configuration_v2
+ */
+#define KDE_OUTPUT_CONFIGURATION_V2_SET_EDR_POLICY_SINCE_VERSION 16
+/**
+ * @ingroup iface_kde_output_configuration_v2
+ */
+#define KDE_OUTPUT_CONFIGURATION_V2_SET_SHARPNESS_SINCE_VERSION 17
+/**
+ * @ingroup iface_kde_output_configuration_v2
+ */
+#define KDE_OUTPUT_CONFIGURATION_V2_SET_CUSTOM_MODES_SINCE_VERSION 18
+/**
+ * @ingroup iface_kde_output_configuration_v2
+ */
+#define KDE_OUTPUT_CONFIGURATION_V2_SET_AUTO_BRIGHTNESS_SINCE_VERSION 19
+/**
+ * @ingroup iface_kde_output_configuration_v2
+ */
+#define KDE_OUTPUT_CONFIGURATION_V2_SET_HDR_ICC_PROFILE_PATH_SINCE_VERSION 20
+/**
+ * @ingroup iface_kde_output_configuration_v2
+ */
+#define KDE_OUTPUT_CONFIGURATION_V2_SET_HDR_COLOR_PROFILE_SOURCE_SINCE_VERSION 20
+/**
+ * @ingroup iface_kde_output_configuration_v2
+ */
+#define KDE_OUTPUT_CONFIGURATION_V2_SET_ABM_LEVEL_SINCE_VERSION 21
 
 /** @ingroup iface_kde_output_configuration_v2 */
 static inline void
@@ -656,9 +797,14 @@ kde_output_configuration_v2_set_primary_output(struct kde_output_configuration_v
 /**
  * @ingroup iface_kde_output_configuration_v2
  *
- * The order of outputs can be used to assign desktop environment components to a specific screen,
- * see kde_output_order_v1 for details. The priority is 1-based for outputs that will be enabled after
- * this changeset is applied, all outputs that are disabled need to have the index set to zero.
+ * Set the position of the output in the output order list, with lower values
+ * being earlier in the list. There's no specific value the list has to start
+ * at, this value is only used in sorting outputs.
+ *
+ * The order of outputs can be used to assign desktop environment components
+ * to a specific screen, see kde_output_order_v1 and kde-output-device-v2 for
+ * details. Note that for consistent behavior, the priority value needs to be
+ * unique among all enabled outputs.
  */
 static inline void
 kde_output_configuration_v2_set_priority(struct kde_output_configuration_v2 *kde_output_configuration_v2, struct kde_output_device_v2 *outputdevice, uint32_t priority)
@@ -766,7 +912,7 @@ kde_output_configuration_v2_set_color_profile_source(struct kde_output_configura
  * 0 is the minimum brightness (not completely dark) and 10000 is
  * the maximum brightness.
  * This is supported while HDR is active in versions 8 and below,
- * or when the device supports the brightness_control capability in
+ * or when the device supports the "brightness" capability in
  * versions 9 and above.
  */
 static inline void
@@ -796,7 +942,7 @@ kde_output_configuration_v2_set_color_power_tradeoff(struct kde_output_configura
  * 0 is the minimum dimming factor (not completely dark) and 10000
  * means the output is not dimmed.
  *
- * This is supported only when the brightness_control capability is
+ * This is supported only when the "brightness" capability is
  * also supported.
  */
 static inline void
@@ -804,6 +950,269 @@ kde_output_configuration_v2_set_dimming(struct kde_output_configuration_v2 *kde_
 {
 	wl_proxy_marshal_flags((struct wl_proxy *) kde_output_configuration_v2,
 			 KDE_OUTPUT_CONFIGURATION_V2_SET_DIMMING, NULL, wl_proxy_get_version((struct wl_proxy *) kde_output_configuration_v2), 0, outputdevice, multiplier);
+}
+
+/**
+ * @ingroup iface_kde_output_configuration_v2
+ *
+ * Set the source output that the outputdevice should mirror its
+ * viewport from.
+ */
+static inline void
+kde_output_configuration_v2_set_replication_source(struct kde_output_configuration_v2 *kde_output_configuration_v2, struct kde_output_device_v2 *outputdevice, const char *source)
+{
+	wl_proxy_marshal_flags((struct wl_proxy *) kde_output_configuration_v2,
+			 KDE_OUTPUT_CONFIGURATION_V2_SET_REPLICATION_SOURCE, NULL, wl_proxy_get_version((struct wl_proxy *) kde_output_configuration_v2), 0, outputdevice, source);
+}
+
+/**
+ * @ingroup iface_kde_output_configuration_v2
+ */
+static inline void
+kde_output_configuration_v2_set_ddc_ci_allowed(struct kde_output_configuration_v2 *kde_output_configuration_v2, struct kde_output_device_v2 *outputdevice, uint32_t allowed)
+{
+	wl_proxy_marshal_flags((struct wl_proxy *) kde_output_configuration_v2,
+			 KDE_OUTPUT_CONFIGURATION_V2_SET_DDC_CI_ALLOWED, NULL, wl_proxy_get_version((struct wl_proxy *) kde_output_configuration_v2), 0, outputdevice, allowed);
+}
+
+/**
+ * @ingroup iface_kde_output_configuration_v2
+ *
+ * This limits the amount of bits per color that are sent to the display.
+ */
+static inline void
+kde_output_configuration_v2_set_max_bits_per_color(struct kde_output_configuration_v2 *kde_output_configuration_v2, struct kde_output_device_v2 *outputdevice, uint32_t max_bpc)
+{
+	wl_proxy_marshal_flags((struct wl_proxy *) kde_output_configuration_v2,
+			 KDE_OUTPUT_CONFIGURATION_V2_SET_MAX_BITS_PER_COLOR, NULL, wl_proxy_get_version((struct wl_proxy *) kde_output_configuration_v2), 0, outputdevice, max_bpc);
+}
+
+/**
+ * @ingroup iface_kde_output_configuration_v2
+ *
+ * When EDR is enabled, the compositor may increase the backlight beyond
+ * the user-specified setting, in order to present HDR content on displays
+ * without native HDR support.
+ * This will usually result in better visuals, but also increases battery
+ * usage.
+ */
+static inline void
+kde_output_configuration_v2_set_edr_policy(struct kde_output_configuration_v2 *kde_output_configuration_v2, struct kde_output_device_v2 *outputdevice, uint32_t policy)
+{
+	wl_proxy_marshal_flags((struct wl_proxy *) kde_output_configuration_v2,
+			 KDE_OUTPUT_CONFIGURATION_V2_SET_EDR_POLICY, NULL, wl_proxy_get_version((struct wl_proxy *) kde_output_configuration_v2), 0, outputdevice, policy);
+}
+
+/**
+ * @ingroup iface_kde_output_configuration_v2
+ *
+ * This is the sharpness modifier of the output.
+ * 0 is sharpness disabled and 10000 is the maximum sharpness
+ */
+static inline void
+kde_output_configuration_v2_set_sharpness(struct kde_output_configuration_v2 *kde_output_configuration_v2, struct kde_output_device_v2 *outputdevice, uint32_t sharpness)
+{
+	wl_proxy_marshal_flags((struct wl_proxy *) kde_output_configuration_v2,
+			 KDE_OUTPUT_CONFIGURATION_V2_SET_SHARPNESS, NULL, wl_proxy_get_version((struct wl_proxy *) kde_output_configuration_v2), 0, outputdevice, sharpness);
+}
+
+/**
+ * @ingroup iface_kde_output_configuration_v2
+ *
+ * Set the list of custom modes for this output. The compositor
+ * will in response generate the requested modes and add them to
+ * the output (or delete ones no longer in the list).
+ * This can be useful for overclocking displays, or for working
+ * around broken EDIDs.
+ * Note that there is no guarantee for any custom mode to
+ * actually work, or even to leave the display undamaged (in the
+ * case of CRTs). It's entirely the responsibility of the user
+ * to ensure each added mode is the right one for their display.
+ */
+static inline void
+kde_output_configuration_v2_set_custom_modes(struct kde_output_configuration_v2 *kde_output_configuration_v2, struct kde_output_device_v2 *outputdevice, struct kde_mode_list_v2 *modes)
+{
+	wl_proxy_marshal_flags((struct wl_proxy *) kde_output_configuration_v2,
+			 KDE_OUTPUT_CONFIGURATION_V2_SET_CUSTOM_MODES, NULL, wl_proxy_get_version((struct wl_proxy *) kde_output_configuration_v2), 0, outputdevice, modes);
+}
+
+/**
+ * @ingroup iface_kde_output_configuration_v2
+ */
+static inline void
+kde_output_configuration_v2_set_auto_brightness(struct kde_output_configuration_v2 *kde_output_configuration_v2, struct kde_output_device_v2 *outputdevice, uint32_t enabled)
+{
+	wl_proxy_marshal_flags((struct wl_proxy *) kde_output_configuration_v2,
+			 KDE_OUTPUT_CONFIGURATION_V2_SET_AUTO_BRIGHTNESS, NULL, wl_proxy_get_version((struct wl_proxy *) kde_output_configuration_v2), 0, outputdevice, enabled);
+}
+
+/**
+ * @ingroup iface_kde_output_configuration_v2
+ */
+static inline void
+kde_output_configuration_v2_set_hdr_icc_profile_path(struct kde_output_configuration_v2 *kde_output_configuration_v2, struct kde_output_device_v2 *outputdevice, const char *profile_path)
+{
+	wl_proxy_marshal_flags((struct wl_proxy *) kde_output_configuration_v2,
+			 KDE_OUTPUT_CONFIGURATION_V2_SET_HDR_ICC_PROFILE_PATH, NULL, wl_proxy_get_version((struct wl_proxy *) kde_output_configuration_v2), 0, outputdevice, profile_path);
+}
+
+/**
+ * @ingroup iface_kde_output_configuration_v2
+ */
+static inline void
+kde_output_configuration_v2_set_hdr_color_profile_source(struct kde_output_configuration_v2 *kde_output_configuration_v2, struct kde_output_device_v2 *outputdevice, uint32_t color_profile_source)
+{
+	wl_proxy_marshal_flags((struct wl_proxy *) kde_output_configuration_v2,
+			 KDE_OUTPUT_CONFIGURATION_V2_SET_HDR_COLOR_PROFILE_SOURCE, NULL, wl_proxy_get_version((struct wl_proxy *) kde_output_configuration_v2), 0, outputdevice, color_profile_source);
+}
+
+/**
+ * @ingroup iface_kde_output_configuration_v2
+ *
+ * Adaptive backlight modulation is a feature that reduces the backlight
+ * and increases contrast of colors on the screen to improve power usage.
+ */
+static inline void
+kde_output_configuration_v2_set_abm_level(struct kde_output_configuration_v2 *kde_output_configuration_v2, struct kde_output_device_v2 *outputdevice, uint32_t level)
+{
+	wl_proxy_marshal_flags((struct wl_proxy *) kde_output_configuration_v2,
+			 KDE_OUTPUT_CONFIGURATION_V2_SET_ABM_LEVEL, NULL, wl_proxy_get_version((struct wl_proxy *) kde_output_configuration_v2), 0, outputdevice, level);
+}
+
+#ifndef KDE_MODE_LIST_V2_ERROR_ENUM
+#define KDE_MODE_LIST_V2_ERROR_ENUM
+/**
+ * @ingroup iface_kde_mode_list_v2
+ * kde_mode_list_v2 error values
+ *
+ * These errors can be emitted in response to add_mode requests.
+ */
+enum kde_mode_list_v2_error {
+	/**
+	 * a required parameter wasn't set
+	 */
+	KDE_MODE_LIST_V2_ERROR_MISSING_PARAMETERS = 0,
+};
+#endif /* KDE_MODE_LIST_V2_ERROR_ENUM */
+
+#define KDE_MODE_LIST_V2_DESTROY 0
+#define KDE_MODE_LIST_V2_ADD_MODE 1
+#define KDE_MODE_LIST_V2_SET_RESOLUTION 2
+#define KDE_MODE_LIST_V2_SET_REFRESH_RATE 3
+#define KDE_MODE_LIST_V2_SET_REDUCED_BLANKING 4
+#define KDE_MODE_LIST_V2_ADD_CVT 5
+
+
+/**
+ * @ingroup iface_kde_mode_list_v2
+ */
+#define KDE_MODE_LIST_V2_DESTROY_SINCE_VERSION 1
+/**
+ * @ingroup iface_kde_mode_list_v2
+ */
+#define KDE_MODE_LIST_V2_ADD_MODE_SINCE_VERSION 1
+/**
+ * @ingroup iface_kde_mode_list_v2
+ */
+#define KDE_MODE_LIST_V2_SET_RESOLUTION_SINCE_VERSION 1
+/**
+ * @ingroup iface_kde_mode_list_v2
+ */
+#define KDE_MODE_LIST_V2_SET_REFRESH_RATE_SINCE_VERSION 1
+/**
+ * @ingroup iface_kde_mode_list_v2
+ */
+#define KDE_MODE_LIST_V2_SET_REDUCED_BLANKING_SINCE_VERSION 1
+/**
+ * @ingroup iface_kde_mode_list_v2
+ */
+#define KDE_MODE_LIST_V2_ADD_CVT_SINCE_VERSION 22
+
+/** @ingroup iface_kde_mode_list_v2 */
+static inline void
+kde_mode_list_v2_set_user_data(struct kde_mode_list_v2 *kde_mode_list_v2, void *user_data)
+{
+	wl_proxy_set_user_data((struct wl_proxy *) kde_mode_list_v2, user_data);
+}
+
+/** @ingroup iface_kde_mode_list_v2 */
+static inline void *
+kde_mode_list_v2_get_user_data(struct kde_mode_list_v2 *kde_mode_list_v2)
+{
+	return wl_proxy_get_user_data((struct wl_proxy *) kde_mode_list_v2);
+}
+
+static inline uint32_t
+kde_mode_list_v2_get_version(struct kde_mode_list_v2 *kde_mode_list_v2)
+{
+	return wl_proxy_get_version((struct wl_proxy *) kde_mode_list_v2);
+}
+
+/**
+ * @ingroup iface_kde_mode_list_v2
+ */
+static inline void
+kde_mode_list_v2_destroy(struct kde_mode_list_v2 *kde_mode_list_v2)
+{
+	wl_proxy_marshal_flags((struct wl_proxy *) kde_mode_list_v2,
+			 KDE_MODE_LIST_V2_DESTROY, NULL, wl_proxy_get_version((struct wl_proxy *) kde_mode_list_v2), WL_MARSHAL_FLAG_DESTROY);
+}
+
+/**
+ * @ingroup iface_kde_mode_list_v2
+ */
+static inline void
+kde_mode_list_v2_add_mode(struct kde_mode_list_v2 *kde_mode_list_v2)
+{
+	wl_proxy_marshal_flags((struct wl_proxy *) kde_mode_list_v2,
+			 KDE_MODE_LIST_V2_ADD_MODE, NULL, wl_proxy_get_version((struct wl_proxy *) kde_mode_list_v2), 0);
+}
+
+/**
+ * @ingroup iface_kde_mode_list_v2
+ */
+static inline void
+kde_mode_list_v2_set_resolution(struct kde_mode_list_v2 *kde_mode_list_v2, uint32_t width, uint32_t height)
+{
+	wl_proxy_marshal_flags((struct wl_proxy *) kde_mode_list_v2,
+			 KDE_MODE_LIST_V2_SET_RESOLUTION, NULL, wl_proxy_get_version((struct wl_proxy *) kde_mode_list_v2), 0, width, height);
+}
+
+/**
+ * @ingroup iface_kde_mode_list_v2
+ */
+static inline void
+kde_mode_list_v2_set_refresh_rate(struct kde_mode_list_v2 *kde_mode_list_v2, uint32_t rate)
+{
+	wl_proxy_marshal_flags((struct wl_proxy *) kde_mode_list_v2,
+			 KDE_MODE_LIST_V2_SET_REFRESH_RATE, NULL, wl_proxy_get_version((struct wl_proxy *) kde_mode_list_v2), 0, rate);
+}
+
+/**
+ * @ingroup iface_kde_mode_list_v2
+ *
+ * Reduced blanking is an optimization that can reduce bandwidth / timing
+ * requirements for a display mode by reducing the time vblank takes.
+ * As not all displays support it, it may be desired to still turn it off
+ * though (like with CRTs, where full blanking is required).
+ */
+static inline void
+kde_mode_list_v2_set_reduced_blanking(struct kde_mode_list_v2 *kde_mode_list_v2, uint32_t reduced)
+{
+	wl_proxy_marshal_flags((struct wl_proxy *) kde_mode_list_v2,
+			 KDE_MODE_LIST_V2_SET_REDUCED_BLANKING, NULL, wl_proxy_get_version((struct wl_proxy *) kde_mode_list_v2), 0, reduced);
+}
+
+/**
+ * @ingroup iface_kde_mode_list_v2
+ *
+ * Adds a new mode with the specified CVT timings.
+ */
+static inline void
+kde_mode_list_v2_add_cvt(struct kde_mode_list_v2 *kde_mode_list_v2, uint32_t dot_clock, uint32_t hdisplay, uint32_t hsync_start, uint32_t hsync_end, uint32_t htotal, uint32_t hskew, uint32_t vdisplay, uint32_t vsync_start, uint32_t vsync_end, uint32_t vtotal, uint32_t vscan, uint32_t flags)
+{
+	wl_proxy_marshal_flags((struct wl_proxy *) kde_mode_list_v2,
+			 KDE_MODE_LIST_V2_ADD_CVT, NULL, wl_proxy_get_version((struct wl_proxy *) kde_mode_list_v2), 0, dot_clock, hdisplay, hsync_start, hsync_end, htotal, hskew, vdisplay, vsync_start, vsync_end, vtotal, vscan, flags);
 }
 
 #ifdef  __cplusplus

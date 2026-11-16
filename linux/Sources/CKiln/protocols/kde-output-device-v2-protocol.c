@@ -26,6 +26,7 @@
 #endif
 
 extern const struct wl_interface kde_output_device_mode_v2_interface;
+extern const struct wl_interface kde_output_device_v2_interface;
 
 static const struct wl_interface *kde_output_device_v2_types[] = {
 	NULL,
@@ -36,14 +37,38 @@ static const struct wl_interface *kde_output_device_v2_types[] = {
 	NULL,
 	NULL,
 	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	&kde_output_device_v2_interface,
 	&kde_output_device_mode_v2_interface,
 	&kde_output_device_mode_v2_interface,
 };
 
+static const struct wl_message kde_output_device_registry_v2_requests[] = {
+	{ "stop", "21", kde_output_device_v2_types + 0 },
+};
+
+static const struct wl_message kde_output_device_registry_v2_events[] = {
+	{ "finished", "21", kde_output_device_v2_types + 0 },
+	{ "output", "21n", kde_output_device_v2_types + 12 },
+};
+
+WL_PRIVATE const struct wl_interface kde_output_device_registry_v2_interface = {
+	"kde_output_device_registry_v2", 26,
+	1, kde_output_device_registry_v2_requests,
+	2, kde_output_device_registry_v2_events,
+};
+
+static const struct wl_message kde_output_device_v2_requests[] = {
+	{ "release", "21", kde_output_device_v2_types + 0 },
+};
+
 static const struct wl_message kde_output_device_v2_events[] = {
 	{ "geometry", "iiiiissi", kde_output_device_v2_types + 0 },
-	{ "current_mode", "o", kde_output_device_v2_types + 8 },
-	{ "mode", "n", kde_output_device_v2_types + 9 },
+	{ "current_mode", "o", kde_output_device_v2_types + 13 },
+	{ "mode", "n", kde_output_device_v2_types + 14 },
 	{ "done", "", kde_output_device_v2_types + 0 },
 	{ "scale", "f", kde_output_device_v2_types + 0 },
 	{ "edid", "s", kde_output_device_v2_types + 0 },
@@ -68,12 +93,29 @@ static const struct wl_message kde_output_device_v2_events[] = {
 	{ "brightness", "8u", kde_output_device_v2_types + 0 },
 	{ "color_power_tradeoff", "10u", kde_output_device_v2_types + 0 },
 	{ "dimming", "11u", kde_output_device_v2_types + 0 },
+	{ "replication_source", "13s", kde_output_device_v2_types + 0 },
+	{ "ddc_ci_allowed", "14u", kde_output_device_v2_types + 0 },
+	{ "max_bits_per_color", "15u", kde_output_device_v2_types + 0 },
+	{ "max_bits_per_color_range", "15uu", kde_output_device_v2_types + 0 },
+	{ "automatic_max_bits_per_color_limit", "15u", kde_output_device_v2_types + 0 },
+	{ "edr_policy", "16u", kde_output_device_v2_types + 0 },
+	{ "sharpness", "17u", kde_output_device_v2_types + 0 },
+	{ "priority", "18u", kde_output_device_v2_types + 0 },
+	{ "auto_brightness", "20u", kde_output_device_v2_types + 0 },
+	{ "removed", "21", kde_output_device_v2_types + 0 },
+	{ "hdr_icc_profile_path", "22s", kde_output_device_v2_types + 0 },
+	{ "hdr_color_profile_source", "22u", kde_output_device_v2_types + 0 },
+	{ "abm_level", "23u", kde_output_device_v2_types + 0 },
 };
 
 WL_PRIVATE const struct wl_interface kde_output_device_v2_interface = {
-	"kde_output_device_v2", 11,
-	0, NULL,
-	27, kde_output_device_v2_events,
+	"kde_output_device_v2", 26,
+	1, kde_output_device_v2_requests,
+	40, kde_output_device_v2_events,
+};
+
+static const struct wl_message kde_output_device_mode_v2_requests[] = {
+	{ "release", "26", kde_output_device_v2_types + 0 },
 };
 
 static const struct wl_message kde_output_device_mode_v2_events[] = {
@@ -81,11 +123,13 @@ static const struct wl_message kde_output_device_mode_v2_events[] = {
 	{ "refresh", "i", kde_output_device_v2_types + 0 },
 	{ "preferred", "", kde_output_device_v2_types + 0 },
 	{ "removed", "", kde_output_device_v2_types + 0 },
+	{ "flags", "19u", kde_output_device_v2_types + 0 },
+	{ "cvt", "24uuuuuuuuuuuu", kde_output_device_v2_types + 0 },
 };
 
 WL_PRIVATE const struct wl_interface kde_output_device_mode_v2_interface = {
-	"kde_output_device_mode_v2", 1,
-	0, NULL,
-	4, kde_output_device_mode_v2_events,
+	"kde_output_device_mode_v2", 26,
+	1, kde_output_device_mode_v2_requests,
+	6, kde_output_device_mode_v2_events,
 };
 

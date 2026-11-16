@@ -19,6 +19,7 @@ typedef struct {
     uint32_t name;
     int32_t width_mm;
     int32_t height_mm;
+    char connector[64];
 } kiln_output;
 
 struct kiln_wl {
@@ -433,7 +434,12 @@ static void output_geometry(void *data, struct wl_output *output, int32_t x, int
 static void output_mode(void *data, struct wl_output *output, uint32_t flags, int32_t width, int32_t height, int32_t refresh) {}
 static void output_done(void *data, struct wl_output *output) {}
 static void output_scale(void *data, struct wl_output *output, int32_t factor) {}
-static void output_name(void *data, struct wl_output *output, const char *name) {}
+static void output_name(void *data, struct wl_output *output, const char *name) {
+    kiln_wl *wl = data;
+    for (int index = 0; index < KILN_MAX_OUTPUTS; index++) {
+        if (wl->outputs[index].output == output) snprintf(wl->outputs[index].connector, sizeof wl->outputs[index].connector, "%s", name);
+    }
+}
 static void output_description(void *data, struct wl_output *output, const char *description) {}
 
 static const struct wl_output_listener output_listener = {
@@ -448,7 +454,7 @@ static const struct wl_output_listener output_listener = {
 static void add_output(kiln_wl *wl, struct wl_registry *registry, uint32_t name, uint32_t version) {
     for (int index = 0; index < KILN_MAX_OUTPUTS; index++) {
         if (wl->outputs[index].output) continue;
-        wl->outputs[index] = (kiln_output) { .output = wl_registry_bind(registry, name, &wl_output_interface, kiln_min(version, 2)), .name = name };
+        wl->outputs[index] = (kiln_output) { .output = wl_registry_bind(registry, name, &wl_output_interface, kiln_min(version, 4)), .name = name };
         wl_output_add_listener(wl->outputs[index].output, &output_listener, wl);
         return;
     }
@@ -483,6 +489,17 @@ static const struct wl_surface_listener surface_listener = {
     .preferred_buffer_scale = surface_preferred_scale,
     .preferred_buffer_transform = surface_preferred_transform,
 };
+
+const char *kiln_wl_output_name(kiln_wl *wl) {
+    for (int index = 0; index < KILN_MAX_OUTPUTS; index++) {
+        const kiln_output *output = &wl->outputs[index];
+        if (output->output && output->output == wl->current_output && output->connector[0]) return output->connector;
+    }
+    for (int index = 0; index < KILN_MAX_OUTPUTS; index++) {
+        if (wl->outputs[index].output && wl->outputs[index].connector[0]) return wl->outputs[index].connector;
+    }
+    return NULL;
+}
 
 bool kiln_wl_output_size_mm(kiln_wl *wl, int32_t *width_mm, int32_t *height_mm) {
     const kiln_output *found = NULL;

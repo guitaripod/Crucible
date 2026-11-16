@@ -271,6 +271,9 @@ public final class Window {
         }
     }
 
+    /// The name of the screen the window is on ("DP-3"), which KWin's output management knows it by; nil offscreen.
+    public var outputName: String? { surface?.outputName }
+
     /// The diagonal of the screen the window is on, in inches, from the size the screen reports; nil offscreen or when the
     /// screen reports none.
     public var screenDiagonalInches: Float? {
