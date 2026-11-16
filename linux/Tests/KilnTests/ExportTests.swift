@@ -56,6 +56,7 @@ struct ExportTests {
         let painter = Painter(gpu: gpu, target: source)
         painter.clear(.black)
         painter.fill(Rect(x: 0, y: 0, width: 64, height: 128), color: .white)
+        painter.flush()
         let blurred = try #require(gpu.blurred(source))
         #expect(blurred.width == 64 && blurred.height == 64)
         let pixels = blurred.download()

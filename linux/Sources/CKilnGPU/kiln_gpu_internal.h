@@ -9,6 +9,8 @@
 #include <libplacebo/cache.h>
 
 #define KILN_MAX_TIMERS 1024
+#define KILN_VERTEX_FRAMES 4
+#define KILN_VERTEX_BYTES (4u << 20)
 
 struct kiln_tex {
     pl_tex tex;
@@ -34,6 +36,10 @@ struct kiln_gpu {
     pl_cache shader_cache;
     char *shader_cache_path;
     int shader_cache_objects;
+    pl_buf vertex_bufs[KILN_VERTEX_FRAMES];
+    int vertex_frame;
+    size_t vertex_used;
+    bool vertex_ready;
 };
 
 #endif

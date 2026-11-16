@@ -90,6 +90,7 @@ enum GalleryArt {
                 painter.gradient(Rect(x: 0, y: Float(height) * 0.5, width: Float(width), height: Float(height) * 0.5), vertical: true,
                                  stops: [(0, Color.shade(0)), (1, Color.shade(0.55))])
                 painter.text(label.texture, x: x, y: y, color: Color(hex: 0xFFF6EA))
+                painter.flush()
             }
         }
         return texture

@@ -30,6 +30,11 @@ typedef struct {
 } kiln_uniform;
 
 typedef struct {
+    const char *name;
+    int components;
+} kiln_attribute;
+
+typedef struct {
     void *instance;
     void *physical_device;
     void *device;
@@ -92,6 +97,14 @@ bool kiln_gpu_pass(kiln_gpu *gpu, kiln_tex *target, const char *header, const ch
                    const kiln_sampler *samplers, int sampler_count,
                    const kiln_uniform *uniforms, int uniform_count,
                    const float *rect, bool blend);
+
+/** Draws `vertex_count` vertices as triangles into `target` with one GLSL pass: each vertex is `attributes` in order as
+ * floats, the first the position in target pixels, the rest read by name in `body`, which writes `color` (vec4) as in
+ * `kiln_gpu_pass`. Many primitives drawn in one call cost one pass. */
+bool kiln_gpu_draw(kiln_gpu *gpu, kiln_tex *target, const char *header, const char *body,
+                   const kiln_sampler *samplers, int sampler_count,
+                   const kiln_attribute *attributes, int attribute_count,
+                   const float *vertices, int vertex_count, bool blend);
 
 /** Starts a swapchain frame, draws `source` onto it, submits and swaps; false when nothing reached the compositor. */
 bool kiln_gpu_present(kiln_gpu *gpu, kiln_tex *source);

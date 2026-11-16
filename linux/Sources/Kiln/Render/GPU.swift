@@ -218,6 +218,56 @@ public final class GPU {
         }
     }
 
+    /// One float vertex attribute of `draw`, read by `name` in the shader.
+    public struct Attribute: Sendable {
+        public let name: String
+        public let components: Int
+
+        public init(_ name: String, components: Int) {
+            self.name = name
+            self.components = components
+        }
+    }
+
+    /// Draws `vertexCount` vertices as triangles into `target` in one pass: `vertices` holds each vertex's `attributes` in
+    /// order, the first the position in target pixels, the others read by name in `body`, which writes `color` as in
+    /// `pass`. Many primitives drawn this way cost one pass.
+    @discardableResult
+    public func draw(into target: Texture, header: String = "", body: String, samplers: [Sampler], attributes: [Attribute],
+                     vertices: UnsafePointer<Float>, vertexCount: Int, blend: Bool = true) -> Bool {
+        FrameTrace.passes += 1
+        let started = Window.now()
+        defer { FrameTrace.passTime += Window.now() - started }
+        let names = samplers.map { strdup($0.name) } + attributes.map { strdup($0.name) }
+        defer { names.forEach { free($0) } }
+        let rawSamplers = samplers.enumerated().map { index, sampler in
+            kiln_sampler(name: names[index], tex: sampler.texture.handle, nearest: sampler.nearest)
+        }
+        let rawAttributes = attributes.enumerated().map { index, attribute in
+            kiln_attribute(name: names[samplers.count + index], components: Int32(attribute.components))
+        }
+        return header.withCString { headerPointer in
+            body.withCString { bodyPointer in
+                kiln_gpu_draw(handle, target.handle, headerPointer, bodyPointer, rawSamplers, Int32(rawSamplers.count), rawAttributes,
+                              Int32(rawAttributes.count), vertices, Int32(vertexCount), blend)
+            }
+        }
+    }
+
+    /// Distinct 1x1 textures for sampler slots a pass declares but does not use (libplacebo binds each texture once per
+    /// pass), as many as `count`, made on first use.
+    public func blankTextures(_ count: Int) -> [Texture] {
+        while blanks.count < count {
+            guard let texture = try? texture(width: 1, height: 1, format: .r8, renderable: false) else { break }
+            var zero: UInt8 = 0
+            _ = texture.upload(&zero, rowBytes: 1)
+            blanks.append(texture)
+        }
+        return Array(blanks.prefix(count))
+    }
+
+    private var blanks: [Texture] = []
+
     @discardableResult
     public func present(_ source: Texture) -> Bool {
         kiln_gpu_present(handle, source.handle)

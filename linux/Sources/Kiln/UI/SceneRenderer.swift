@@ -41,6 +41,7 @@ final class SceneRenderer {
         painter.clear(background)
         let context = DrawContext(renderer: self, transform: Affine(scale: scale), alpha: 1, clip: nil)
         draw(root, in: context)
+        painter.flush()
         painter.clip = nil
         text.endFrame()
         shapes.endFrame()
@@ -77,6 +78,7 @@ final class SceneRenderer {
             return
         }
         guard let glassRenderer, let backdropCopy else { return }
+        painter.flush()
         let copier = Painter(gpu: gpu, target: backdropCopy)
         copier.copy(target)
         glassRenderer.blur(backdropCopy)
@@ -127,5 +129,6 @@ final class SceneRenderer {
         let rect = Rect(x: 8 * scale, y: 8 * scale, width: Float(label.metrics.width) + 16 * scale, height: Float(label.metrics.height) + 12 * scale)
         painter.fill(rect, radius: 6 * scale, color: Color.black.withAlpha(0.72))
         painter.text(label.texture, x: rect.x + 8 * scale, y: rect.y + 6 * scale, color: Color(hex: 0x7CFC9A))
+        painter.flush()
     }
 }

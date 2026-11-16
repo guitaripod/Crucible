@@ -23,6 +23,7 @@ import CKilnText
     @Test func aFilledRoundedRectCoversItsInsideAndLeavesItsCornersClear() {
         painter.clear(.black)
         painter.fill(Rect(x: 100, y: 100, width: 200, height: 100), radius: 40, color: .white)
+        painter.flush()
         let pixels = target.download()
         #expect(pixel(pixels, 200, 150).0 > 0.99)
         #expect(pixel(pixels, 101, 101).0 < 0.01)
@@ -33,6 +34,7 @@ import CKilnText
     @Test func translucentFillsBlendOverWhatIsThere() {
         painter.clear(Color(linearRed: 0, green: 0, blue: 1))
         painter.fill(Rect(x: 0, y: 0, width: 640, height: 360), color: Color(linearRed: 1, green: 0, blue: 0, alpha: 0.25))
+        painter.flush()
         let (red, _, blue, _) = pixel(target.download(), 320, 180)
         #expect(abs(red - 0.25) < 0.01)
         #expect(abs(blue - 0.75) < 0.01)
@@ -47,6 +49,7 @@ import CKilnText
     @Test func aShadowFadesOutwardFromItsShape() {
         painter.clear(.white)
         painter.shadow(Rect(x: 200, y: 100, width: 240, height: 140), radius: 24, blur: 30, offsetY: 0, opacity: 0.8)
+        painter.flush()
         let pixels = target.download()
         let inside = pixel(pixels, 320, 170).0
         let edge = pixel(pixels, 200, 170).0
@@ -62,6 +65,7 @@ import CKilnText
             (0, Color(linearRed: 0, green: 0, blue: 0)),
             (1, Color(linearRed: 1, green: 1, blue: 1)),
         ])
+        painter.flush()
         let pixels = target.download()
         #expect(pixel(pixels, 10, 0).0 < 0.01)
         #expect(abs(pixel(pixels, 10, 180).0 - 0.5) < 0.01)
@@ -79,6 +83,7 @@ import CKilnText
         _ = bytes.withUnsafeBytes { art.upload($0.baseAddress!, rowBytes: 16) }
         painter.clear(.black)
         painter.image(art, in: Rect(x: 0, y: 0, width: 200, height: 200))
+        painter.flush()
         let pixels = target.download()
         #expect(pixel(pixels, 40, 100).0 < 0.01)
         #expect(abs(pixel(pixels, 160, 100).0 - 0.2159) < 0.01)
@@ -126,6 +131,7 @@ import CKilnText
         #expect(texture.isSRGB)
         painter.clear(.black)
         painter.image(texture, in: Rect(x: 20, y: 20, width: Float(texture.width), height: Float(texture.height)), srgb: true)
+        painter.flush()
         let pixels = target.download()
         var white = 0
         var yellow = 0
@@ -202,6 +208,7 @@ import CKilnText
         let label = try #require(try text.texture(for: "Continue Watching", style: style))
         painter.clear(.black)
         painter.text(label.texture, x: 40, y: 40, color: Color(linearRed: 1, green: 0.5, blue: 0))
+        painter.flush()
         let pixels = target.download()
         var lit = 0
         var maxRed: Float = 0
@@ -260,10 +267,11 @@ import CKilnText
                 painter.text(labels[index].texture, x: x, y: y + 270, color: .white)
                 painter.text(labels[index].texture, x: x, y: y + 300, color: Color.white.withAlpha(0.6))
             }
+            painter.flush()
             let cpu = ContinuousClock.now - start
             gpu.finish()
             let total = ContinuousClock.now - start
-            print("round \(round): 301 passes cpu \(cpu) total \(total) gpu \(gpu.takeGPUMilliseconds()) ms")
+            print("round \(round): 301 primitives cpu \(cpu) total \(total) gpu \(gpu.takeGPUMilliseconds()) ms")
         }
     }
 }

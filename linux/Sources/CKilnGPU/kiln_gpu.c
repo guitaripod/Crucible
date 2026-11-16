@@ -174,6 +174,7 @@ void kiln_gpu_destroy(kiln_gpu *g) {
     pl_cache_destroy(&g->shader_cache);
     free(g->shader_cache_path);
     for (int i = 0; i < g->timer_count; i++) pl_timer_destroy(g->gpu, &g->timers[i]);
+    for (int i = 0; i < KILN_VERTEX_FRAMES; i++) pl_buf_destroy(g->gpu, &g->vertex_bufs[i]);
     pl_renderer_destroy(&g->renderer);
     pl_dispatch_destroy(&g->dispatch);
     pl_swapchain_destroy(&g->swapchain);
@@ -447,13 +448,8 @@ static void collect_timers(kiln_gpu *g) {
     }
 }
 
-bool kiln_gpu_pass(kiln_gpu *g, kiln_tex *target, const char *header, const char *body,
-                   const kiln_sampler *samplers, int sampler_count,
-                   const kiln_uniform *uniforms, int uniform_count,
-                   const float *rect, bool blend) {
-    struct pl_shader_desc descriptors[16];
-    struct pl_shader_var variables[32];
-    if (sampler_count > 16 || uniform_count > 32) return false;
+static bool fill_descriptors(struct pl_shader_desc *descriptors, const kiln_sampler *samplers, int sampler_count) {
+    if (sampler_count > 16) return false;
     for (int i = 0; i < sampler_count; i++) {
         descriptors[i] = (struct pl_shader_desc) {
             .desc = { .name = samplers[i].name, .type = PL_DESC_SAMPLED_TEX },
@@ -464,6 +460,16 @@ bool kiln_gpu_pass(kiln_gpu *g, kiln_tex *target, const char *header, const char
             },
         };
     }
+    return true;
+}
+
+bool kiln_gpu_pass(kiln_gpu *g, kiln_tex *target, const char *header, const char *body,
+                   const kiln_sampler *samplers, int sampler_count,
+                   const kiln_uniform *uniforms, int uniform_count,
+                   const float *rect, bool blend) {
+    struct pl_shader_desc descriptors[16];
+    struct pl_shader_var variables[32];
+    if (uniform_count > 32 || !fill_descriptors(descriptors, samplers, sampler_count)) return false;
     for (int i = 0; i < uniform_count; i++) {
         struct pl_var var;
         switch (uniforms[i].components) {
@@ -486,6 +492,75 @@ bool kiln_gpu_pass(kiln_gpu *g, kiln_tex *target, const char *header, const char
     return pl_dispatch_finish(g->dispatch, pl_dispatch_params(
         .shader = &sh, .target = target->tex, .rect = area,
         .blend_params = blend ? &pl_alpha_overlay : NULL,
+        .timer = next_timer(g),
+    ));
+}
+
+/* Moves vertex data to the next frame's buffer: each frame (or each 4 MB, for windows that never present) writes its
+ * own host-mapped buffer, which the GPU finished reading frames ago. */
+static void next_vertex_buffer(kiln_gpu *g) {
+    g->vertex_frame = (g->vertex_frame + 1) % KILN_VERTEX_FRAMES;
+    g->vertex_used = 0;
+    g->vertex_ready = false;
+}
+
+/* Room for `size` bytes of vertices in this frame's buffer, mapped; NULL when it cannot be had (the draw then hands its
+ * vertices to libplacebo, which makes a buffer for them). */
+static pl_buf vertex_space(kiln_gpu *g, size_t size, size_t *offset) {
+    if (size > KILN_VERTEX_BYTES) return NULL;
+    if (g->vertex_used + size > KILN_VERTEX_BYTES) next_vertex_buffer(g);
+    pl_buf buf = g->vertex_bufs[g->vertex_frame];
+    if (!buf) {
+        buf = pl_buf_create(g->gpu, pl_buf_params(.size = KILN_VERTEX_BYTES, .host_mapped = true, .drawable = true));
+        if (!buf || !buf->data) {
+            pl_buf_destroy(g->gpu, &buf);
+            return NULL;
+        }
+        g->vertex_bufs[g->vertex_frame] = buf;
+        g->vertex_ready = true;
+    }
+    if (!g->vertex_ready) {
+        while (pl_buf_poll(g->gpu, buf, UINT64_MAX)) {}
+        g->vertex_ready = true;
+    }
+    *offset = g->vertex_used;
+    g->vertex_used += (size + 15) & ~(size_t) 15;
+    return buf;
+}
+
+bool kiln_gpu_draw(kiln_gpu *g, kiln_tex *target, const char *header, const char *body,
+                   const kiln_sampler *samplers, int sampler_count,
+                   const kiln_attribute *attributes, int attribute_count,
+                   const float *vertices, int vertex_count, bool blend) {
+    struct pl_shader_desc descriptors[16];
+    struct pl_vertex_attrib attribs[16];
+    if (attribute_count < 1 || attribute_count > 16 || vertex_count <= 0) return false;
+    if (!fill_descriptors(descriptors, samplers, sampler_count)) return false;
+    size_t stride = 0;
+    for (int i = 0; i < attribute_count; i++) {
+        pl_fmt fmt = pl_find_vertex_fmt(g->gpu, PL_FMT_FLOAT, attributes[i].components);
+        if (!fmt) return false;
+        attribs[i] = (struct pl_vertex_attrib) { .name = attributes[i].name, .fmt = fmt, .offset = stride, .location = i };
+        stride += (size_t) attributes[i].components * sizeof(float);
+    }
+    pl_shader sh = pl_dispatch_begin(g->dispatch);
+    bool ok = pl_shader_custom(sh, &(struct pl_custom_shader) {
+        .header = header, .body = body,
+        .input = PL_SHADER_SIG_NONE, .output = PL_SHADER_SIG_COLOR,
+        .descriptors = descriptors, .num_descriptors = sampler_count,
+    });
+    if (!ok) { pl_dispatch_abort(g->dispatch, &sh); return false; }
+    size_t size = stride * (size_t) vertex_count;
+    size_t offset = 0;
+    pl_buf buf = vertex_space(g, size, &offset);
+    if (buf) memcpy((uint8_t *) buf->data + offset, vertices, size);
+    return pl_dispatch_vertex(g->dispatch, pl_dispatch_vertex_params(
+        .shader = &sh, .target = target->tex,
+        .blend_params = blend ? &pl_alpha_overlay : NULL,
+        .vertex_attribs = attribs, .num_vertex_attribs = attribute_count, .vertex_stride = stride,
+        .vertex_position_idx = 0, .vertex_coords = PL_COORDS_ABSOLUTE,
+        .vertex_type = PL_PRIM_TRIANGLE_LIST, .vertex_count = vertex_count,
+        .vertex_data = buf ? NULL : vertices, .vertex_buf = buf, .buf_offset = offset,
         .timer = next_timer(g),
     ));
 }
@@ -514,6 +589,7 @@ bool kiln_gpu_present(kiln_gpu *g, kiln_tex *source) {
     if (ok) pl_swapchain_swap_buffers(g->swapchain);
     collect_timers(g);
     g->pass_index = 0;
+    next_vertex_buffer(g);
     return ok;
 }
 
