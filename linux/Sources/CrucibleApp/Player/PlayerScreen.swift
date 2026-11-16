@@ -1246,7 +1246,8 @@ final class PlayerScreen: View {
 
     override func layoutSubviews() {
         let metrics = Theme.current.metrics
-        for chrome in [transport, skip, card, infoPanel, toast] as [View?] { chrome?.alpha = isMini ? 0 : 1 }
+        for overlay in [skip, card, infoPanel, toast] as [View?] { overlay?.alpha = isMini ? 0 : 1 }
+        transport.alpha = isMini ? 0 : chrome.value
         if isMini {
             laidOutSize = nil
             followFullscreen()
