@@ -58,7 +58,8 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         selectedSubtitleId: Int? = nil,
         selectedAudioStreamId: Int? = nil,
         offlineAsset: OfflineAsset? = nil,
-        queue: PlaybackQueue? = nil
+        queue: PlaybackQueue? = nil,
+        serverStart: ServerStart? = nil
     ) {
         self.init(
             api: api,
@@ -72,7 +73,8 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
                 selectedSubtitleId: selectedSubtitleId,
                 selectedAudioStreamId: selectedAudioStreamId,
                 offline: offlineAsset.map { Self.offlineSource(from: $0) },
-                queue: queue
+                queue: queue,
+                serverStart: offlineAsset == nil ? serverStart : nil
             )
         )
     }

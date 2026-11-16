@@ -100,7 +100,8 @@ extension TVPlaybackRequest {
             },
             selectedSubtitleId: selectedSubtitleStreamID,
             selectedAudioStreamId: selectedAudioStreamID,
-            queue: queue
+            queue: queue,
+            serverStart: serverStart
         )
     }
 }

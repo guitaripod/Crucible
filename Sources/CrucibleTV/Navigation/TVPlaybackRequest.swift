@@ -23,6 +23,8 @@ struct TVPlaybackRequest: Sendable, Equatable {
     let selectedSubtitleStreamID: Int?
     let display: Display?
     let queue: PlaybackQueue?
+    /// Set when `resumeSeconds` came from the caller's copy of the title, which the player checks against the server's.
+    let serverStart: ServerStart?
 
     init(
         ratingKey: String,
@@ -33,8 +35,10 @@ struct TVPlaybackRequest: Sendable, Equatable {
         selectedAudioStreamID: Int? = nil,
         selectedSubtitleStreamID: Int? = nil,
         display: Display? = nil,
-        queue: PlaybackQueue? = nil
+        queue: PlaybackQueue? = nil,
+        serverStart: ServerStart? = nil
     ) {
+        self.serverStart = serverStart
         self.ratingKey = ratingKey
         self.mediaType = mediaType
         self.showRatingKey = showRatingKey
@@ -49,12 +53,14 @@ struct TVPlaybackRequest: Sendable, Equatable {
     /// Builds the request for `item`, resuming where the server says it was left unless
     /// `resumeSeconds` overrides it (pass 0 for Play from Beginning). A watched item starts from the
     /// beginning: its offset is where the last watching stopped, not a place to continue from.
+    /// `following` says how an overriding `resumeSeconds` that was itself read off `item` follows the server.
     init(
         item: PlexMetadata,
         resumeSeconds: Double? = nil,
         selectedAudioStreamID: Int? = nil,
         selectedSubtitleStreamID: Int? = nil,
-        queue: PlaybackQueue? = nil
+        queue: PlaybackQueue? = nil,
+        following: ServerStart? = nil
     ) {
         self.init(
             ratingKey: item.id,
@@ -73,7 +79,8 @@ struct TVPlaybackRequest: Sendable, Equatable {
                 durationSeconds: item.durationSecs,
                 showPosterPath: item.grandparentThumb
             ),
-            queue: queue
+            queue: queue,
+            serverStart: resumeSeconds == nil ? .continueWatching : following
         )
     }
 }

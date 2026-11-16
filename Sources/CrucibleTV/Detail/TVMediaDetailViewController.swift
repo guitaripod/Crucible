@@ -463,7 +463,8 @@ final class TVMediaDetailViewController: TVDetailViewController {
             item: model.item,
             resumeSeconds: resume,
             selectedAudioStreamID: audioID,
-            selectedSubtitleStreamID: subtitleID
+            selectedSubtitleStreamID: subtitleID,
+            following: position == nil ? .resume : nil
         ))
     }
 

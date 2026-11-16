@@ -774,7 +774,8 @@ final class MediaDetailViewController: UICollectionViewController {
             metadata: meta,
             selectedSubtitleId: selectedSubtitleId,
             selectedAudioStreamId: selectedAudioTrackId,
-            offlineAsset: offlineAsset
+            offlineAsset: offlineAsset,
+            serverStart: .resume
         )
         self.playerCoordinator = coordinator
         coordinator.present(from: self)

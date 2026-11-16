@@ -126,6 +126,28 @@ struct ServerStateTests {
         hub.removeResyncHandler(token)
     }
 
+    @Test func aStartTakenFromAScreenFollowsTheServer() throws {
+        let stale = DetailFixtures.episode(3, offsetMs: 600_000)
+        let request = PlaybackRequest(item: stale)
+        #expect(request.serverStart == .resume)
+        #expect(request.resumePosition == 600)
+
+        let movedOn = DetailFixtures.episode(3, offsetMs: 1_800_000)
+        let followed = try #require(request.followingServer(movedOn))
+        #expect(followed.resumePosition == 1_800)
+        #expect(followed.serverStart == nil)
+        #expect(followed.ratingKey == request.ratingKey)
+
+        let finishedElsewhere = DetailFixtures.episode(3, watched: true, offsetMs: 2_390_000)
+        #expect(request.followingServer(finishedElsewhere)?.resumePosition == 0)
+        #expect(request.followingServer(DetailFixtures.episode(3, offsetMs: 601_000)) == nil, "within the report tolerance")
+        #expect(PlaybackRequest(item: stale, resumePosition: 0).followingServer(movedOn) == nil, "a chosen start stays")
+
+        let nearEnd = DetailFixtures.episode(3, offsetMs: 2_350_000)
+        let continuing = PlaybackRequest(ratingKey: "e13", mediaType: "episode", showRatingKey: nil, seasonRatingKey: nil, resumePosition: 600, serverStart: .continueWatching)
+        #expect(continuing.followingServer(nearEnd)?.resumePosition == 0)
+    }
+
     @Test func anAnswerFromBeforeAChangeIsNeitherKeptNorServed() async throws {
         let server = DetailStubServer()
         let api = server.client

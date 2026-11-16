@@ -63,6 +63,21 @@ package struct OfflinePlaybackSource: Sendable {
     }
 }
 
+/// How a start read off a screen's copy of a title follows the server's own record of it.
+package enum ServerStart: Sendable, Equatable {
+    /// Where the title was left, or the beginning for one already watched.
+    case resume
+    /// Where Continue Watching would pick it up: the beginning too for one past the watched threshold.
+    case continueWatching
+
+    package func seconds(for item: PlexMetadata) -> Double {
+        switch self {
+        case .resume: item.resumeSecs
+        case .continueWatching: item.continueSecs
+        }
+    }
+}
+
 /// Everything needed to start playing one item: identity, where to resume, which streams the user
 /// already chose, and the offline copy to prefer.
 package struct PlaybackRequest: Sendable {
@@ -78,6 +93,9 @@ package struct PlaybackRequest: Sendable {
     package let trackLanguages: TrackLanguages?
     package let offline: OfflinePlaybackSource?
     package let queue: PlaybackQueue?
+    /// Set when `resumePosition` is only what the caller's copy of the title said: the session reads the title again before
+    /// it starts and begins where the server has it now, so a title another device moved on since starts in the right place.
+    package let serverStart: ServerStart?
 
     package init(
         ratingKey: String,
@@ -90,8 +108,10 @@ package struct PlaybackRequest: Sendable {
         selectedAudioStreamId: Int? = nil,
         trackLanguages: TrackLanguages? = nil,
         offline: OfflinePlaybackSource? = nil,
-        queue: PlaybackQueue? = nil
+        queue: PlaybackQueue? = nil,
+        serverStart: ServerStart? = nil
     ) {
+        self.serverStart = serverStart
         self.trackLanguages = trackLanguages
         self.ratingKey = ratingKey
         self.mediaType = mediaType
@@ -121,12 +141,13 @@ package struct PlaybackRequest: Sendable {
             mediaType: item.mediaType,
             showRatingKey: item.grandparentRatingKey,
             seasonRatingKey: item.parentRatingKey,
-            resumePosition: resumePosition ?? (item.isWatched ? 0 : item.positionSecs),
+            resumePosition: resumePosition ?? item.resumeSecs,
             metadata: PlaybackMetadata(item: item),
             selectedSubtitleId: selectedSubtitleId,
             selectedAudioStreamId: selectedAudioStreamId,
             offline: offline,
-            queue: queue
+            queue: queue,
+            serverStart: resumePosition == nil && offline == nil ? .resume : nil
         )
     }
 
@@ -176,6 +197,27 @@ package struct PlaybackRequest: Sendable {
                 posterPath: title.posterPath ?? extra.posterPath,
                 duration: extra.durationSecs
             )
+        )
+    }
+
+    /// The same request starting where the server now has `item`, which it was built from an older copy of; nil when the
+    /// start was the caller's own choice or already matches.
+    package func followingServer(_ item: PlexMetadata) -> PlaybackRequest? {
+        guard let serverStart, offline == nil else { return nil }
+        let seconds = serverStart.seconds(for: item)
+        guard abs(seconds - resumePosition) > ResumePoint.reportTolerance else { return nil }
+        return PlaybackRequest(
+            ratingKey: ratingKey,
+            mediaType: mediaType,
+            showRatingKey: showRatingKey,
+            seasonRatingKey: seasonRatingKey,
+            resumePosition: seconds,
+            metadata: metadata,
+            selectedSubtitleId: selectedSubtitleId,
+            selectedAudioStreamId: selectedAudioStreamId,
+            trackLanguages: trackLanguages,
+            offline: offline,
+            queue: queue
         )
     }
 

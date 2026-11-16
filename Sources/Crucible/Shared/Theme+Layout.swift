@@ -128,7 +128,8 @@ extension Theme {
             resumePosition: resumePosition,
             metadata: meta,
             offlineAsset: offlineAsset,
-            queue: queue
+            queue: queue,
+            serverStart: override == nil ? .resume : nil
         )
         coordinator.present(from: vc)
         return coordinator

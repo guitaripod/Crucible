@@ -23,10 +23,12 @@ import MidgarCore
 /// `CancellationError`, `begin()` returns nil), so a retry or a second presentation makes a new session.
 @MainActor
 package final class PlaybackSession {
-    package let request: PlaybackRequest
+    package private(set) var request: PlaybackRequest
     /// Whether this session counts as a player that has its title open, which keeps the device's saved position of it from
     /// being sent while it plays.
     private var holdsPlayingTitle = false
+    /// How long a start waits to learn where the server has the title before it goes with the screen's copy.
+    private static let serverStartGrace: Duration = .seconds(2)
     package let events: AsyncStream<PlaybackEvent>
     package internal(set) var player: AVPlayer?
     package internal(set) var stream: ResolvedStream?
@@ -223,6 +225,8 @@ package final class PlaybackSession {
     package func prepare() async throws -> ResolvedStream {
         if isStopped { throw CancellationError() }
         if let stream { return stream }
+        await catchUpWithServer()
+        if isStopped || Task.isCancelled { throw CancellationError() }
         let languages = startingLanguages
         let resolved = try await StreamResolver.resolve(
             api: api,
@@ -243,6 +247,20 @@ package final class PlaybackSession {
         selectedAudioStreamId = resolved.chosenAudioStreamId
         subtitlesTurnedOff = resolved.chosenSubtitleId == nil && languages?.subtitlesOff == true
         return resolved
+    }
+
+    /// A start read off a screen's copy of the title moves to where the server has it now. The resolver reads the same
+    /// metadata next, so this costs no extra request. A server slower than `serverStartGrace` or failing leaves the start as
+    /// the screen had it, and its answer still serves the resolver.
+    private func catchUpWithServer() async {
+        guard request.serverStart != nil, request.offline == nil else { return }
+        let api = api
+        let ratingKey = request.ratingKey
+        let lookup = Task { try? await api.requestContainer(.metadata(ratingKey: ratingKey)).Metadata?.first }
+        guard let answer = await Settle.value(of: lookup, within: Self.serverStartGrace), let item = answer,
+              let followed = request.followingServer(item) else { return }
+        MidgarLog.notice("Starting \(request.ratingKey) at \(Int(followed.resumePosition)) s where the server has it, not \(Int(request.resumePosition)) s", category: .playback)
+        request = followed
     }
 
     /// The languages a fresh start begins in when no stream was chosen by id: the episode before's, else the ones last
