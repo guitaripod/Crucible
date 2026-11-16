@@ -97,7 +97,7 @@ final class TraktSettingsScreen: SettingsScaffold {
     }
 
     private func toggle(_ id: String, _ title: String, _ detail: String, _ isOn: Bool, symbol: Symbol) -> RowItem {
-        RowItem(id: id, title: title, subtitle: detail, value: isOn ? String(localized: "On") : String(localized: "Off"), symbol: symbol)
+        RowItem.onOff(id: id, title: title, subtitle: detail, isOn: isOn, symbol: symbol)
     }
 
     override func rowSelected(_ id: String) {

@@ -120,8 +120,7 @@ final class SoftwareUpdateScreen: SettingsScaffold {
         if update.checksReleases {
             items.append(RowItem(id: RowID.check, title: String(localized: "Check for Updates"), symbol: "arrow.triangle.2.circlepath",
                                  isEnabled: update.phase != .checking && update.phase != .downloading && update.phase != .installing))
-            items.append(RowItem(id: RowID.automatic, title: String(localized: "Check Automatically"),
-                                 value: update.checksAutomatically ? String(localized: "On") : String(localized: "Off"), symbol: "clock"))
+            items.append(RowItem.onOff(id: RowID.automatic, title: String(localized: "Check Automatically"), isOn: update.checksAutomatically, symbol: "clock"))
         }
         return items
     }

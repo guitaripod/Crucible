@@ -4,7 +4,11 @@ import Kiln
 /// View data of a settings-style row (`TVRowItem`): icon well, title, subtitle, value and an accessory. A toggle is a
 /// row whose value reads On or Off and flips on Select, as on tvOS.
 public struct RowItem: Hashable, Sendable {
-    public enum Accessory: Hashable, Sendable { case none, chevron, checkmark }
+    public enum Accessory: Hashable, Sendable {
+        case none, chevron, checkmark
+        /// A switch, on or off, that the row's activation flips (a desk's settings).
+        case toggle(Bool)
+    }
 
     public var id: String
     public var title: String
@@ -17,6 +21,15 @@ public struct RowItem: Hashable, Sendable {
     public var isStatic: Bool
     /// A service's official mark (`trakt`, `seerr`) filling the icon well in place of the symbol.
     public var brand: String?
+
+    /// A setting that is on or off: a switch on a desk, "On" or "Off" as the value on a couch, as tvOS Settings shows it.
+    @MainActor
+    public static func onOff(id: String, title: String, subtitle: String? = nil, isOn: Bool, symbol: Symbol? = nil, isEnabled: Bool = true) -> RowItem {
+        if Theme.current.density == .desk {
+            return RowItem(id: id, title: title, subtitle: subtitle, symbol: symbol, accessory: .toggle(isOn), isEnabled: isEnabled)
+        }
+        return RowItem(id: id, title: title, subtitle: subtitle, value: Strings.lookup(isOn ? "On" : "Off"), symbol: symbol, isEnabled: isEnabled)
+    }
 
     public init(id: String, title: String, subtitle: String? = nil, value: String? = nil, symbol: Symbol? = nil, accessory: Accessory = .none,
                 isDestructive: Bool = false, isEnabled: Bool = true, isStatic: Bool = false, brand: String? = nil) {
@@ -64,6 +77,24 @@ public final class RowView: View {
 
     public override var canBecomeFocused: Bool { item.isEnabled && !item.isStatic }
     public override var accessibilityLabel: String? { [item.title, item.value].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", ") }
+    public override var accessibilityValue: String? {
+        if case .toggle(let isOn) = item.accessory { return Strings.lookup(isOn ? "On" : "Off") }
+        return nil
+    }
+
+    /// A switch's track.
+    static var switchSize: Size { Size(width: Theme.current.metrics.tv(88), height: Theme.current.metrics.tv(50)) }
+
+    /// A switch in `rect`: the accent track with the knob at its end when on, a muted one with the knob at its start off.
+    static func drawSwitch(_ isOn: Bool, in rect: Rect, context: inout DrawContext) {
+        let palette = Theme.current.palette
+        context.fill(rect, radius: rect.height / 2, color: isOn ? palette.accent : palette.label.withAlpha(0.22))
+        let inset = rect.height * 0.1
+        let knob = rect.height - inset * 2
+        let x = isOn ? rect.maxX - inset - knob : rect.minX + inset
+        context.shadow(Rect(x: x, y: rect.minY + inset, width: knob, height: knob), radius: knob / 2, blur: 3, offsetY: 1, opacity: 0.3)
+        context.fill(Rect(x: x, y: rect.minY + inset, width: knob, height: knob), radius: knob / 2, color: .white)
+    }
     public override var accessibilityHint: String? { item.subtitle }
     public override var overdraw: Float { Theme.current.metrics.focusShadowRadius * 2 }
 
@@ -95,7 +126,11 @@ public final class RowView: View {
         }
         var textWidth = width - metrics.rowInset * 2
         if item.symbol != nil || item.brand != nil { textWidth -= metrics.rowIconWell + metrics.tv(32) }
-        if item.accessory != .none || item.value != nil { textWidth -= metrics.symbolAccessory + metrics.tv(32) }
+        if case .toggle = item.accessory {
+            textWidth -= RowView.switchSize.width + metrics.tv(32)
+        } else if item.accessory != .none || item.value != nil {
+            textWidth -= metrics.symbolAccessory + metrics.tv(32)
+        }
         if let value { textWidth -= value.size.width + metrics.tv(32) }
         textWidth = max(textWidth, 40)
         let subtitle = item.subtitle.flatMap { $0.isEmpty ? nil : TextLayout($0, font: type.cardSubtitle, maxWidth: textWidth, maxLines: 2, scale: scale) }
@@ -229,6 +264,11 @@ public final class RowView: View {
                     inner.symbol("checkmark", in: Rect(x: trailing - accessorySize, y: rect.midY - accessorySize / 2, width: accessorySize,
                                                        height: accessorySize), color: palette.accentText.mixed(with: palette.onFocusFill, amount: focus.value))
                     trailing -= accessorySize + metrics.tv(32)
+                case .toggle(let isOn):
+                    let size = RowView.switchSize
+                    RowView.drawSwitch(isOn, in: Rect(x: trailing - size.width, y: rect.midY - size.height / 2, width: size.width, height: size.height),
+                                       context: &inner)
+                    trailing -= size.width + metrics.tv(32)
                 case .none:
                     if item.value != nil { trailing -= accessorySize + metrics.tv(32) }
                 }

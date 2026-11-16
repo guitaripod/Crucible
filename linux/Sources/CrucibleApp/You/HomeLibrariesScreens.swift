@@ -77,8 +77,7 @@ final class HomeRowsScreen: SettingsScaffold {
 
     private func refreshRows() {
         let items = HomeLayout.entries().map { entry in
-            RowItem(id: Self.prefix + entry.row.rawValue, title: entry.row.title,
-                    value: entry.isOn ? String(localized: "On") : String(localized: "Off"), symbol: Symbol(entry.row.symbol))
+            RowItem.onOff(id: Self.prefix + entry.row.rawValue, title: entry.row.title, isOn: entry.isOn, symbol: Symbol(entry.row.symbol))
         }
         setRows(items + [RowItem(id: Self.resetID, title: String(localized: "Reset Order", comment: "Row that puts Home's rows back in their default order and turns them all on"),
                                  symbol: "arrow.counterclockwise")])

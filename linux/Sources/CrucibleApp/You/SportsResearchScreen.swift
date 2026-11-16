@@ -171,8 +171,7 @@ final class SportsResearchScreen: SettingsScaffold {
     }
 
     private func choiceRows(_ report: SportsReport) -> [RowItem] {
-        var rows = [RowItem(id: ID.switchedOn, title: SportsCopy.researchNewFiles, value: report.settings.on ? String(localized: "On") : String(localized: "Off"),
-                            symbol: "power", isEnabled: !busy)]
+        var rows = [RowItem.onOff(id: ID.switchedOn, title: SportsCopy.researchNewFiles, isOn: report.settings.on, symbol: "power", isEnabled: !busy)]
         rows += report.libraries.map { library in
             RowItem(id: ID.library + library.key, title: library.title, value: library.chosen ? SportsCopy.kind(library.kind) : String(localized: "Off"),
                     symbol: "film.stack", isEnabled: !busy)

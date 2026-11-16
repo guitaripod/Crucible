@@ -99,8 +99,7 @@ final class CommentComposerScreen: ScreenView {
         let rulesText = TraktCommunityCopy.rulesTitle + "\n" + TraktCommunityCopy.rules.map { "· " + $0 }.joined(separator: "\n")
         rules.show(showsRules ? rulesText : nil, tone: .neutral)
         rows.setItems([
-            RowItem(id: RowID.spoiler, title: TraktCommunityCopy.markSpoiler, value: isSpoiler ? String(localized: "On") : String(localized: "Off"),
-                    symbol: isSpoiler ? "eye.slash.fill" : "eye.slash"),
+            RowItem.onOff(id: RowID.spoiler, title: TraktCommunityCopy.markSpoiler, isOn: isSpoiler, symbol: isSpoiler ? "eye.slash.fill" : "eye.slash"),
             RowItem(id: RowID.post, title: isEditingComment ? TraktCommunityCopy.save : TraktCommunityCopy.post, symbol: "paperplane.fill",
                     isEnabled: draft.canPost && !isPosting),
         ])

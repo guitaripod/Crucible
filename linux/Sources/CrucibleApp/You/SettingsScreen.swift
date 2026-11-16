@@ -229,8 +229,7 @@ final class SettingsCategoryScreen: ScreenView {
         case .preference(let setting):
             switch setting.control {
             case .toggle(let isOn):
-                return RowItem(id: entry.id, title: entry.title, subtitle: entry.explanation,
-                               value: isOn ? String(localized: "On") : String(localized: "Off"), symbol: Symbol(entry.symbol))
+                return .onOff(id: entry.id, title: entry.title, subtitle: entry.explanation, isOn: isOn, symbol: Symbol(entry.symbol))
             case .choice:
                 return RowItem(id: entry.id, title: entry.title, subtitle: entry.explanation, value: setting.valueLabel, symbol: Symbol(entry.symbol),
                                accessory: .chevron)

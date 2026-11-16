@@ -38,6 +38,10 @@ final class YouScreen: SettingsScaffold {
         static let signOut = "you.signOut"
         static let demo = "you.demo"
         static let leaveDemo = "you.leaveDemo"
+        static let settings = "you.settings"
+        /// The rows that are Settings' own pages, which the Desktop layout leaves to the sidebar's Settings.
+        static let settingsPages: Set<String> = [playback, remote, homeRows, libraries, server, crucibleServer, trakt, seerr, privacy, diagnostics,
+                                                 about, density, appearance]
     }
 
     private let payload: LaunchPayload
@@ -199,6 +203,12 @@ final class YouScreen: SettingsScaffold {
             items.insert(RowItem(id: RowID.dashboard, title: ServerDashboardCopy.title, symbol: "gauge.with.dots.needle.33percent", accessory: .chevron),
                          at: activity + 1)
         }
+        if Theme.current.density == .desk {
+            items.removeAll { RowID.settingsPages.contains($0.id) }
+            let settings = RowItem(id: RowID.settings, title: String(localized: "Settings"), value: SoftwareUpdate.shared.hasUpdate ? String(localized: "Update Available") : nil,
+                                   symbol: "gearshape", accessory: .chevron)
+            items.insert(settings, at: items.firstIndex { $0.id == RowID.signOut } ?? items.count)
+        }
         if DemoMode.shared.isActive { adaptForDemo(&items) }
         setRows(items)
     }
@@ -221,6 +231,7 @@ final class YouScreen: SettingsScaffold {
         case RowID.switchProfile:
             navigation?.push(ProfilesScreen(machineIdentifier: payload.connection.machineIdentifier) { [weak self] in self?.rootView?.onReconnect?() })
         case RowID.history: navigation?.push(HistoryScreen(api: api))
+        case RowID.settings: rootView?.openSettings()
         case RowID.statistics: openStatistics()
         case RowID.playlists: navigation?.push(PlaylistScreens.playlists(api: api))
         case RowID.watchlist: navigation?.push(WatchlistScreens.watchlist(api: api))
