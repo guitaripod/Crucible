@@ -11,7 +11,7 @@ extension PlayerScreen {
     func presentContextMenu(at point: Point?) {
         guard let window, player != nil else { return }
         let origin = point ?? transport.transformToWindow.apply(Point(x: transport.bounds.midX, y: 0))
-        let menu = ContextMenuView(at: origin) { [weak self] in self?.menuEntries() ?? [] }
+        let menu = ContextMenuView(at: origin, highlightingFirstRow: point == nil) { [weak self] in self?.menuEntries() ?? [] }
         menu.onDismiss = { [weak self] in
             self?.showChrome(autoHide: true)
             self?.contextMenu = nil
@@ -232,8 +232,11 @@ extension PlayerScreen {
                                                         decrease: { [weak self] in self?.zoom(by: -0.05) },
                                                         increase: { [weak self] in self?.zoom(by: 0.05) },
                                                         reset: { [weak self] in self.map { $0.zoom(by: -$0.tweaks.title.zoom) } })))
-        entries.append(.action(Action(String(localized: "Rotate", comment: "Player menu: turn the picture a quarter"), detail: "\(tweaks.title.rotation)°",
-                                      keepsOpen: true) { [weak self] in self?.rotate() }))
+        entries.append(.stepper(ContextMenuView.Stepper(String(localized: "Rotate", comment: "Player menu: turn the picture a quarter"),
+                                                        value: "\(tweaks.title.rotation)°",
+                                                        decrease: { [weak self] in self?.rotate(by: -90) },
+                                                        increase: { [weak self] in self?.rotate(by: 90) },
+                                                        reset: { [weak self] in self.map { $0.rotate(by: -$0.tweaks.title.rotation) } })))
         entries.append(.action(Action(String(localized: "Deinterlace", comment: "Player menu"), isChecked: tweaks.title.deinterlace, keepsOpen: true) {
             [weak self] in self.map { $0.setDeinterlace(!$0.tweaks.title.deinterlace) }
         }))

@@ -19,6 +19,33 @@ public enum GlassStyle {
         Color(hex: 0xF6F3EF, srgbAlpha: 0.68).mixed(with: Color(hex: 0x1A1816, srgbAlpha: 0.66), amount: tone)
     }
 
+    /// A frosted sheet for desktop chrome that sits over pictures (a menu, the player's control bar): glass with only a hint
+    /// of refraction at its rim, so it never bends the text behind it into its edge, a veil of `veil` in the sheet's own
+    /// colour that keeps what is on it legible over any frame, a hairline edge and a floating shadow. Under Reduce
+    /// Transparency, an opaque raised surface.
+    public static func frostedSheet(in rect: Rect, radius: Float, scale: Float, dark: Bool, veil: Float, context: inout DrawContext) {
+        let theme = Theme.current
+        let metrics = theme.metrics
+        if theme.reduceTransparency {
+            context.fill(rect, radius: radius, color: dark ? Color(hex: 0x1C1A18) : theme.palette.surfaceRaised)
+        } else {
+            var element = LiquidGlass(
+                primary: .init(centerX: rect.midX, centerY: rect.midY, halfWidth: rect.width / 2, halfHeight: rect.height / 2, radius: radius),
+                lightX: rect.midX, lightY: rect.minY - rect.height
+            )
+            element.rimWidth = metrics.tv(5)
+            element.refraction = metrics.tv(2)
+            element.dispersion = 0
+            element.tone = dark ? 0 : 1
+            element.shadowOpacity = 0.34
+            element.shadowOffsetY = metrics.tv(12)
+            element.shadowRadius = metrics.tv(30)
+            context.glass(element)
+            context.fill(rect, radius: radius, color: dark ? Color(hex: 0x1C1A18, srgbAlpha: veil) : Color(hex: 0xF6F3EF, srgbAlpha: veil))
+        }
+        context.stroke(rect, radius: radius, width: 1 / max(scale, 1), color: dark ? Color.white.withAlpha(0.12) : Color.black.withAlpha(0.10))
+    }
+
     /// A glass capsule (or rounded rectangle) filling `rect`, lit from `light`.
     public static func capsule(in rect: Rect, radius: Float? = nil, light: Point, press: Float = 0, pill: Rect? = nil,
                                floating: Bool = false, tone: Float? = nil, context: inout DrawContext) {

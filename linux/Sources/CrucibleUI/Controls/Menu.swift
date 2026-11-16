@@ -51,8 +51,13 @@ public final class MenuView: View {
         }
     }
 
-    /// Shows the menu over everything in `window`.
+    /// Shows the menu over everything in `window`: on a desk, as a desktop dropdown (`ContextMenuView`) hanging from the
+    /// anchor or opening at the pointer, with no header; on a couch, as the tvOS panel.
     public func present(in window: Window) {
+        if Theme.current.density == .desk {
+            presentForDesk(in: window)
+            return
+        }
         returnFocus = window.focusedView
         window.contentView.addSubview(self)
         frame = window.contentView.bounds
@@ -64,9 +69,44 @@ public final class MenuView: View {
 
     public func dismiss() {
         guard superview != nil else { return }
+        if let desk {
+            self.desk = nil
+            desk.dismiss()
+            return
+        }
         if let focus = returnFocus, focus.window != nil { window?.focus.focus(focus, animated: false) }
         removeFromSuperview()
         onDismiss?()
+    }
+
+    /// The desktop menu standing in for this one on a desk, while it is open.
+    private var desk: ContextMenuView?
+
+    /// Presents the items as a desktop menu. This view joins the window unseen, so `superview` still says whether the menu
+    /// is open, and leaves it when the desktop menu closes.
+    private func presentForDesk(in window: Window) {
+        let items = rows.map(\.item)
+        let entries = items.map { item in
+            ContextMenuView.Entry.action(ContextMenuView.Action(item.title, detail: item.detail, symbol: item.symbol, shortcut: item.shortcut,
+                                                               isChecked: item.isChecked, isDestructive: item.isDestructive) { [weak self] in
+                self?.onSelect?(item)
+            })
+        }
+        let atPointer = anchor.width <= 2 && anchor.height <= 2
+        let menu = atPointer
+            ? ContextMenuView(at: anchor.origin, highlightingFirstRow: false) { entries }
+            : ContextMenuView(anchor: anchor, highlightingFirstRow: true) { entries }
+        menu.onDismiss = { [weak self] in
+            guard let self else { return }
+            self.desk = nil
+            self.removeFromSuperview()
+            self.onDismiss?()
+        }
+        isHidden = true
+        window.contentView.addSubview(self)
+        frame = .zero
+        desk = menu
+        menu.present(in: window)
     }
 
     private func choose(_ item: Item) {

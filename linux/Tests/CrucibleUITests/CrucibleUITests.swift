@@ -471,4 +471,124 @@ enum SharedGPU {
         #expect(menu.superview == nil)
         #expect(state.ran.isEmpty)
     }
+
+    private func lit(_ panel: ContextMenuPanel) -> [String] {
+        panel.rows.filter { panel.highlighted === $0 }.compactMap(\.accessibilityLabel)
+    }
+
+    private func wait(_ seconds: Double) async {
+        try? await Task.sleep(for: .milliseconds(Int(seconds * 1000)))
+    }
+
+    private func centre(_ label: String, in menu: ContextMenuView, panel index: Int = 0) -> Point {
+        let row = menu.panels[index].rows.first { $0.accessibilityLabel == label }!
+        let frame = row.frameInWindow
+        return Point(x: frame.midX, y: frame.midY)
+    }
+
+    @Test func aPanelHighlightsOneRowWhereverThePointerAndKeyboardWent() async throws {
+        let state = MenuState()
+        let menu = contextMenu(state)
+        menu.present(in: window)
+        window.settle()
+        window.handlePointerMoved(to: centre("Shape", in: menu))
+        await wait(ContextMenuView.hoverDelay + 0.15)
+        try #require(menu.panels.count == 2)
+        #expect(lit(menu.panels[0]) == ["Shape"])
+        window.handlePointerMoved(to: centre("Sync", in: menu))
+        #expect(lit(menu.panels[0]) == ["Sync"])
+        await wait(ContextMenuView.hoverDelay + 0.15)
+        #expect(menu.panels.count == 1)
+        window.handlePointerMoved(to: centre("Play", in: menu))
+        window.handleKey(KeyEvent(key: .down))
+        #expect(lit(menu.panels[0]) == ["Sync"])
+        window.handleKey(KeyEvent(key: .down))
+        window.handleKey(KeyEvent(key: .right))
+        #expect(menu.panels.count == 2)
+        #expect(lit(menu.panels[0]) == ["Shape"])
+        window.handleKey(KeyEvent(key: .left))
+        window.handleKey(KeyEvent(key: .down))
+        #expect(lit(menu.panels[0]) == ["Close"])
+        menu.dismiss()
+    }
+
+    @Test func aPointerHeadingIntoASubmenuMayCrossTheRowsOnItsWay() async throws {
+        let state = MenuState()
+        let menu = contextMenu(state)
+        menu.present(in: window)
+        window.settle()
+        let shape = centre("Shape", in: menu)
+        window.handlePointerMoved(to: shape)
+        await wait(ContextMenuView.hoverDelay + 0.15)
+        #expect(menu.panels.count == 2)
+        let close = centre("Close", in: menu)
+        let edge = menu.panels[1].frame.minX
+        let target = Point(x: edge - 6, y: close.y)
+        for step in 1...4 {
+            let t = Float(step) / 4
+            window.handlePointerMoved(to: Point(x: shape.x + (target.x - shape.x) * t, y: shape.y + (target.y - shape.y) * t))
+        }
+        #expect(lit(menu.panels[0]) == ["Shape"])
+        await wait(0.1)
+        #expect(menu.panels.count == 2)
+        await wait(ContextMenuView.aimDelay + ContextMenuView.hoverDelay + 0.15)
+        #expect(lit(menu.panels[0]) == ["Close"])
+        #expect(menu.panels.count == 1)
+        menu.dismiss()
+    }
+
+    @Test func theKeyboardWrapsJumpsAndTypesAhead() {
+        let state = MenuState()
+        let menu = contextMenu(state)
+        menu.present(in: window)
+        window.settle()
+        window.handleKey(KeyEvent(key: .up))
+        #expect(lit(menu.panels[0]) == ["Close"])
+        window.handleKey(KeyEvent(key: .down))
+        #expect(lit(menu.panels[0]) == ["Play"])
+        window.handleKey(KeyEvent(key: .end))
+        #expect(lit(menu.panels[0]) == ["Close"])
+        window.handleKey(KeyEvent(key: .home))
+        window.handleKey(KeyEvent(key: .character("s"), text: "s"))
+        #expect(lit(menu.panels[0]) == ["Sync"])
+        window.handleKey(KeyEvent(key: .character("h"), text: "h"))
+        #expect(lit(menu.panels[0]) == ["Shape"])
+        menu.dismiss()
+    }
+
+    @Test func aMenuThePointerOpenedStartsUnlitAndDownLandsOnTheFirstRow() {
+        let state = MenuState()
+        let menu = ContextMenuView(at: Point(x: 100, y: 100), highlightingFirstRow: false) {
+            [.action(ContextMenuView.Action("Play") { state.ran.append("play") }), .action(ContextMenuView.Action("Close") { state.ran.append("close") })]
+        }
+        menu.present(in: window)
+        window.settle()
+        #expect(lit(menu.panels[0]).isEmpty)
+        window.handleKey(KeyEvent(key: .return))
+        #expect(state.ran.isEmpty)
+        window.handleKey(KeyEvent(key: .down))
+        #expect(lit(menu.panels[0]) == ["Play"])
+        window.handleKey(KeyEvent(key: .return))
+        #expect(state.ran == ["play"])
+        #expect(menu.superview == nil)
+    }
+
+    @Test func aDropdownOnADeskHangsBelowItsButtonWithTheChosenRowLit() {
+        var chosen: String?
+        let button = Rect(x: 300, y: 200, width: 260, height: 40)
+        let menu = MenuView(title: "Sort", items: [MenuView.Item(id: "title", title: "Title"), MenuView.Item(id: "year", title: "Year", isChecked: true)],
+                            anchor: button)
+        menu.onSelect = { chosen = $0.id }
+        menu.present(in: window)
+        window.settle()
+        let desk = window.contentView.subviews.compactMap { $0 as? ContextMenuView }.first
+        #expect(desk != nil)
+        let panel = desk?.panels.first
+        #expect(panel.map { $0.frame.minY >= button.maxY && $0.frame.width >= button.width } == true)
+        #expect(panel.map(lit) == ["Year"])
+        window.handleKey(KeyEvent(key: .up))
+        window.handleKey(KeyEvent(key: .return))
+        #expect(chosen == "title")
+        #expect(menu.superview == nil)
+    }
 }

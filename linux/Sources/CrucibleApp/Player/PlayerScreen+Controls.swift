@@ -270,8 +270,8 @@ extension PlayerScreen {
 
     var zoomPercent: String { "\(Int((pow(2, tweaks.title.zoom) * 100).rounded()))%" }
 
-    func rotate() {
-        tweaks.title.rotation = (tweaks.title.rotation + 90) % 360
+    func rotate(by degrees: Int = 90) {
+        tweaks.title.rotation = ((tweaks.title.rotation + degrees) % 360 + 360) % 360
         applyFraming()
         saveTitleTweaks()
         say(String(localized: "Rotated \(tweaks.title.rotation)°", comment: "Player message with the rotation"), symbol: "rotate.right")
