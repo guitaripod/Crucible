@@ -22,7 +22,7 @@ final class HomeViewController: UICollectionViewController {
     private let api: APIClient
     private let feed: HomeFeed
     private var loadTask: Task<Void, Never>?
-    private var listening: ServerEventListening?
+    private var serverState: ServerStateFollower?
     private var weekTask: Task<Void, Never>?
     private var surpriseTask: Task<Void, Never>?
     private let surpriseMenuItem = UIBarButtonItem()
@@ -132,6 +132,7 @@ final class HomeViewController: UICollectionViewController {
             self?.asksChanged()
         }
         asks = rateFeed.current()
+        followServerState()
 
         if let preloaded {
             self.preloaded = nil
@@ -148,22 +149,29 @@ final class HomeViewController: UICollectionViewController {
         loadWeek()
         loadAsks()
         loadReleases(force: false)
+        _ = serverState?.takeStale()
         if skipNextAppearanceLoad {
             skipNextAppearanceLoad = false
         } else {
             loadData()
-        }
-        listening?.cancel()
-        listening = ServerEventHub.shared.listen(api: api, every: .seconds(3), matching: \.changesHome) { [weak self] in
-            self?.loadData()
         }
     }
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         loadTask?.cancel()
-        listening?.cancel()
-        listening = nil
+    }
+
+    /// Anything that moves Continue Watching, Up Next or Recently Added, here or on another device, reloads Home while it or its
+    /// See All grid is on screen; otherwise Home reloads when it next appears, as it always does.
+    private func followServerState() {
+        serverState = ServerStateFollower(isOnScreen: { [weak self] in
+            guard let self else { return false }
+            return viewIfLoaded?.window != nil || sectionGrid?.viewIfLoaded?.window != nil
+        }, refresh: { [weak self] in
+            self?.loadData()
+            self?.loadWeek()
+        })
     }
 
     /// The hero grows with the window, so a resize or a rotation re-measures it. The pass can run inside a snapshot apply, so the
@@ -786,6 +794,10 @@ final class HomeViewController: UICollectionViewController {
             items: feed.arrangement.items(for: bucket),
             onChange: { [weak self] in self?.loadData() }
         )
+        grid.onAppear = { [weak self] in
+            guard let self, serverState?.takeStale() == true else { return }
+            loadData()
+        }
         sectionGrid = grid
         navigationController?.pushViewController(grid, animated: true)
     }

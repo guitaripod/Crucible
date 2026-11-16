@@ -35,6 +35,7 @@ final class TVLibraryViewController: TVScreenViewController {
     private var hasPassedRevealDeadline = false
     private var shelfInserted = false
     private var shownState: String?
+    private var serverState: ServerStateFollower?
 
     /// The cards, shaped like most of the grid's artwork, so an Other Videos library shows its frames at the videos' own shape
     /// instead of cropped to posters. The Recently Watched shelf shares it, since it shows the same titles' artwork and the
@@ -69,6 +70,12 @@ final class TVLibraryViewController: TVScreenViewController {
         collectionView.collectionViewLayout = makeLayout()
         applySnapshot()
         model.loadGenres()
+        serverState = ServerStateFollower(every: .seconds(5), matching: { [sectionId = model.sectionId] in $0.touchesLibrary(sectionId) }, isOnScreen: { [weak self] in
+            self?.viewIfLoaded?.window != nil
+        }, refresh: { [weak self] in
+            guard let self else { return }
+            model.serverChanged(anchor: firstVisibleGridIndex)
+        })
     }
 
     override func viewIsAppearing(_ animated: Bool) {

@@ -65,6 +65,7 @@ class TVDetailViewController: TVScreenViewController {
     private var revealedComments = Set<Int>()
     private var communityBarsAnimated = false
     private lazy var communitySlot = makeTaskSlot()
+    private var serverState: ServerStateFollower?
     nonisolated(unsafe) private var communityObserver: (any NSObjectProtocol)?
     nonisolated(unsafe) private var communityProObserver: UUID?
     /// Removed in deinit, which runs off the main actor; NotificationCenter takes removals from any thread.
@@ -97,6 +98,14 @@ class TVDetailViewController: TVScreenViewController {
         configureDataSource()
         adopt(dataSource)
         showLoading()
+        serverState = ServerStateFollower(matching: { [weak self] change in
+            guard let self else { return false }
+            return change.touches(followedRatingKeys, sectionID: followedSectionID)
+        }, isOnScreen: { [weak self] in
+            self?.viewIfLoaded?.window != nil
+        }, refresh: { [weak self] in
+            self?.reload()
+        })
         communityObserver = NotificationCenter.default.addObserver(forName: .traktCommunityChanged, object: nil, queue: .main) { [weak self] note in
             guard let change = note.object as? TraktCommunity.Change else { return }
             MainActor.assumeIsolated { self?.communityChanged(change) }
@@ -126,6 +135,12 @@ class TVDetailViewController: TVScreenViewController {
 
     /// The rating key whose Trakt community the page shows, or nil for a page without one.
     var communityKey: String? { nil }
+
+    /// The titles the page shows: one finished, paused or marked on any device reads the page again while it is on screen.
+    var followedRatingKeys: [String] { [] }
+
+    /// The library whose new titles the page lists, for a page that lists a show's episodes.
+    var followedSectionID: String? { nil }
 
     func didSelect(_ item: Item) {}
 

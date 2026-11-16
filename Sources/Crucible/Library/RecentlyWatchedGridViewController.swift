@@ -15,6 +15,7 @@ final class RecentlyWatchedGridViewController: UICollectionViewController {
     private var dataSource: UICollectionViewDiffableDataSource<Int, String>!
     private let artworkAspect: CGFloat
     private var loadTask: Task<Void, Never>?
+    private var serverState: ServerStateFollower?
     private var playerCoordinator: PlayerCoordinator?
     private lazy var mediaDrag = MediaDragSource { [weak self] indexPath in self?.media(at: indexPath) }
 
@@ -44,6 +45,11 @@ final class RecentlyWatchedGridViewController: UICollectionViewController {
         view.backgroundColor = Theme.Color.canvas
         configureDataSource()
         apply(items)
+        serverState = ServerStateFollower(matching: { [sectionId] in $0.touchesLibrary(sectionId) }, isOnScreen: { [weak self] in
+            self?.viewIfLoaded?.window != nil
+        }, refresh: { [weak self] in
+            self?.loadHistory()
+        })
     }
 
     override func viewIsAppearing(_ animated: Bool) {

@@ -13,6 +13,7 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
     private let searchController = UISearchController(searchResultsController: nil)
     private let session: SearchSession
     private var downloadObserver: UUID?
+    private var serverState: ServerStateFollower?
     private var playerCoordinator: PlayerCoordinator?
     private lazy var mediaDrag = MediaDragSource { [weak self] indexPath in self?.dataSource.itemIdentifier(for: indexPath)?.metadata }
     private var tourSearchTask: Task<Void, Never>?
@@ -61,11 +62,19 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
 
         session.onChange = { [weak self] state in self?.render(state) }
         session.start()
+        serverState = ServerStateFollower(isOnScreen: { [weak self] in
+            self?.viewIfLoaded?.window != nil
+        }, refresh: { [weak self] in
+            self?.session.refresh()
+        })
     }
 
+    /// Results a title was played or marked from since they were found are asked for again, so their progress and watched
+    /// state are the server's.
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         session.resume()
+        if serverState?.takeStale() == true { session.refresh() }
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -565,7 +574,11 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
             guard let self else { return }
             Haptics.light()
             Task {
-                try? await WatchedService.setWatched(!item.isWatched, ratingKey: item.id, api: self.api)
+                do {
+                    try await WatchedService.setWatched(!item.isWatched, ratingKey: item.id, api: self.api)
+                } catch {
+                    Haptics.error()
+                }
             }
         }
     }

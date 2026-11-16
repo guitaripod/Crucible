@@ -37,6 +37,13 @@ final class TVShowDetailViewController: TVDetailViewController {
 
     override var communityKey: String? { showKey }
 
+    override var followedRatingKeys: [String] {
+        guard let model else { return [showKey] }
+        return [showKey, model.show.id] + model.seasons.map(\.id) + model.allEpisodes.map(\.id) + model.episodes.map(\.id)
+    }
+
+    override var followedSectionID: String? { model?.show.librarySectionID.map(String.init) }
+
     init(env: TVAppEnvironment, ratingKey: String, initialSeasonKey: String?) {
         showKey = ratingKey
         self.initialSeasonKey = initialSeasonKey

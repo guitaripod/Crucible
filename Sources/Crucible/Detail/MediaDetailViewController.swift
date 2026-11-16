@@ -44,6 +44,7 @@ final class MediaDetailViewController: UICollectionViewController {
     private var playerCoordinator: PlayerCoordinator?
     private lazy var mediaDrag = MediaDragSource { [weak self] indexPath in self?.related(at: indexPath) }
     private var downloadObserver: UUID?
+    private var serverState: ServerStateFollower?
     private var isOverviewExpanded = false
     private var lastLayoutWidth: CGFloat = 0
     private var loadedFromServer = false
@@ -94,6 +95,20 @@ final class MediaDetailViewController: UICollectionViewController {
         registerForTraitChanges([UITraitPreferredContentSizeCategory.self]) { (controller: MediaDetailViewController, _: UITraitCollection) in
             controller.reconfigure(controller.dataSource.snapshot().itemIdentifiers)
         }
+        followServerState()
+    }
+
+    /// The title, its season or its show finished, paused or marked on any device reads the page again while it is on screen.
+    private func followServerState() {
+        serverState = ServerStateFollower(matching: { [weak self] change in
+            guard let self else { return false }
+            let item = model?.item
+            return change.touches([ratingKey, showRatingKey, seasonRatingKey, item?.parentRatingKey, item?.grandparentRatingKey].compactMap { $0 })
+        }, isOnScreen: { [weak self] in
+            self?.viewIfLoaded?.window != nil
+        }, refresh: { [weak self] in
+            self?.loadData()
+        })
     }
 
     override func viewIsAppearing(_ animated: Bool) {

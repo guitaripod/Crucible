@@ -21,6 +21,7 @@ final class ActivityHistoryViewController: UICollectionViewController {
     private var playerCoordinator: PlayerCoordinator?
     private var filter: HistoryFilter = .all
     private var busyIDs: Set<String> = []
+    private var serverState: ServerStateFollower?
 
     init(api: APIClient) {
         self.api = api
@@ -51,11 +52,17 @@ final class ActivityHistoryViewController: UICollectionViewController {
         collectionView.refreshControl = refresh
         collectionView.prefetchDataSource = self
         feed.onEvent = { [weak self] event in self?.handle(event) }
+        serverState = ServerStateFollower(matching: { $0.everything || $0.movesWatchState }, isOnScreen: { [weak self] in
+            self?.viewIfLoaded?.window != nil
+        }, refresh: { [weak self] in
+            self?.feed.refreshTop()
+        })
     }
 
+    /// Plays made since the list was loaded, here or anywhere else, go on top when the screen comes back.
     override func viewIsAppearing(_ animated: Bool) {
         super.viewIsAppearing(animated)
-        feed.loadFirstPageIfNeeded()
+        feed.refreshTop()
     }
 
     override func viewWillDisappear(_ animated: Bool) {

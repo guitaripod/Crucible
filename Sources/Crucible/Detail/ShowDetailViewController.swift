@@ -47,6 +47,7 @@ final class ShowDetailViewController: UICollectionViewController {
     )
     var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
     private var downloadObserver: UUID?
+    var serverState: ServerStateFollower?
     private var pendingFullReconfigure = false
     private var isOverviewExpanded = false
     private var showsSkipped = false
@@ -85,6 +86,7 @@ final class ShowDetailViewController: UICollectionViewController {
         community.onReconfigure = { [weak self] items in self?.reconfigure(items.map { .community($0) }) }
         configureMultiSelect()
         updateBarButtons()
+        followServerState()
         registerForTraitChanges([UITraitPreferredContentSizeCategory.self]) { (controller: ShowDetailViewController, _: UITraitCollection) in
             controller.reconfigure(controller.dataSource.snapshot().itemIdentifiers)
         }
@@ -92,7 +94,7 @@ final class ShowDetailViewController: UICollectionViewController {
 
     private func configureMultiSelect() {
         multiSelect.onEnter = { [weak self] in self?.updateBarButtons(); self?.reconfigureEpisodeAccessories() }
-        multiSelect.onExit = { [weak self] in self?.updateBarButtons(); self?.reconfigureEpisodeAccessories() }
+        multiSelect.onExit = { [weak self] in self?.updateBarButtons(); self?.reconfigureEpisodeAccessories(); self?.catchUpAfterSelecting() }
         multiSelect.toolbarItemsProvider = { [weak self] count in self?.selectionToolbarItems(count: count) ?? [] }
     }
 
@@ -630,7 +632,7 @@ final class ShowDetailViewController: UICollectionViewController {
         }
     }
 
-    private func loadData() {
+    func loadData() {
         loadTask?.cancel()
         if model == nil {
             contentUnavailableConfiguration = UIContentUnavailableConfiguration.loading()
@@ -650,6 +652,7 @@ final class ShowDetailViewController: UICollectionViewController {
                     if model == nil { showLoadError(message: DetailMessage.showUnavailable) }
                     return
                 }
+                if isSuperseded(by: loaded) { return loadData() }
                 let settled = await settleScores(scoresTask)
                 let (kept, follow) = Self.keepingGaps(of: model, in: loaded)
                 model = kept

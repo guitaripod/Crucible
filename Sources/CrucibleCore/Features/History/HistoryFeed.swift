@@ -19,6 +19,8 @@ package final class HistoryFeed {
     private let request: Request
     private let now: @Sendable () -> Date
     private var loadTask: Task<Void, Never>?
+    /// A look for new plays asked for while a page was loading, made once that page is in.
+    private var refreshTopPending = false
     private var pagerBeforeRefresh: HistoryPager?
 
     package init(request: @escaping Request, now: @escaping @Sendable () -> Date = { Date() }) {
@@ -64,6 +66,7 @@ package final class HistoryFeed {
     /// from. When the page does not reach the newest play already listed (more came than a page holds), it refreshes.
     package func refreshTop() {
         guard let newestKnown = items.first, loadTask == nil else {
+            refreshTopPending = loadTask != nil && !items.isEmpty
             loadFirstPageIfNeeded()
             return
         }
@@ -154,6 +157,10 @@ package final class HistoryFeed {
                 items = offset == 0 ? page : items + page
                 loadTask = nil
                 onEvent?(.pageLoaded)
+                if refreshTopPending {
+                    refreshTopPending = false
+                    if offset > 0 { refreshTop() }
+                }
             } catch {
                 guard !Task.isCancelled else { return }
                 MidgarLog.error("History page \(offset) failed: \(error.localizedDescription)", category: .networking)

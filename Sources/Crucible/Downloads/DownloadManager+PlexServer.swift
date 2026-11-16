@@ -1,5 +1,6 @@
 import CrucibleCore
 import Foundation
+import MidgarCore
 
 extension DownloadManager {
     /// Downloads mint a fresh Plex transcode session per resolve; tell the server to reap it as soon
@@ -26,12 +27,18 @@ extension DownloadManager {
     }
 
     /// Marks a download watched on the server the moment local playback crosses the watched
-    /// threshold, so On Deck stays honest even when the item is then auto-deleted.
+    /// threshold, so On Deck stays honest even when the item is then auto-deleted. Offline, the finished position kept on
+    /// the device is what tells the server later, when the app is next back with it.
     func scrobbleBestEffort(_ ratingKey: String) {
         guard let cfg = config else { return }
         let api = APIClient(baseURL: cfg.baseURL, token: cfg.token)
         Task.detached(priority: .utility) {
-            try? await api.requestVoid(.scrobble(ratingKey: ratingKey))
+            do {
+                try await api.requestConfirmed(.scrobble(ratingKey: ratingKey))
+                await ServerStateSync.shared.post(.titles([ratingKey]))
+            } catch {
+                MidgarLog.notice("Marking download \(ratingKey) watched waits for the server: \(error.localizedDescription)", category: .networking)
+            }
         }
     }
 

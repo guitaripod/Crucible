@@ -124,6 +124,16 @@ package final class LibraryGridModel {
         if contentState == .loading { contentState = .content }
     }
 
+    /// Reads again what the server changed while the grid is on screen, around `anchor`, without collapsing the pages loaded.
+    /// A page already on its way is left to arrive, since it brings the server's current titles and may be the one a jump
+    /// to a letter scrolls to.
+    package func serverChanged(anchor: Int) {
+        loadHubs()
+        loadRecentlyWatched()
+        guard pager.hasLoaded, !pager.isLoading else { return }
+        reloadLoadedPages(anchor: anchor)
+    }
+
     package func refreshAll() {
         loadHubs()
         loadRecentlyWatched()
@@ -302,6 +312,7 @@ package final class LibraryGridModel {
             }
             reloadLoadedPages(anchor: anchor)
             loadHubs()
+            loadRecentlyWatched()
         }
     }
 

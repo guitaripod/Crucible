@@ -53,6 +53,17 @@ package final class SearchSession {
         loadIdle()
     }
 
+    /// Runs the search on screen again in place, without a loading state, after the server changed what its titles show:
+    /// watched state, progress, a title arriving or leaving. With no search in the field, the idle content loads again.
+    package func refresh() {
+        guard isSearching else {
+            loadIdle()
+            return
+        }
+        guard query == resultsQuery, activeQuery == query || activeQuery == nil else { return }
+        performSearch(query: query, debounce: false, keepsResultsOnFailure: true)
+    }
+
     /// Cancels in-flight work when the screen goes away. A query that never produced results is forgotten so it can run again.
     package func suspend() {
         searchTask?.cancel()
@@ -146,7 +157,8 @@ package final class SearchSession {
         }
     }
 
-    private func performSearch(query: String, debounce: Bool) {
+    /// `keepsResultsOnFailure` is for a search run again behind results already on screen: a failure leaves them there.
+    private func performSearch(query: String, debounce: Bool, keepsResultsOnFailure: Bool = false) {
         searchTask?.cancel()
         activeQuery = query
         if resultsQuery == nil { emit(.loading) }
@@ -155,13 +167,14 @@ package final class SearchSession {
                 try? await Task.sleep(for: delay)
             }
             guard !Task.isCancelled, let self else { return }
-            let seerrTask: Task<[SeerrSearchHit], Never>? = SeerrAccount.shared.isConnected ? Task { await SeerrTitles.shared.search(query) } : nil
+            let keptElsewhere = keepsResultsOnFailure && resultsQuery == query ? results?.elsewhere : nil
+            let seerrTask: Task<[SeerrSearchHit], Never>? = SeerrAccount.shared.isConnected && keptElsewhere == nil ? Task { await SeerrTitles.shared.search(query) } : nil
             do {
                 var found = try await loader.search(query: query)
                 guard !Task.isCancelled else { return }
                 let settled = await settleSeerr(seerrTask)
                 guard !Task.isCancelled else { return }
-                found.elsewhere = settled ?? []
+                found.elsewhere = keptElsewhere ?? settled ?? []
                 results = found
                 resultsQuery = query
                 renderResults()
@@ -174,6 +187,7 @@ package final class SearchSession {
             } catch {
                 guard !Task.isCancelled, (error as? URLError)?.code != .cancelled else { return }
                 MidgarLog.error("Search failed query=\(query): \(error.localizedDescription)", category: .networking)
+                guard !keepsResultsOnFailure || resultsQuery != query else { return }
                 activeQuery = nil
                 results = nil
                 resultsQuery = nil

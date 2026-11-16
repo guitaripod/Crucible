@@ -50,10 +50,18 @@ package actor APIClient {
     private struct CacheEntry {
         let container: PlexMediaContainer
         let at: Date
+        let generation: UInt64
     }
 
-    private static let cacheTTL: TimeInterval = 120
+    /// How long a title's answer is reused: long enough for the screens and the player asking for the same title at once to share
+    /// one request, short enough that reopening a screen asks the server again.
+    private static let cacheTTL: TimeInterval = 15
     private var containerCache: [String: CacheEntry] = [:]
+
+    /// Moves on whenever anything on the server may have changed, for every client signed in with the same token at once. An
+    /// answer kept from an earlier generation is never served, and an answer to a request that was already on its way when the
+    /// change happened is never kept.
+    private nonisolated static let cacheGenerations = OSAllocatedUnfairLock<[String: UInt64]>(initialState: [:])
 
     /// Current server base URL. Awaitable from anywhere; follows a route switch made by any client or the route monitor.
     package var baseURL: URL {
@@ -91,18 +99,25 @@ package actor APIClient {
         containerCache.removeAll()
     }
 
+    /// Forgets every answer every client signed in with `token` keeps, including those still on their way.
+    package nonisolated static func invalidateCaches(token: String) {
+        cacheGenerations.withLock { $0[token, default: 0] &+= 1 }
+    }
+
+    private nonisolated var cacheGeneration: UInt64 {
+        Self.cacheGenerations.withLock { $0[token] ?? 0 }
+    }
+
+    /// Forgets every answer this client and every other client of the same account keep.
     package func invalidateCache() {
+        Self.invalidateCaches(token: token)
         containerCache.removeAll()
     }
 
+    /// Forgets what is known of `ratingKey`. A title's season, show and library listings change with it, so every other kept
+    /// answer goes too.
     package func invalidate(ratingKey: String) {
-        let paths = [
-            PlexEndpoint.metadata(ratingKey: ratingKey).path,
-            PlexEndpoint.children(ratingKey: ratingKey).path,
-        ]
-        for path in paths {
-            containerCache.removeValue(forKey: path)
-        }
+        invalidateCache()
     }
 
     package func request<T: Decodable & Sendable>(_ endpoint: PlexEndpoint) async throws -> T {
@@ -130,13 +145,15 @@ package actor APIClient {
     }
 
     package func requestContainer(_ endpoint: PlexEndpoint) async throws -> PlexMediaContainer {
-        if let key = Self.cacheKey(for: endpoint), let cached = cachedContainer(forKey: key) {
+        let key = Self.cacheKey(for: endpoint)
+        if let key, let cached = cachedContainer(forKey: key) {
             return cached
         }
+        let generation = cacheGeneration
         let response: PlexResponse = try await request(endpoint)
         let container = response.MediaContainer
-        if let key = Self.cacheKey(for: endpoint) {
-            containerCache[key] = CacheEntry(container: container, at: Date())
+        if let key, generation == cacheGeneration {
+            containerCache[key] = CacheEntry(container: container, at: Date(), generation: generation)
         }
         return container
     }
@@ -153,7 +170,7 @@ package actor APIClient {
 
     private func cachedContainer(forKey key: String) -> PlexMediaContainer? {
         guard let entry = containerCache[key] else { return nil }
-        if Date().timeIntervalSince(entry.at) > Self.cacheTTL {
+        guard entry.generation == cacheGeneration, Date().timeIntervalSince(entry.at) <= Self.cacheTTL else {
             containerCache.removeValue(forKey: key)
             return nil
         }

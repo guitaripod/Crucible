@@ -40,7 +40,7 @@ final class DetailStubServer: @unchecked Sendable {
     }
 
     var client: APIClient {
-        APIClient(baseURL: URL(string: "http://\(host)")!, token: "token")
+        APIClient(baseURL: URL(string: "http://\(host)")!, token: "token-\(host)")
     }
 
     var requests: [String] {

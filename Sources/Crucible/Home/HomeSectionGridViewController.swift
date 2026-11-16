@@ -23,6 +23,8 @@ final class HomeSectionGridViewController: UICollectionViewController {
     private var artworkAspect: CGFloat { CGFloat(artworkShape.aspect) }
     private var playerCoordinator: PlayerCoordinator?
     private lazy var mediaDrag = MediaDragSource { [weak self] indexPath in self?.media(at: indexPath) }
+    /// Runs each time the grid comes back on screen, so Home can read again what changed while a title covered it.
+    var onAppear: (@MainActor () -> Void)?
 
     init(api: APIClient, title: String, bucket: HomeBucket, items: [PlexMetadata], onChange: @escaping @MainActor () -> Void) {
         self.api = api
@@ -48,6 +50,11 @@ final class HomeSectionGridViewController: UICollectionViewController {
         }
         configureDataSource()
         update(items: items)
+    }
+
+    override func viewIsAppearing(_ animated: Bool) {
+        super.viewIsAppearing(animated)
+        onAppear?()
     }
 
     func update(items newItems: [PlexMetadata]) {

@@ -71,6 +71,7 @@ package enum AccountSessionReset {
 
     private static func resetServerBoundState(_ collaborators: AccountSessionCollaborators) {
         APIClient.forgetMovedRoute()
+        ServerStateSync.shared.detach()
         collaborators.resetStats()
         HomeSnapshotStore.destroy()
         collaborators.clearImageCache()

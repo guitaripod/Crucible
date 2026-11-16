@@ -95,7 +95,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     func sceneWillEnterForeground(_ scene: UIScene) {
-        guard Self.isFirstWindowInForeground(scene) else { return }
+        guard Self.isOnlyWindowInForeground(scene) else { return }
+        ServerStateSync.shared.enteredForeground()
+        StatsManager.shared.kickBackgroundSync()
         DownloadManager.shared.handleEnteredForeground()
         ProAccess.shared.refresh()
         AutoDownloadPolicy.shared.evaluateOnForeground()
@@ -104,8 +106,15 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         Task { await GuideStore.shared.refresh() }
     }
 
-    /// The work that follows the app coming back runs once, for the first window to return, not again for every other window.
-    private static func isFirstWindowInForeground(_ scene: UIScene) -> Bool {
+    /// The last window to leave takes the app's live connection to the server with it.
+    func sceneDidEnterBackground(_ scene: UIScene) {
+        guard Self.isOnlyWindowInForeground(scene) else { return }
+        ServerStateSync.shared.enteredBackground()
+    }
+
+    /// The work that follows the app coming back runs once, for the first window to return, not again for every other window;
+    /// the work that follows it leaving runs once, for the last window to go.
+    private static func isOnlyWindowInForeground(_ scene: UIScene) -> Bool {
         !UIApplication.shared.connectedScenes.contains { other in
             other !== scene && (other.activationState == .foregroundActive || other.activationState == .foregroundInactive)
         }
@@ -285,6 +294,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         StatsManager.shared.configure(api: api)
         StatsManager.shared.kickBackgroundSync()
         ServerRouteMonitor.shared.mainAppReady()
+        ServerStateSync.shared.attach(api: api, server: connection.machineIdentifier)
         return TabBarController(payload: payload)
     }
 

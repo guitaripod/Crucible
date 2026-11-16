@@ -26,7 +26,7 @@ final class TVHomeViewController: TVScreenViewController {
     private var dataSource: UICollectionViewDiffableDataSource<TVHomeSection, TVHomeItem>!
 
     private lazy var loadSlot = makeTaskSlot()
-    private lazy var liveSlot = makeTaskSlot()
+    private var serverState: ServerStateFollower?
     private lazy var weekSlot = makeTaskSlot()
     private lazy var surpriseSlot = makeTaskSlot()
     private var currentHero: TVHeroInfo?
@@ -104,6 +104,19 @@ final class TVHomeViewController: TVScreenViewController {
             self?.missingNextChanged()
         }
         render(animated: false)
+        followServerState()
+    }
+
+    /// Anything that moves Continue Watching, Up Next or Recently Added, on this Apple TV or another device, reloads Home while
+    /// it or its See All grid is on screen; otherwise Home reloads when it next appears, as it always does.
+    private func followServerState() {
+        serverState = ServerStateFollower(isOnScreen: { [weak self] in
+            guard let self else { return false }
+            return viewIfLoaded?.window != nil || seeAll?.viewIfLoaded?.window != nil
+        }, refresh: { [weak self] in
+            self?.reload()
+            self?.loadWeek()
+        })
     }
 
     override func installViews() {
@@ -134,16 +147,11 @@ final class TVHomeViewController: TVScreenViewController {
         loadWeek()
         loadAsks()
         loadReleases()
+        _ = serverState?.takeStale()
         if skipNextAppearanceLoad {
             skipNextAppearanceLoad = false
         } else {
             reload()
-        }
-        let api = env.api
-        liveSlot.run { [weak self] in
-            await ServerEventHub.shared.listen(api: api, every: .seconds(3), matching: \.changesHome) {
-                self?.reload()
-            }.hold()
         }
     }
 
@@ -535,6 +543,10 @@ final class TVHomeViewController: TVScreenViewController {
             title: feed.arrangement.title(for: bucket),
             items: feed.arrangement.shelf(for: bucket)
         ) { [weak self] in self?.reload() }
+        grid.onAppear = { [weak self] in
+            guard let self, serverState?.takeStale() == true else { return }
+            reload()
+        }
         if TVNavigation.push(grid, from: self) { seeAll = grid }
     }
 

@@ -73,6 +73,12 @@ package protocol IntegrationPlugin: AnyObject {
     func launched(api: APIClient, server: String) async
     /// The Plex account signed out: forget everything of every profile on this device.
     func signedOut() async
+    /// The app came back to the foreground connected to `server`: send what is still owed.
+    func returned(api: APIClient, server: String) async
+}
+
+extension IntegrationPlugin {
+    package func returned(api: APIClient, server: String) async {}
 }
 
 /// The plugins this build carries, and the seams the app calls them through.
@@ -103,6 +109,10 @@ package enum Integrations {
 
     package static func signedOut() async {
         for plugin in plugins { await plugin.signedOut() }
+    }
+
+    package static func returned(api: APIClient, server: String) async {
+        for plugin in plugins where plugin.isActive { await plugin.returned(api: api, server: server) }
     }
 
     /// The line under Integrations on the first Settings screen: the one integration that is on with its detail, the names

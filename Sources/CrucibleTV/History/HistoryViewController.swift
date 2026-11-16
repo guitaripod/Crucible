@@ -37,6 +37,7 @@ final class HistoryViewController: TVScreenViewController {
     private var busyIDs: Set<String> = []
     private var hasRequestedFirstPage = false
     private var hasAppeared = false
+    private var serverState: ServerStateFollower?
     private var isRefreshing = false
     private var positions: [String: Int] = [:]
 
@@ -53,6 +54,12 @@ final class HistoryViewController: TVScreenViewController {
         collectionView.collectionViewLayout = makeLayout()
         feed.onEvent = { [weak self] event in self?.handle(event) }
         render()
+        serverState = ServerStateFollower(matching: { $0.everything || $0.movesWatchState }, isOnScreen: { [weak self] in
+            self?.viewIfLoaded?.window != nil
+        }, refresh: { [weak self] in
+            guard let self, hasAppeared else { return }
+            feed.refreshTop()
+        })
     }
 
     override func viewIsAppearing(_ animated: Bool) {

@@ -20,6 +20,8 @@ final class TVSearchResultsViewController: TVScreenViewController, UISearchResul
     private var renderedKey: String?
     private var watchedOverrides: [String: Bool] = [:]
     private var pendingWatched = Set<String>()
+    private var serverState: ServerStateFollower?
+    private var refreshedFromServer = false
     private lazy var tourSlot = makeTaskSlot()
     private var isTourSearchPending = false
 
@@ -41,11 +43,25 @@ final class TVSearchResultsViewController: TVScreenViewController, UISearchResul
         configureDataSource()
         session.onChange = { [weak self] state in self?.render(state) }
         session.start()
+        serverState = ServerStateFollower(isOnScreen: { [weak self] in
+            self?.viewIfLoaded?.window != nil
+        }, refresh: { [weak self] in
+            self?.refreshFromServer()
+        })
     }
 
+    /// Results a title was played or marked from since they were found are asked for again, so their progress and watched
+    /// state are the server's.
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         session.resume()
+        if serverState?.takeStale() == true { refreshFromServer() }
+    }
+
+    /// The marks made here stand in for the server only until its own answer comes back with them in it.
+    private func refreshFromServer() {
+        refreshedFromServer = true
+        session.refresh()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -106,7 +122,12 @@ final class TVSearchResultsViewController: TVScreenViewController, UISearchResul
     /// A watched mark the user just made stands in for the server's answer until the next query
     /// brings fresh data, so each query starts without any.
     private func discardOverrides(for key: String) {
-        if renderedKey != key { watchedOverrides = [:] }
+        if renderedKey != key {
+            watchedOverrides = [:]
+        } else if refreshedFromServer {
+            watchedOverrides = watchedOverrides.filter { pendingWatched.contains($0.key) }
+        }
+        refreshedFromServer = false
         renderedKey = key
     }
 

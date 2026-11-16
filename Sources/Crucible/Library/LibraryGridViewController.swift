@@ -32,6 +32,7 @@ class LibraryGridViewController: UIViewController {
     private var dataSource: UICollectionViewDiffableDataSource<Section, Item>!
 
     private var downloadObserver: UUID?
+    private var serverState: ServerStateFollower?
     private var playerCoordinator: PlayerCoordinator?
     private lazy var mediaDrag = MediaDragSource { [weak self] indexPath in self?.media(at: indexPath) }
 
@@ -105,6 +106,12 @@ class LibraryGridViewController: UIViewController {
         registerForTraitChanges([UITraitPreferredContentSizeCategory.self]) { (controller: LibraryGridViewController, _: UITraitCollection) in
             controller.reloadGridLayout()
         }
+        serverState = ServerStateFollower(every: .seconds(5), matching: { [sectionId] in $0.touchesLibrary(sectionId) }, isOnScreen: { [weak self] in
+            self?.viewIfLoaded?.window != nil
+        }, refresh: { [weak self] in
+            guard let self else { return }
+            model.serverChanged(anchor: firstVisibleGridIndex)
+        })
     }
 
     override func viewIsAppearing(_ animated: Bool) {

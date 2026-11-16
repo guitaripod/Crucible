@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 @preconcurrency import UIKit
 
 final class FolderBrowserViewController: UICollectionViewController {
@@ -42,6 +43,7 @@ final class FolderBrowserViewController: UICollectionViewController {
     }
     private var artworkAspect: CGFloat { CGFloat(artworkShape.aspect) }
     private var loadTask: Task<Void, Never>?
+    private var serverState: ServerStateFollower?
     private var playerCoordinator: PlayerCoordinator?
 
     init(api: APIClient, source: LibraryFolderListing.Source, folderTitle: String? = nil) {
@@ -62,11 +64,18 @@ final class FolderBrowserViewController: UICollectionViewController {
         collectionView.allowsKeyboardFocus()
         configureDataSource()
         collectionView.collectionViewLayout = createLayout()
+        collectionView.refreshControl = UIRefreshControl(frame: .zero, primaryAction: UIAction { [weak self] _ in self?.loadData() })
+        serverState = ServerStateFollower(every: .seconds(5), matching: { $0.everything || !$0.sectionIDs.isEmpty }, isOnScreen: { [weak self] in
+            self?.viewIfLoaded?.window != nil
+        }, refresh: { [weak self] in
+            self?.loadData()
+        })
     }
 
+    /// A folder whose library gained or lost titles while the screen was away lists them again when it comes back.
     override func viewIsAppearing(_ animated: Bool) {
         super.viewIsAppearing(animated)
-        if dataSource.snapshot().numberOfItems == 0 {
+        if serverState?.takeStale() == true || dataSource.snapshot().numberOfItems == 0 {
             loadData()
         }
     }
@@ -150,6 +159,7 @@ final class FolderBrowserViewController: UICollectionViewController {
                 }
                 await dataSource.apply(snapshot, animatingDifferences: false)
                 collectionView.collectionViewLayout.invalidateLayout()
+                collectionView.refreshControl?.endRefreshing()
 
                 if listing.isEmpty {
                     var config = UIContentUnavailableConfiguration.empty()
@@ -161,6 +171,11 @@ final class FolderBrowserViewController: UICollectionViewController {
                 }
             } catch {
                 guard !Task.isCancelled else { return }
+                collectionView.refreshControl?.endRefreshing()
+                guard dataSource.snapshot().numberOfItems == 0 else {
+                    MidgarLog.error("Folder refresh failed: \(error.localizedDescription)", category: .networking)
+                    return
+                }
                 var config = UIContentUnavailableConfiguration.empty()
                 config.image = UIImage(systemName: "exclamationmark.triangle")
                 config.text = String(localized: "Failed to load")

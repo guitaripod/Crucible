@@ -54,9 +54,14 @@ final class TVAppCoordinator: TVSessionActions {
     }
 
     func sceneWillEnterForeground() {
+        ServerStateSync.shared.enteredForeground()
+        StatsManager.shared.kickBackgroundSync()
         ProAccess.shared.refresh()
-        TVTopShelfRefresher.refresh()
         Task { await presentTrialNoticeIfDue() }
+    }
+
+    func sceneDidEnterBackground() {
+        ServerStateSync.shared.enteredBackground()
     }
 
     /// A demo that was running when the app last quit is brought back before anything decides what to show; every other launch goes
@@ -224,6 +229,7 @@ final class TVAppCoordinator: TVSessionActions {
         StatsManager.shared.configure(api: api)
         StatsManager.shared.kickBackgroundSync()
         ServerRouteMonitor.shared.mainAppReady()
+        ServerStateSync.shared.attach(api: api, server: connection.machineIdentifier)
         TVTopShelfRefresher.activate(api: api, machineIdentifier: connection.machineIdentifier)
         let environment = TVAppEnvironment(payload: payload, router: router, session: TVWeakSession(self))
         return TVRootTabBarController(environment: environment)

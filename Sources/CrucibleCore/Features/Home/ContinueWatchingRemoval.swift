@@ -26,6 +26,7 @@ package enum ContinueWatchingRemoval {
     package static func remove(ratingKey: String, api: APIClient) async throws {
         do {
             try await api.requestConfirmed(.removeFromContinueWatching(ratingKey: ratingKey))
+            await ServerStateSync.shared.post(.titles([ratingKey]))
         } catch {
             MidgarLog.error("Remove from Continue Watching ratingKey=\(ratingKey) failed: \(error.localizedDescription)", category: .networking)
             throw error

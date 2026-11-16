@@ -9,6 +9,7 @@ extension DownloadManager {
     func configure(baseURL: URL, token: String) {
         config = Config(baseURL: baseURL, token: token)
         pumpQueue()
+        followServerProgress()
     }
 
     func bootstrap() {

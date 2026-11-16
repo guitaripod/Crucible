@@ -25,9 +25,34 @@ package enum ServerEvent: Sendable, Equatable {
         return state == "stopped"
     }
 
-    /// What changes Home: something stopped playing on another device (Continue Watching, On Deck) or a library gained or lost a title.
+    /// Playback elsewhere that paused or stopped: the server keeps the position each time, so Continue Watching and the title's
+    /// progress move.
+    package var isPauseOrStopElsewhere: Bool {
+        guard isPlaybackElsewhere, case .playback(_, let state, _) = self else { return false }
+        return state == "stopped" || state == "paused"
+    }
+
+    /// What changes Home: something paused or stopped on another device (Continue Watching, On Deck) or a library gained or lost
+    /// a title.
     package var changesHome: Bool {
-        isStopElsewhere || isLibraryChange
+        isPauseOrStopElsewhere || isLibraryChange
+    }
+
+    /// What this event changes about the titles screens show. Playback on this device is left out: the player announces it once
+    /// the server has its final position. Plex sends nothing when a title is marked watched elsewhere, which the app learns
+    /// by asking again when it comes back to the foreground and when a screen appears.
+    package var stateChange: ServerStateChange? {
+        switch self {
+        case .playback(let ratingKey, _, _):
+            guard isPauseOrStopElsewhere else { return nil }
+            return .titles([ratingKey])
+        case .library(nil, nil):
+            return .everything
+        case .library(let sectionID, let ratingKey):
+            return ServerStateChange(ratingKeys: Set([ratingKey].compactMap { $0 }), sectionIDs: Set([sectionID].compactMap { $0 }))
+        case .activity:
+            return nil
+        }
     }
 
     package var isPlayback: Bool {
@@ -155,7 +180,11 @@ package enum ServerEventStream {
         case dropped(lasted: Duration)
     }
 
-    static func listen(api: APIClient, deliver: @escaping @Sendable (ServerEvent) async -> Void) async -> Outcome {
+    static func listen(
+        api: APIClient,
+        connected: @escaping @Sendable () async -> Void = {},
+        deliver: @escaping @Sendable (ServerEvent) async -> Void
+    ) async -> Outcome {
         let started = ContinuousClock.now
         do {
             let request = try PlexEndpoint.eventSource.urlRequest(baseURL: await api.baseURL, token: api.token)
@@ -166,6 +195,7 @@ package enum ServerEventStream {
                 return isRefusal(status) ? .refused : .dropped(lasted: started.duration(to: .now))
             }
             MidgarLog.notice("Server events connected", category: .networking)
+            await connected()
             var parser = ServerEventParser()
             var line: [UInt8] = []
             for try await byte in bytes {
@@ -203,8 +233,9 @@ package enum ServerEventStream {
 }
 
 /// One live connection to the server's event stream, shared by every screen that listens. The first listener opens it, the last
-/// one to leave closes it, and it reconnects after a drop. A server that refuses the stream is not asked again until the app
-/// talks to another one, and the screens fall back on the refreshes they always had.
+/// one to leave closes it, and it reconnects after a drop. While the app is away the stream is closed, since the system cuts it
+/// anyway, and it opens again at once when the app comes back. A server that refuses the stream is not asked again until the app
+/// comes back or talks to another one, and the screens fall back on the refreshes they always had.
 @MainActor
 package final class ServerEventHub {
     package static let shared = ServerEventHub()
@@ -212,7 +243,7 @@ package final class ServerEventHub {
     private struct Listener {
         let interval: Duration
         let matches: @Sendable (ServerEvent) -> Bool
-        let action: @MainActor () -> Void
+        let action: @MainActor (ServerEvent) -> Void
         var scheduled: Task<Void, Never>?
     }
 
@@ -220,6 +251,8 @@ package final class ServerEventHub {
     private var connection: Task<Void, Never>?
     private var connectedAPI: APIClient?
     private var refusedAPI: ObjectIdentifier?
+    private var isSuspended = false
+    private var resyncHandlers: [UUID: @MainActor () -> Void] = [:]
 
     package init() {}
 
@@ -231,14 +264,53 @@ package final class ServerEventHub {
         matching matches: @escaping @Sendable (ServerEvent) -> Bool,
         action: @escaping @MainActor () -> Void
     ) -> ServerEventListening {
+        add(api: api, Listener(interval: interval, matches: matches, action: { _ in action() }))
+    }
+
+    /// Hands every event to `deliver` the moment it arrives, for a listener that gathers what the events changed itself.
+    package func follow(api: APIClient, deliver: @escaping @MainActor (ServerEvent) -> Void) -> ServerEventListening {
+        add(api: api, Listener(interval: .zero, matches: { _ in true }, action: deliver))
+    }
+
+    /// Runs `action` each time the stream opens again after it dropped, when events may have been missed. Lasts until
+    /// `removeResyncHandler` is called with the returned token.
+    package func onResync(_ action: @escaping @MainActor () -> Void) -> UUID {
         let id = UUID()
-        listeners[id] = Listener(interval: interval, matches: matches, action: action)
-        connect(api)
-        return ServerEventListening(id: id, hub: self)
+        resyncHandlers[id] = action
+        return id
+    }
+
+    package func removeResyncHandler(_ id: UUID) {
+        resyncHandlers[id] = nil
     }
 
     /// Whether the stream is open, or being opened again after a drop.
     package var isConnected: Bool { connection != nil }
+
+    /// The app left the foreground: the stream is closed and stays closed, listeners and all, until `resume`.
+    package func suspend() {
+        isSuspended = true
+        connection?.cancel()
+        connection = nil
+    }
+
+    /// The app is back: the stream opens again at once, without waiting out a backoff, and a server that refused it is asked
+    /// again, since the refusal may have come from a token or a route the app no longer uses.
+    package func resume() {
+        isSuspended = false
+        refusedAPI = nil
+        guard let api = connectedAPI, !listeners.isEmpty else { return }
+        connection?.cancel()
+        connection = nil
+        open(api, resyncs: false)
+    }
+
+    private func add(api: APIClient, _ listener: Listener) -> ServerEventListening {
+        let id = UUID()
+        listeners[id] = listener
+        connect(api)
+        return ServerEventListening(id: id, hub: self)
+    }
 
     func remove(_ id: UUID) {
         listeners.removeValue(forKey: id)?.scheduled?.cancel()
@@ -249,45 +321,55 @@ package final class ServerEventHub {
     }
 
     func receive(_ event: ServerEvent) {
-        forgetCachedTitle(after: event)
-        for (id, listener) in listeners where listener.scheduled == nil && listener.matches(event) {
-            var listener = listener
+        if event.stateChange != nil, let connectedAPI { APIClient.invalidateCaches(token: connectedAPI.token) }
+        for id in Array(listeners.keys) {
+            guard var listener = listeners[id], listener.scheduled == nil, listener.matches(event) else { continue }
+            guard listener.interval > .zero else {
+                listener.action(event)
+                continue
+            }
             let interval = listener.interval
             listener.scheduled = Task { [weak self] in
                 try? await Task.sleep(for: interval)
                 guard !Task.isCancelled, let self, var current = listeners[id] else { return }
                 current.scheduled = nil
                 listeners[id] = current
-                current.action()
+                current.action(event)
             }
             listeners[id] = listener
         }
     }
 
-    /// A title that stopped playing somewhere or changed in its library is read afresh the next time a screen asks for it.
-    private func forgetCachedTitle(after event: ServerEvent) {
-        let key: String?
-        switch event {
-        case .playback(let ratingKey, let state, _): key = state == "stopped" ? ratingKey : nil
-        case .library(_, let ratingKey): key = ratingKey
-        case .activity: key = nil
-        }
-        guard let key, let api = connectedAPI else { return }
-        Task { await api.invalidate(ratingKey: key) }
-    }
-
+    /// A stream already open for another client is replaced, and what it may have missed while it changed hands is read again.
     private func connect(_ api: APIClient) {
         if connectedAPI === api, connection != nil { return }
+        let replaces = connection != nil
         connection?.cancel()
         connection = nil
         connectedAPI = api
+        guard !isSuspended else { return }
+        open(api, resyncs: replaces)
+    }
+
+    /// Opens the stream and keeps it open. Every opening after the first follows a drop, so it tells the resync handlers; the
+    /// first one does too when `resyncs`.
+    private func open(_ api: APIClient, resyncs: Bool) {
         guard refusedAPI != ObjectIdentifier(api) else { return }
         connection = Task { [weak self] in
             var failures = 0
+            var followsADrop = resyncs
             while !Task.isCancelled {
-                let outcome = await ServerEventStream.listen(api: api) { [weak self] event in
-                    await self?.receive(event)
-                }
+                let reconnecting = followsADrop
+                let outcome = await ServerEventStream.listen(
+                    api: api,
+                    connected: { [weak self] in
+                        guard reconnecting else { return }
+                        await self?.resynced()
+                    },
+                    deliver: { [weak self] event in
+                        await self?.receive(event)
+                    }
+                )
                 guard !Task.isCancelled else { return }
                 switch outcome {
                 case .refused:
@@ -295,11 +377,19 @@ package final class ServerEventHub {
                     self?.connection = nil
                     return
                 case .dropped(let lasted):
+                    followsADrop = true
                     failures = lasted > .seconds(30) ? 0 : failures + 1
                 }
                 try? await Task.sleep(for: ServerEventStream.backoff(after: failures))
             }
         }
+    }
+
+    private func resynced() {
+        guard !Task.isCancelled else { return }
+        MidgarLog.notice("Server events back after a drop: asking again what may have been missed", category: .networking)
+        if let connectedAPI { APIClient.invalidateCaches(token: connectedAPI.token) }
+        resyncHandlers.values.forEach { $0() }
     }
 }
 

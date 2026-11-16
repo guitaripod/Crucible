@@ -8,8 +8,9 @@ package enum WatchedService {
         isWatched ? String(localized: "Mark Unwatched") : String(localized: "Mark Watched")
     }
 
-    /// Scrobbles or unscrobbles `ratingKey`, then drops the container cache so the reload the caller
-    /// performs next (the cache lives 120 seconds) shows the new watched state. Failures are logged and rethrown.
+    /// Scrobbles or unscrobbles `ratingKey`, then drops the container cache so the reload the caller performs next shows the
+    /// new watched state, and tells every other screen, in every window, that the title changed. Failures are logged and
+    /// rethrown.
     package static func setWatched(_ watched: Bool, ratingKey: String, api: APIClient) async throws {
         do {
             if watched {
@@ -18,7 +19,10 @@ package enum WatchedService {
                 try await api.requestConfirmed(.unscrobble(ratingKey: ratingKey))
             }
             await api.invalidateCache()
-            await MainActor.run { Integrations.watchedChanged(ratingKey, watched: watched, api: api) }
+            await MainActor.run {
+                Integrations.watchedChanged(ratingKey, watched: watched, api: api)
+                ServerStateSync.shared.post(.titles([ratingKey]))
+            }
         } catch {
             MidgarLog.error("Mark watched=\(watched) failed ratingKey=\(ratingKey): \(error.localizedDescription)", category: .networking)
             throw error

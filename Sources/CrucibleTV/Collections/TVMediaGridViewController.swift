@@ -42,6 +42,7 @@ final class TVMediaGridViewController: TVScreenViewController {
     private var items: [PlexMetadata] = []
     private var mediaByID: [String: PlexMetadata] = [:]
     private var hasLoaded = false
+    private var serverState: ServerStateFollower?
     private var dataSource: UICollectionViewDiffableDataSource<Int, String>!
     private lazy var loadSlot = makeTaskSlot()
     private lazy var refreshSlot = makeTaskSlot()
@@ -68,6 +69,11 @@ final class TVMediaGridViewController: TVScreenViewController {
         super.viewDidLoad()
         configureDataSource()
         show(state: .loading(title: nil))
+        serverState = ServerStateFollower(every: .seconds(5), isOnScreen: { [weak self] in
+            self?.viewIfLoaded?.window != nil
+        }, refresh: { [weak self] in
+            self?.reload()
+        })
     }
 
     override func viewWillAppear(_ animated: Bool) {

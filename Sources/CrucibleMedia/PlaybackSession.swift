@@ -24,6 +24,9 @@ import MidgarCore
 @MainActor
 package final class PlaybackSession {
     package let request: PlaybackRequest
+    /// Whether this session counts as a player that has its title open, which keeps the device's saved position of it from
+    /// being sent while it plays.
+    private var holdsPlayingTitle = false
     package let events: AsyncStream<PlaybackEvent>
     package internal(set) var player: AVPlayer?
     package internal(set) var stream: ResolvedStream?
@@ -170,6 +173,13 @@ package final class PlaybackSession {
         }
     }
 
+    /// A session dropped without `stop()` gives its title back, so the device's saved position of it is reported again.
+    deinit {
+        guard holdsPlayingTitle else { return }
+        let ratingKey = request.ratingKey
+        Task { @MainActor in PlaybackResumeSync.ended(ratingKey) }
+    }
+
     /// The item's timeline position of the playhead, or nil before playback starts.
     package var absolutePosition: Double? {
         guard let player else { return nil }
@@ -277,6 +287,10 @@ package final class PlaybackSession {
         player.allowsExternalPlayback = true
         player.appliesMediaSelectionCriteriaAutomatically = false
         self.player = player
+        if !request.isExtra {
+            PlaybackResumeSync.began(request.ratingKey)
+            holdsPlayingTitle = true
+        }
         if request.offline == nil {
             routeObservation = ServerRouteMonitor.shared.observe { [weak self] move in self?.routeMoved(move) }
         }
@@ -348,8 +362,11 @@ package final class PlaybackSession {
         }
         watchers = []
         await invalidateCaches()
+        let reported = reporter != nil
         await reporter?.stop(positionSecs: Self.reportPosition(for: finalPosition, finished: finished, duration: request.durationSecs))
         reporter = nil
+        releasePlayingTitle()
+        if reported { announceStop() }
         if player != nil { keepPosition(finalPosition, finished: finished) }
         if finished { recordFinish() }
         removePlayheadObservers()
@@ -479,8 +496,17 @@ package final class PlaybackSession {
 
     private func invalidateCaches() async {
         await api.invalidate(ratingKey: request.ratingKey)
-        if let seasonRatingKey = request.seasonRatingKey { await api.invalidate(ratingKey: seasonRatingKey) }
-        if let showRatingKey = request.showRatingKey { await api.invalidate(ratingKey: showRatingKey) }
+    }
+
+    private func releasePlayingTitle() {
+        guard holdsPlayingTitle else { return }
+        holdsPlayingTitle = false
+        PlaybackResumeSync.ended(request.ratingKey)
+    }
+
+    /// Once the server holds the final position, every screen showing the item, its season or its show reads them again.
+    private func announceStop() {
+        ServerStateSync.shared.post(.titles([request.ratingKey, request.seasonRatingKey, request.showRatingKey]))
     }
 
     private func removePlayheadObservers() {

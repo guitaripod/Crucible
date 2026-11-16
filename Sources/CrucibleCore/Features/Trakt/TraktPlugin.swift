@@ -69,6 +69,10 @@ package final class TraktPlugin: IntegrationPlugin {
         await account.forgetEveryProfile()
     }
 
+    package func returned(api: APIClient, server: String) async {
+        await flush(server: server, api: api)
+    }
+
     /// Sends what is still waiting for `server`, then nothing else; called after launch, when the app returns and after a play.
     package func flush(server: String, api: APIClient) async {
         guard isActive, !outbox.pending.isEmpty else { return }

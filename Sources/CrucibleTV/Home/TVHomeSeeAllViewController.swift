@@ -36,10 +36,18 @@ final class TVHomeSeeAllViewController: TVScreenViewController {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
+    /// Runs each time the grid comes back on screen, so Home can read again what changed while a title covered it.
+    var onAppear: (@MainActor () -> Void)?
+
     override func viewDidLoad() {
         super.viewDidLoad()
         configureDataSource()
         update(items: items)
+    }
+
+    override func viewIsAppearing(_ animated: Bool) {
+        super.viewIsAppearing(animated)
+        onAppear?()
     }
 
     override func playFocused(at indexPath: IndexPath) -> Bool {

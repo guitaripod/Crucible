@@ -3,9 +3,9 @@ import MidgarCore
 import TVServices
 
 /// Keeps the Top Shelf current for the signed-in session: the coordinator activates it with the
-/// session's API client on launch and calls `refresh()` when the app returns to the foreground;
-/// the player calls it when playback ends. Each refresh fetches Home's hubs, rewrites the
-/// snapshot in the App Group when something changed and tells the system.
+/// session's API client on launch, and from then on it refreshes whenever the server's titles change: the app returning to
+/// the foreground, a playback ending or a title marked here, another device pausing or stopping. Each refresh fetches Home's
+/// hubs, rewrites the snapshot in the App Group when something changed and tells the system.
 ///
 /// Top Shelf is a Crucible Pro feature. A free install publishes nothing and empties what an earlier
 /// version or an ended plan left, so the extension returns no content; a status the store has not
@@ -18,12 +18,16 @@ enum TVTopShelfRefresher {
     private static var session: (api: APIClient, machineIdentifier: String)?
     private static var task: Task<Void, Never>?
     private static var proObserver: UUID?
+    private static var serverState: ServerStateFollower?
     private static var previewsToEnd = Set<String>()
+    /// The least time between two refreshes that changes on the server ask for, so a library scan does not keep it busy.
+    private static let changeInterval: Duration = .seconds(10)
 
     static func activate(api: APIClient, machineIdentifier: String) {
         session = (api, machineIdentifier)
         MidgarLog.info(TopShelfStore.shared.diagnostics.logSummary, category: .persistence)
         observePro()
+        followServerState()
         let pending = previewsToEnd
         previewsToEnd.removeAll()
         pending.forEach(endPreview(of:))
@@ -75,6 +79,8 @@ enum TVTopShelfRefresher {
         session = nil
         if let proObserver { ProAccess.shared.stopObserving(proObserver) }
         proObserver = nil
+        serverState?.cancel()
+        serverState = nil
     }
 
     private static func publish(_ session: (api: APIClient, machineIdentifier: String)) {
@@ -92,6 +98,13 @@ enum TVTopShelfRefresher {
         TopShelfUpdater.clear {
             TVTopShelfContentProvider.topShelfContentDidChange()
         }
+    }
+
+    private static func followServerState() {
+        guard serverState == nil else { return }
+        serverState = ServerStateFollower(every: changeInterval, matching: { $0.everything || $0.movesWatchState || !$0.sectionIDs.isEmpty }, isOnScreen: { true }, refresh: {
+            refresh()
+        })
     }
 
     private static func observePro() {

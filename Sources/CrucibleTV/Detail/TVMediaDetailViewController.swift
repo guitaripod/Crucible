@@ -43,6 +43,10 @@ final class TVMediaDetailViewController: TVDetailViewController {
 
     override var communityKey: String? { ratingKey }
 
+    override var followedRatingKeys: [String] {
+        [ratingKey, model?.item.parentRatingKey, model?.item.grandparentRatingKey].compactMap { $0 }
+    }
+
     override func fetch() async {
         let isFirst = model == nil
         let scoresTask = isFirst ? startScores() : nil

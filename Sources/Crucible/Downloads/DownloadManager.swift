@@ -51,6 +51,7 @@ final class DownloadManager: NSObject {
         set { UserDefaults.standard.set(newValue, forKey: "crucible.backgroundSessionBroken") }
     }
     var observers: [UUID: (DownloadEvent) -> Void] = [:]
+    var serverProgress: ServerStateFollower?
     var lastProgressEmit: [String: Date] = [:]
 
     let store = DownloadStore()

@@ -35,6 +35,10 @@ final class TVSceneDelegate: UIResponder, UIWindowSceneDelegate {
         Task { await GuideStore.shared.refresh() }
     }
 
+    func sceneDidEnterBackground(_ scene: UIScene) {
+        coordinator?.sceneDidEnterBackground()
+    }
+
     func sceneDidDisconnect(_ scene: UIScene) {
         coordinator?.stop()
         coordinator = nil

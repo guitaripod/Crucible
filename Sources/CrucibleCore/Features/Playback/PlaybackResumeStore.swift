@@ -203,8 +203,23 @@ package enum ResumeFlushRule {
 package enum PlaybackResumeSync {
     package static let launchBudget: Duration = .seconds(3)
 
+    /// The titles a player on this device has open right now, with how many players have each. Their positions are the
+    /// player's to report: telling the server one of them stopped would end a session that is still running, in picture in
+    /// picture or with the app in the background.
+    @MainActor private static var playing: [String: Int] = [:]
+
+    @MainActor package static func began(_ ratingKey: String) {
+        playing[ratingKey, default: 0] += 1
+    }
+
+    @MainActor package static func ended(_ ratingKey: String) {
+        guard let count = playing[ratingKey] else { return }
+        playing[ratingKey] = count > 1 ? count - 1 : nil
+    }
+
     package static func flush(api: APIClient, server: String, store: PlaybackResumeStore = .shared, within budget: Duration = launchBudget) async {
-        let pending = store.pendingReports(server: server)
+        let open = await MainActor.run { Set(playing.keys) }
+        let pending = store.pendingReports(server: server).filter { !open.contains($0.ratingKey) }
         guard !pending.isEmpty else { return }
         await withTaskGroup(of: Void.self) { group in
             group.addTask { for point in pending { await send(point, api: api, store: store) } }
@@ -236,7 +251,7 @@ package enum PlaybackResumeSync {
                 durationMs: Int(point.durationSecs * 1000)
             ))
             store.recordReport(server: point.server, ratingKey: point.ratingKey, positionSecs: point.reportSecs)
-            await api.invalidate(ratingKey: point.ratingKey)
+            await ServerStateSync.shared.post(.titles([point.ratingKey]))
             MidgarLog.notice("Reported the saved position of \(point.ratingKey) to the server: \(Int(point.reportSecs)) s finished=\(point.finished)", category: .playback)
         } catch {
             MidgarLog.error("Reporting the saved position of \(point.ratingKey) failed: \(error.localizedDescription)", category: .playback)

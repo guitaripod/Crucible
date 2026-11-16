@@ -39,6 +39,7 @@ final class MediaGridViewController: UICollectionViewController {
     private var loadTask: Task<Void, Never>?
     private var refreshTask: Task<Void, Never>?
     private var listening: ServerEventListening?
+    private var serverState: ServerStateFollower?
     private var hasLoaded = false
     private lazy var mediaDrag = MediaDragSource { [weak self] indexPath in self?.item(at: indexPath) }
 
@@ -69,6 +70,11 @@ final class MediaGridViewController: UICollectionViewController {
             Theme.gridLayout(environment: environment, aspect: self?.artworkAspect ?? Theme.Size.posterAspect)
         }
         configureDataSource()
+        serverState = ServerStateFollower(every: .seconds(5), isOnScreen: { [weak self] in
+            self?.viewIfLoaded?.window != nil
+        }, refresh: { [weak self] in
+            self?.reload()
+        })
     }
 
     override func viewIsAppearing(_ animated: Bool) {
