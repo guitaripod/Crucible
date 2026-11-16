@@ -2,9 +2,11 @@ import CrucibleUI
 import Foundation
 import Kiln
 
-/// The design gallery: every component with fixture content, in a window or captured offscreen to PNG files.
+/// The design gallery: every component with fixture content, in a window or captured offscreen to PNG files, each capture
+/// optionally checked against golden thumbnails (`--check DIR`) or written as the new ones (`--update-golden DIR`).
 ///
-///     crucible-gallery [--capture DIR] [--size 1920x1080] [--scale 2] [--density desk|couch] [--light] [--page home]
+///     crucible-gallery [--capture DIR [--check DIR | --update-golden DIR]] [--size 1920x1080] [--scale 2] [--density desk|couch]
+///                      [--light] [--page home]
 @MainActor
 struct Gallery {
     let arguments = CommandLine.arguments
@@ -41,8 +43,8 @@ struct Gallery {
     static let pages = ["home", "cards", "controls", "grid", "states", "tiles", "panels", "stats"]
 
     /// Renders each page in its rest state and in the states that matter (keyboard focus, hover, what it presents), writing
-    /// PNGs.
-    func capture(into directory: String) throws {
+    /// PNGs; returns whether every golden check passed.
+    func capture(into directory: String) throws -> Bool {
         try FileManager.default.createDirectory(atPath: directory, withIntermediateDirectories: true)
         let window = try Window(offscreen: size, scale: scale)
         window.useImages(diskDirectory: nil) { url in try Data(contentsOf: url) }
@@ -167,6 +169,7 @@ struct Gallery {
             }
         }
         report.forEach { print($0) }
+        return !report.contains { $0.hasPrefix("golden ") && !$0.hasPrefix("golden ok") && !$0.hasPrefix("golden wrote") }
     }
 
     private func settle(_ window: Window) {
@@ -190,6 +193,13 @@ struct Gallery {
         let capture = window.capture()
         let ok = PNGWriter.write(linear: capture.pixels, width: capture.width, height: capture.height, to: path)
         report.append("\(ok ? "wrote" : "FAILED") \(path) \(capture.width)x\(capture.height)")
+        let name = URL(fileURLWithPath: path).deletingPathExtension().lastPathComponent
+        let directory = URL(fileURLWithPath: path).deletingLastPathComponent().path
+        if let golden = value("--update-golden") {
+            report.append(GalleryGolden.update(capture, name: name, golden: golden).line)
+        } else if let golden = value("--check") {
+            report.append(GalleryGolden.check(capture, name: name, golden: golden, captureDirectory: directory).line)
+        }
     }
 
     /// Times Home at the window size while focus walks the shelves: CPU per frame (layout, animation, pass encoding) and
@@ -323,7 +333,7 @@ MainActor.assumeIsolated {
         if gallery.arguments.contains("--bench") {
             try gallery.bench()
         } else if let directory = gallery.value("--capture") {
-            try gallery.capture(into: directory)
+            if try !gallery.capture(into: directory) { exit(1) }
         } else {
             try gallery.runWindow()
         }
