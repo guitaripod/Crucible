@@ -134,6 +134,17 @@ final class RootView: View, WindowRestoration.Restorable {
         rememberWindow()
     }
 
+    /// The next or the previous tab (a gamepad's shoulder buttons, Ctrl with Page Down or Page Up), stopping at the ends
+    /// as the tvOS tab bar does.
+    private func stepTab(forward: Bool) {
+        let ids = tabBar.tabs.map(\.id)
+        guard let index = ids.firstIndex(of: currentID) else { return }
+        let next = index + (forward ? 1 : -1)
+        guard ids.indices.contains(next) else { return }
+        select(ids[next])
+        tabBar.setHidden(false, animated: true)
+    }
+
     /// Opens the first library's tab, or More when every library is there (the demo tour's Browse a library).
     func selectFirstLibrary() {
         guard let tab = tabBar.tabs.first(where: { $0.id.hasPrefix("library-") || $0.id == "more" }) else { return }
@@ -219,6 +230,11 @@ final class RootView: View, WindowRestoration.Restorable {
         }
         if event.key == Key.character("r") && event.modifiers == .control, player == nil {
             (current?.top as? Reloadable)?.reload()
+            return true
+        }
+        if event.key == .tabPrevious || event.key == .tabNext || (event.modifiers == .control && (event.key == .pageUp || event.key == .pageDown)) {
+            guard player == nil else { return false }
+            stepTab(forward: event.key == .tabNext || event.key == .pageDown)
             return true
         }
         if event.key == Key.character("n") && event.modifiers == .control {

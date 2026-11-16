@@ -54,6 +54,8 @@ func runCrucible() -> Int32 {
     window.makeTooltip = { TooltipView(text: $0) }
     let coordinator = AppCoordinator(window: window)
     let memoryPressure = MemoryPressure(loop: loop) { coordinator.allWindows }
+    let gamepads = Gamepads { coordinator.keyWindow }
+    if ProcessInfo.processInfo.environment["CRUCIBLE_VIRTUAL_PAD"] == "1", gamepads?.attachVirtualPad() == true { CapturePad.pad = gamepads }
     ServerRouteMonitor.shared.start()
     var running = true
     coordinator.onQuit = { running = false }
@@ -84,6 +86,7 @@ func runCrucible() -> Int32 {
     loop.run { !running }
     signals.forEach { $0.cancel() }
     withExtendedLifetime(memoryPressure) {}
+    withExtendedLifetime(gamepads) {}
     PlayerScreen.active?.close()
     coordinator.closeAllPlayers()
     UserDefaults.standard.synchronize()
@@ -105,6 +108,38 @@ func quitOnSignals(_ coordinator: AppCoordinator) -> [DispatchSourceSignal] {
         source.setEventHandler { MainActor.assumeIsolated { coordinator.onQuit?() } }
         source.resume()
         return source
+    }
+}
+
+/// The virtual gamepad of a headless check (`CRUCIBLE_VIRTUAL_PAD=1`), which `~` capture letters press.
+@MainActor
+enum CapturePad {
+    static var pad: Gamepads?
+}
+
+/// Presses the virtual pad's button for a `~` capture letter: a lowercase one taps it, an uppercase direction holds it a
+/// second and a quarter; `t` tilts the right stick and `f` and `F` pull the right and left trigger for a second.
+@MainActor
+func pressCapturePad(_ letter: Character) {
+    guard let pad = CapturePad.pad else { return }
+    let buttons: [Character: GamepadButton] = ["a": .south, "b": .east, "x": .west, "y": .north, "s": .start, "q": .leftShoulder,
+                                               "w": .rightShoulder, "u": .dpadUp, "d": .dpadDown, "l": .dpadLeft, "r": .dpadRight]
+    func release(after seconds: Double, _ body: @escaping @MainActor () -> Void) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + seconds) { MainActor.assumeIsolated(body) }
+    }
+    switch letter {
+    case "t":
+        pad.moveVirtual(axis: 2, to: 1)
+        release(after: 0.6) { pad.moveVirtual(axis: 2, to: 0) }
+    case "f", "F":
+        let axis = letter == "f" ? 5 : 4
+        pad.moveVirtual(axis: axis, to: 1)
+        release(after: 1) { pad.moveVirtual(axis: axis, to: 0) }
+    default:
+        let held = letter.isUppercase
+        guard let button = buttons[Character(letter.lowercased())] else { return }
+        pad.pressVirtual(button, down: true)
+        release(after: held ? 1.25 : 0.1) { pad.pressVirtual(button, down: false) }
     }
 }
 
@@ -139,6 +174,11 @@ func performCaptureInput(_ keys: String, in window: Window) {
             rest = rest.dropFirst(2)
             continue
         }
+        if character == "~", let letter = rest.dropFirst().first {
+            pressCapturePad(letter)
+            rest = rest.dropFirst(2)
+            continue
+        }
         switch character {
         case "[": window.handlePointerButton(.primary, pressed: true)
         case "]": window.handlePointerButton(.primary, pressed: false)
@@ -159,7 +199,8 @@ func performCaptureInput(_ keys: String, in window: Window) {
 /// `r` right, `e` Enter, `x` Escape, `m` Menu, `p` Play/Pause, `<` and `>` the back and forward keys, `;` Ctrl+comma, a digit
 /// Ctrl with it, `+` and `-` Ctrl with them, `!` F10, `?` Ctrl+?, `^` and a letter Ctrl with it, `{X,Y}` moves the pointer to
 /// that point of the window, `[` and `]` press and release the primary button, `#` clicks the secondary and `*` the middle,
-/// any other character itself, in order), waits a moment and writes the window to PATH; the app quits after the last.
+/// `~` and a letter presses the virtual gamepad of `CRUCIBLE_VIRTUAL_PAD=1` (see `pressCapturePad`), any other character
+/// itself, in order), waits a moment and writes the window to PATH; the app quits after the last.
 @MainActor
 func scheduleCaptures(_ arguments: [String], window: Window, coordinator: AppCoordinator, done: @escaping () -> Void) {
     let specs = arguments.indices.filter { arguments[$0] == "--capture" && $0 + 1 < arguments.count }.map { arguments[$0 + 1] }

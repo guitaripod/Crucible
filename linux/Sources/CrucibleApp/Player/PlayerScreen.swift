@@ -76,6 +76,9 @@ final class PlayerScreen: View {
     var undo: (returnTo: Double, until: ContinuousClock.Instant)?
     var autoSkipped: Set<SkipMarker> = []
     var holdOrigin: Double?
+    /// How far the gamepad's triggers are pulled, the right one less the left, while they scrub.
+    private var triggerPull: Float = 0
+    private var triggerScrub: Task<Void, Never>?
     var holdHandled = false
     /// Where the last seek went and when, so presses that come before the player has got there add up.
     private var seekTarget: (position: Double, at: ContinuousClock.Instant)?
@@ -773,8 +776,10 @@ final class PlayerScreen: View {
         if !onPicture, [Key.left, .right, .up, .down, .return, .keypadEnter, .space].contains(event.key) { return false }
         viewerActed()
         switch event.key {
-        case .space, Key.character("k"):
+        case .space, Key.character("k"), .mediaPlay:
             togglePause()
+        case .mediaPause:
+            player.setPaused(true)
         case .left, Key.character("j"):
             press(forward: false, isRepeat: event.isRepeat)
         case .right, Key.character("l"):
@@ -851,6 +856,30 @@ final class PlayerScreen: View {
 
     override func pointerMoved(to point: Point) {
         showChrome(autoHide: !transport.frame.contains(point))
+    }
+
+    /// The gamepad's triggers scrub: the right one forward and the left one back, faster the further they are pulled, up to
+    /// a minute and a half of the title each second, with a seek a few times a second while either is held.
+    override func gamepadTriggered(left: Float, right: Float) -> Bool {
+        guard player != nil else { return false }
+        let pull = right - left
+        triggerPull = abs(pull) > 0.12 ? pull : 0
+        guard triggerPull != 0, triggerScrub == nil else { return true }
+        viewerActed()
+        showChrome(autoHide: true)
+        triggerScrub = Task { [weak self] in
+            var last = Window.now()
+            while !Task.isCancelled, let self, self.triggerPull != 0 {
+                try? await Task.sleep(for: .milliseconds(150))
+                let now = Window.now()
+                let pull = Double(self.triggerPull)
+                self.seek(to: max(0, self.playhead + pull * abs(pull) * 90 * (now - last)))
+                self.showChrome(autoHide: true)
+                last = now
+            }
+            self?.triggerScrub = nil
+        }
+        return true
     }
 
     override func pointerPressed(_ button: MouseButton, at point: Point) -> Bool {

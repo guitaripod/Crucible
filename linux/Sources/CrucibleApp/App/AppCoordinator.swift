@@ -48,6 +48,9 @@ final class AppCoordinator: WindowDelegate {
     /// Every open window, the first one first.
     var allWindows: [Window] { [window] + scenes.map(\.window) }
 
+    /// The window with the keyboard, which gamepad input goes to; none while Crucible is in the background.
+    var keyWindow: Window? { allWindows.first { $0.hasKeyboardFocus } }
+
     private static let finaleSettleDelay: Duration = .milliseconds(1200)
     private static let finaleRetryInterval: Duration = .milliseconds(800)
 
