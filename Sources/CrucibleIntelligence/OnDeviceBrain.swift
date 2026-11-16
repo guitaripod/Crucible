@@ -75,46 +75,55 @@ package final class OnDeviceBrain: HostedBrainProviding {
     // MARK: - Aliases
 
     private func plan(_ input: String, instructions: String) async throws(HostedBrainError) -> String {
-        let session = LanguageModelSession(model: SystemLanguageModel.default, instructions: instructions)
         let reply: PlanReply
         do {
-            reply = try await session.respond(to: input, generating: PlanReply.self, options: GenerationOptions(samplingMode: .greedy)).content
+            reply = try await ModelGate.shared.run {
+                let session = LanguageModelSession(model: SystemLanguageModel.default, instructions: instructions)
+                return try await session.respond(to: input, generating: PlanReply.self, options: GenerationOptions(samplingMode: .greedy)).content
+            }
         } catch {
-            MidgarLog.notice("On-device plan failed: \(error.localizedDescription)", category: .lifecycle)
+            MidgarLog.notice("On-device plan failed: \(String(describing: error))", category: .lifecycle)
             throw ModelFailure.brain(error)
         }
         return Self.json(PlanWire(reply))
     }
 
+    /// The picks among the titles that fitted the model's context; a number it was not shown is dropped, as the hosted
+    /// model can only pick what it was sent.
     private func pick(_ input: String, instructions: String) async throws(HostedBrainError) -> String {
         let fitted = await fitting(input, instructions: instructions)
-        let session = LanguageModelSession(model: SystemLanguageModel.default, instructions: instructions)
+        let message = fitted.message
         let reply: PickReply
         do {
-            reply = try await session.respond(to: fitted, generating: PickReply.self, options: GenerationOptions(temperature: 0.3)).content
+            reply = try await ModelGate.shared.run {
+                let session = LanguageModelSession(model: SystemLanguageModel.default, instructions: instructions)
+                return try await session.respond(to: message, generating: PickReply.self, options: GenerationOptions(temperature: 0.3)).content
+            }
         } catch {
-            MidgarLog.notice("On-device pick failed: \(error.localizedDescription)", category: .lifecycle)
+            MidgarLog.notice("On-device pick failed: \(String(describing: error))", category: .lifecycle)
             throw ModelFailure.brain(error)
         }
         var picks: [PickWire.Pick] = []
-        for pick in reply.picks {
-            picks.append(PickWire.Pick(id: pick.id, why: await inAppLanguage(pick.why)))
+        for pick in reply.picks where pick.id >= 1 && pick.id <= fitted.titles {
+            picks.append(PickWire.Pick(id: pick.id, why: try await inAppLanguage(pick.why)))
         }
-        let note = picks.count >= 3 ? "" : await inAppLanguage(reply.note)
+        let note = picks.count >= 3 ? "" : try await inAppLanguage(reply.note)
         return Self.json(PickWire(picks: picks, note: note))
     }
 
     private func recap(_ input: String, instructions: String) async throws(HostedBrainError) -> String {
-        let model = SystemLanguageModel(useCase: .general, guardrails: .permissiveContentTransformations)
-        let session = LanguageModelSession(model: model, instructions: instructions)
         let text: String
         do {
-            text = try await session.respond(to: input, options: GenerationOptions(temperature: 0.3)).content
+            text = try await ModelGate.shared.run {
+                let model = SystemLanguageModel(useCase: .general, guardrails: .permissiveContentTransformations)
+                let session = LanguageModelSession(model: model, instructions: instructions)
+                return try await session.respond(to: input, options: GenerationOptions(temperature: 0.3)).content
+            }
         } catch {
-            MidgarLog.notice("On-device recap failed: \(error.localizedDescription)", category: .lifecycle)
+            MidgarLog.notice("On-device recap failed: \(String(describing: error))", category: .lifecycle)
             throw ModelFailure.brain(error)
         }
-        return Self.json(RecapWire(recap: await inAppLanguage(Self.unquoted(text))))
+        return Self.json(RecapWire(recap: try await inAppLanguage(Self.unquoted(text))))
     }
 
     // MARK: - Languages
@@ -134,7 +143,8 @@ package final class OnDeviceBrain: HostedBrainProviding {
         SystemLanguageModel.default.supportedLanguages.contains { TranslationLanguages.isSame($0.minimalIdentifier, language) }
     }
 
-    /// The message with its request put into English when the model does not read the language it is in.
+    /// The message with its request put into English when the model does not read the language it is in. Where that
+    /// cannot be done the request goes as it was written, which the model often still understands well enough to plan.
     private func englishRequest(in input: String) async -> String {
         guard let request = Self.request(in: input), let language = LanguageDetector.language(of: request), !modelWrites(language),
               let translator, await translator.readiness(from: language, to: "en") == .ready,
@@ -142,21 +152,28 @@ package final class OnDeviceBrain: HostedBrainProviding {
         return input.replacingOccurrences(of: Self.requestPrefix + request, with: Self.requestPrefix + english)
     }
 
-    /// An English answer put into the app's language when the model could not write it.
-    private func inAppLanguage(_ text: String) async -> String {
-        guard !writesAppLanguage, !text.isEmpty, let translator,
-              let translated = try? await translator.translate(markup: text, from: "en", to: appLanguage) else { return text }
-        return translated
+    /// An English answer put into the app's language when the model could not write it. A translation that fails fails
+    /// the answer, so the hosted model answers in the right language instead of the screen showing English.
+    private func inAppLanguage(_ text: String) async throws(HostedBrainError) -> String {
+        guard !writesAppLanguage, !text.isEmpty else { return text }
+        guard let translator else { throw .unavailable }
+        do throws(TranslationFailure) {
+            return try await translator.translate(markup: text, from: "en", to: appLanguage)
+        } catch {
+            state.withLock { $0.translatesAnswers = false }
+            MidgarLog.notice("On-device answer not translated into \(appLanguage): \(error)", category: .lifecycle)
+            throw .failed
+        }
     }
 
     // MARK: - Fitting
 
-    /// The pick message cut to the candidates that fit the model's context with room for its answer. Candidates come
-    /// best first, so the last ones go.
-    private func fitting(_ input: String, instructions: String) async -> String {
+    /// The pick message cut to the candidates that fit the model's context with room for its answer, and how many titles
+    /// it keeps. Candidates come best first, so the last ones go.
+    private func fitting(_ input: String, instructions: String) async -> (message: String, titles: Int) {
         let budget = SystemLanguageModel.default.contextSize - Self.answerRoom
         var lines = input.components(separatedBy: "\n")
-        guard let titles = lines.firstIndex(of: "Titles:") else { return input }
+        guard let titles = lines.firstIndex(of: "Titles:") else { return (input, 0) }
         var low = 0
         var high = lines.count - titles - 1
         while low < high {
@@ -165,7 +182,7 @@ package final class OnDeviceBrain: HostedBrainProviding {
             if await tokens(instructions + "\n" + candidate) <= budget { low = middle } else { high = middle - 1 }
         }
         lines = Array(lines[...(titles + low)])
-        return lines.joined(separator: "\n")
+        return (lines.joined(separator: "\n"), low)
     }
 
     /// How many tokens `text` takes, counted by the model where it can, else estimated from its length.
