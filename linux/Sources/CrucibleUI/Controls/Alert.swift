@@ -68,10 +68,11 @@ public final class AlertView: View {
         AlertView(title: title, message: message, actions: [Action(Strings.lookup("OK"), role: .cancel)]).present(in: window)
     }
 
-    /// Asks before something that cannot be undone: `confirm` in red, then Cancel.
-    public static func confirm(title: String, message: String? = nil, confirm: String, in window: Window, action: @escaping () -> Void) {
+    /// Asks before acting: `confirm` (in red for something that cannot be undone, the default), then Cancel.
+    public static func confirm(title: String, message: String? = nil, confirm: String, role: Action.Role = .destructive, in window: Window,
+                               action: @escaping () -> Void) {
         AlertView(title: title, message: message, actions: [
-            Action(confirm, role: .destructive, handler: action),
+            Action(confirm, role: role, handler: action),
             Action(Strings.lookup("Cancel"), role: .cancel),
         ]).present(in: window)
     }

@@ -36,7 +36,7 @@ enum DemoLeave {
         if connecting {
             AlertView.confirm(title: DemoCopy.connectTitle,
                               message: String(localized: "\(DemoCopy.connectBody) The demo, its viewing history and your tour progress are removed."),
-                              confirm: String(localized: "Connect"), in: window, action: leave)
+                              confirm: String(localized: "Connect"), role: .normal, in: window, action: leave)
             return
         }
         AlertView.confirm(title: String(localized: "Leave the Demo?"),

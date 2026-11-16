@@ -112,7 +112,7 @@ enum ManageTools {
                 run(in: host) { try await LibraryManagement.scan(sectionId: sectionId, force: false, api: api) }
             case "refresh":
                 AlertView.confirm(title: ManageCopy.refreshLibrary, message: ManageCopy.refreshLibraryMessage, confirm: ManageCopy.refreshLibrary,
-                                  in: window) { [weak host] in
+                                  role: .normal, in: window) { [weak host] in
                     guard let host else { return }
                     run(in: host) { try await LibraryManagement.scan(sectionId: sectionId, force: true, api: api) }
                 }
@@ -338,7 +338,7 @@ final class FixMatchScreen: SettingsScaffold {
         let onMatched = onMatched
         AlertView.confirm(title: String(localized: "Match to \(name)?", comment: "Fix Match confirmation title, e.g. Match to Dune (2021)?"),
                           message: String(localized: "The title takes this one's details, artwork and ratings.", comment: "Fix Match confirmation message"),
-                          confirm: String(localized: "Match", comment: "Button that confirms a Fix Match choice"), in: window) { [weak self] in
+                          confirm: String(localized: "Match", comment: "Button that confirms a Fix Match choice"), role: .normal, in: window) { [weak self] in
             Task { [weak self] in
                 do {
                     try await LibraryManagement.match(ratingKey: key, to: result, api: api)
