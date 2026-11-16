@@ -32,6 +32,8 @@ package enum PreferenceSetting: CaseIterable, Sendable {
     case subtitleSize
     /// Linux: bitstreams to the receiver (docs/LINUX.md §7.6).
     case audioPassthrough
+    /// Linux: the screen follows the title's frame rate and HDR (docs/LINUX.md §7.4).
+    case matchContent
     case skipBack
     case skipForward
     case holdLeft
@@ -76,6 +78,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         case .skipOutro: return String(localized: "Skip Credits", comment: "Setting: what happens when the end credits start")
         case .subtitleSize: return String(localized: "Subtitle Size", comment: "Setting: how big subtitles are drawn")
         case .audioPassthrough: return String(localized: "Audio Passthrough", comment: "Linux setting: send surround formats to the receiver untouched")
+        case .matchContent: return String(localized: "Match Content", comment: "Linux setting: switch the screen to the title's frame rate and HDR")
         case .skipBack: return String(localized: "Skip Back")
         case .skipForward: return String(localized: "Skip Ahead")
         case .holdLeft: return String(localized: "Hold Left")
@@ -114,6 +117,8 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         case .subtitleSize: return String(localized: "Applies to subtitles the server draws into the picture and to the ones the player draws.")
         case .audioPassthrough:
             return String(localized: "Sends Dolby TrueHD and Atmos, DTS-HD and Dolby Digital to your receiver or TV untouched. Automatic sends what your sound output is set to accept.")
+        case .matchContent:
+            return String(localized: "While the player fills the screen, the screen switches to a refresh rate that suits the title and to HDR for an HDR title, then back when you stop. On KDE Plasma.")
         case .skipBack, .skipForward: return String(localized: "How far one skip goes: a click on the left or right of the Siri Remote's clickpad, or the skip buttons on the Lock Screen, in Control Center and on headphones.")
         case .holdLeft, .holdRight: return String(localized: "What holding the left or right of the clickpad does: the system's rewind and fast forward, a jump, or Start Over and Next Episode.")
         case .downloadQuality: return String(localized: "The quality new downloads start at. You can still pick another one for each download.")
@@ -150,6 +155,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         case .skipOutro: return "forward.end.circle"
         case .subtitleSize: return "textformat.size"
         case .audioPassthrough: return "speaker.wave.2"
+        case .matchContent: return "tv"
         case .skipBack: return "gobackward.10"
         case .skipForward: return "goforward.10"
         case .holdLeft: return "backward"
@@ -247,6 +253,8 @@ package enum PreferenceSetting: CaseIterable, Sendable {
             return .toggle(isOn: Preferences.quietHours)
         case .notifyWhileClosed:
             return .toggle(isOn: Preferences.notifiesWhileClosed)
+        case .matchContent:
+            return .toggle(isOn: Preferences.matchesContent)
         case .preferLocalConnection:
             return .toggle(isOn: Preferences.preferLocalConnection)
         case .allowRelayConnection:
@@ -345,6 +353,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         case .deleteWatchedDownloads: Preferences.deleteWatchedDownloads = isOn
         case .quietHours: Preferences.quietHours = isOn
         case .notifyWhileClosed: Preferences.notifiesWhileClosed = isOn
+        case .matchContent: Preferences.matchesContent = isOn
         case .preferLocalConnection: Preferences.preferLocalConnection = isOn
         case .allowRelayConnection: Preferences.allowRelayConnection = isOn
         case .notifyRatingReminders, .notifyNewEpisodes, .notifyWatchlistArrivals, .notifyWeeklyRecap, .notifyYearInReview, .notifyDownloads:
@@ -404,6 +413,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         .notifyNewEpisodes: .toggle(isOn: true),
         .notifyWatchlistArrivals: .toggle(isOn: true),
         .notifyWhileClosed: .toggle(isOn: true),
+        .matchContent: .toggle(isOn: true),
         .notifyWeeklyRecap: .toggle(isOn: true),
         .notifyYearInReview: .toggle(isOn: true),
         .notifyDownloads: .toggle(isOn: true),

@@ -203,6 +203,7 @@ package enum SettingsCatalog {
         let skipping = String(localized: "Skipping", comment: "Settings section for skip intro and skip credits")
         let subtitles = String(localized: "Subtitles")
         let audio = String(localized: "Audio")
+        let video = String(localized: "Video", comment: "Stream Info label")
         let reminders = String(localized: "Reminders", comment: "Settings section for rating reminders")
         let news = String(localized: "From Your Server", comment: "Settings section for new-episode, watchlist, recap and Year in Review notifications")
         return [
@@ -217,6 +218,7 @@ package enum SettingsCatalog {
             Spec(item: .preference(.skipIntro), category: .playback, section: skipping, platforms: all),
             Spec(item: .preference(.skipOutro), category: .playback, section: skipping, platforms: all),
             Spec(item: .preference(.subtitleSize), category: .playback, section: subtitles, platforms: all),
+            Spec(item: .preference(.matchContent), category: .playback, section: video, platforms: [.linux]),
             Spec(item: .preference(.audioPassthrough), category: .playback, section: audio, platforms: [.linux]),
             Spec(item: .preference(.skipBack), category: .controls, section: nil, platforms: all),
             Spec(item: .preference(.skipForward), category: .controls, section: nil, platforms: all),
@@ -458,6 +460,8 @@ package enum SettingsCatalog {
                 return String(localized: "captions, CC, text, font, bigger, smaller", comment: "Search keywords for the subtitle size setting, comma separated")
             case .audioPassthrough:
                 return String(localized: "Dolby, Atmos, TrueHD, DTS, receiver, soundbar, HDMI, surround, bitstream", comment: "Search keywords for the Linux audio passthrough setting, comma separated")
+            case .matchContent:
+                return String(localized: "refresh rate, Hz, frame rate, 24p, judder, HDR, TV, display", comment: "Search keywords for the Linux Match Content setting, comma separated")
             case .skipBack, .skipForward, .holdLeft, .holdRight:
                 return String(localized: "remote, seek, jump, rewind, fast forward, seconds, headphones", comment: "Search keywords for the skip and remote settings, comma separated")
             case .downloadQuality, .downloadOverCellular, .deleteWatchedDownloads:

@@ -98168,6 +98168,102 @@
         }
       }
     },
+    "Match Content" : {
+      "comment" : "Linux setting: switch the screen to the title's frame rate and HDR",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tilpas til indhold"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inhalt anpassen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajustar al contenido"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sovita sisältöön"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adapter au contenu"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laga að efni"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adatta al contenuto"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コンテンツに合わせる"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "콘텐츠에 맞춤"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tilpass innhold"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dopasuj do treści"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajustar ao conteúdo"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anpassa efter innehåll"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "匹配内容"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "符合內容"
+          }
+        }
+      }
+    },
     "Match to %@?" : {
       "comment" : "Fix Match confirmation title, e.g. Match to Dune (2021)?",
       "localizations" : {
@@ -200037,6 +200133,101 @@
         }
       }
     },
+    "While the player fills the screen, the screen switches to a refresh rate that suits the title and to HDR for an HDR title, then back when you stop. On KDE Plasma." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mens afspilleren fylder skærmen, skifter skærmen til en opdateringshastighed, der passer til titlen, og til HDR for en HDR-titel, og tilbage, når du stopper. På KDE Plasma."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solange der Player den Bildschirm füllt, wechselt der Bildschirm auf eine zum Titel passende Bildwiederholrate und bei HDR-Titeln auf HDR, und zurück, wenn du aufhörst. Unter KDE Plasma."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mientras el reproductor ocupa la pantalla, esta cambia a una frecuencia de actualización adecuada para el título y a HDR para un título HDR, y vuelve atrás al parar. En KDE Plasma."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kun soitin täyttää näytön, näyttö vaihtaa nimikkeelle sopivaan virkistystaajuuteen ja HDR-nimikkeellä HDR:ään, ja takaisin, kun lopetat. KDE Plasmassa."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quand le lecteur occupe tout l’écran, celui-ci passe à une fréquence adaptée au titre, et en HDR pour un titre HDR, puis revient à l’arrêt. Sous KDE Plasma."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meðan spilarinn fyllir skjáinn skiptir skjárinn yfir í endurnýjunartíðni sem hentar titlinum, og í HDR fyrir HDR-titil, og aftur til baka þegar þú hættir. Í KDE Plasma."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mentre il player occupa lo schermo, lo schermo passa a una frequenza adatta al titolo e all’HDR per un titolo HDR, poi torna com’era quando ti fermi. Su KDE Plasma."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プレーヤーが画面全体に表示されている間、画面はタイトルに合ったリフレッシュレートに、HDR タイトルでは HDR に切り替わり、停止すると元に戻ります。KDE Plasma で利用できます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "플레이어가 화면을 가득 채우는 동안 화면이 타이틀에 맞는 주사율로, HDR 타이틀에서는 HDR로 전환되고, 멈추면 원래대로 돌아갑니다. KDE Plasma에서 사용할 수 있습니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mens spilleren fyller skjermen, bytter skjermen til en oppdateringsfrekvens som passer tittelen, og til HDR for en HDR-tittel, og tilbake når du stopper. På KDE Plasma."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gdy odtwarzacz wypełnia ekran, ekran przełącza się na częstotliwość odświeżania dopasowaną do tytułu i na HDR dla tytułu HDR, a po zatrzymaniu wraca. W KDE Plasma."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enquanto o player ocupa a tela, ela muda para uma taxa de atualização adequada ao título e para HDR em títulos HDR, e volta ao parar. No KDE Plasma."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Medan spelaren fyller skärmen byter skärmen till en uppdateringsfrekvens som passar titeln, och till HDR för en HDR-titel, och tillbaka när du slutar. I KDE Plasma."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当播放器占满屏幕时，屏幕会切换到适合该片的刷新率，HDR 影片会切换到 HDR，停止后恢复原样。适用于 KDE Plasma。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "當播放器佔滿螢幕時，螢幕會切換到適合該片的更新頻率，HDR 影片會切換到 HDR，停止後恢復原狀。適用於 KDE Plasma。"
+          }
+        }
+      }
+    },
     "Wi-Fi only" : {
       "localizations" : {
         "da" : {
@@ -213484,6 +213675,102 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "評分 %@（滿分 10 分）"
+          }
+        }
+      }
+    },
+    "refresh rate, Hz, frame rate, 24p, judder, HDR, TV, display" : {
+      "comment" : "Search keywords for the Linux Match Content setting, comma separated",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "opdateringshastighed, Hz, billedfrekvens, 24p, rystelser, HDR, tv, skærm"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bildwiederholrate, Hz, Bildrate, 24p, Ruckeln, HDR, Fernseher, Bildschirm"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "frecuencia de actualización, Hz, fotogramas por segundo, 24p, tirones, HDR, televisor, pantalla"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "virkistystaajuus, Hz, kuvanopeus, 24p, nykiminen, HDR, televisio, näyttö"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "fréquence de rafraîchissement, Hz, images par seconde, 24p, saccades, HDR, téléviseur, écran"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "endurnýjunartíðni, Hz, rammatíðni, 24p, hökt, HDR, sjónvarp, skjár"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "frequenza di aggiornamento, Hz, fotogrammi al secondo, 24p, scatti, HDR, TV, schermo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リフレッシュレート, Hz, フレームレート, 24p, ジャダー, HDR, テレビ, ディスプレイ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "주사율, Hz, 프레임 레이트, 24p, 저더, HDR, TV, 디스플레이"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "oppdateringsfrekvens, Hz, bildefrekvens, 24p, hakking, HDR, TV, skjerm"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "częstotliwość odświeżania, Hz, liczba klatek, 24p, przycięcia, HDR, telewizor, ekran"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "taxa de atualização, Hz, quadros por segundo, 24p, trepidação, HDR, TV, tela"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "uppdateringsfrekvens, Hz, bildfrekvens, 24p, hack, HDR, tv, skärm"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刷新率，Hz，帧率，24p，抖动，HDR，电视，显示器"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新頻率, Hz, 影格率, 24p, 抖動, HDR, 電視, 螢幕"
           }
         }
       }
