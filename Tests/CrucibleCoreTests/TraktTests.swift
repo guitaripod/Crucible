@@ -560,6 +560,17 @@ struct TraktScrobbleTests {
         #expect(rig.script.paths().filter { $0 != "/users/settings" } == ["/scrobble/start", "/scrobble/pause"])
     }
 
+    @Test func aPauseInTheFirstPercentIsNotSentForTraktToRefuse() async throws {
+        let rig = await Rig()
+        rig.script.queue("/scrobble/start", 201, #"{"action":"start","progress":0.1}"#)
+        let watcher = try #require(rig.watcher())
+        watcher.playback(.playing(position: 1))
+        watcher.playback(.paused(position: 4))
+        watcher.playback(.stopped(position: 9, finished: false, at: Date()))
+        await rig.settle()
+        #expect(rig.script.paths().filter { $0 != "/users/settings" } == ["/scrobble/start"])
+    }
+
     @Test func anUnmatchedTitleSendsNothing() async throws {
         let rig = await Rig(matched: false)
         let watcher = try #require(rig.watcher())

@@ -204,11 +204,13 @@ final class TraktScrobbleWatcher: PlaybackWatching {
         return resolved
     }
 
+    /// Sends `action` at `position`. Trakt answers a pause or stop under 1% with 422 and ignores it, so those are not sent:
+    /// a pause in the opening seconds (a display mode change, a quick look) leaves the start to stand.
     @discardableResult
     private func scrobble(_ action: TraktScrobbleAction, at position: Double) async -> String? {
         guard case .found(let target) = await resolvedTarget() else { return nil }
         let progress = subject.progress(at: position)
-        guard progress >= 1 || action != .stop else { return nil }
+        guard progress >= 1 || action == .start else { return nil }
         do {
             let result = try await plugin.clientForWatchers.send(
                 .scrobble(action, kind: target.kind, ids: target.ids.traktOnly, progress: max(progress, 0.01)),
