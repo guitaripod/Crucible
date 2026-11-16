@@ -192,8 +192,9 @@ final class WelcomeScreen: ScreenView {
     }
 }
 
-/// plex.tv's link session: the browser opens on the sign-in page at once; the short code for plex.tv/link and a QR code
-/// of the same sign-in stay on screen for a phone, and whichever is approved first signs in.
+/// plex.tv's link session: the browser opens on the sign-in page at once (except in Steam's Game Mode, where a browser would
+/// cover Crucible until Steam switched back, so Open plex.tv waits to be pressed); the short code for plex.tv/link and a QR
+/// code of the same sign-in stay on screen for a phone, and whichever is approved first signs in.
 @MainActor
 final class LinkScreen: ScreenView {
     var onToken: ((String) -> Void)?
@@ -255,7 +256,7 @@ final class LinkScreen: ScreenView {
             qr.text = newCodes.authURL.absoluteString
             openButton.isEnabled = true
             status.show(String(localized: "Waiting for approval…"), busy: true)
-            if !openedBrowser {
+            if !openedBrowser && !LinuxDisplay.isGameMode(ProcessInfo.processInfo.environment) {
                 openedBrowser = true
                 Browser.open(newCodes.authURL)
             }
