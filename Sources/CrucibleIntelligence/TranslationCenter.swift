@@ -48,19 +48,22 @@ package final class TranslationCenter {
         var source: String
         var phase: Phase
         var translation: String?
+        var work: Task<Void, Never>?
     }
 
     /// The translator, installed at launch where the device can translate.
     package var translator: (any TextTranslating)?
     /// Asks the person to download the languages a translation needs, on iPhone and iPad; true once they are there.
     package var downloadLanguages: (@MainActor (_ source: String, _ target: String) async -> Bool)?
+    /// Runs when a pair of languages became ready to translate between, as after a download.
+    package var readinessChanged: (@MainActor () -> Void)?
 
     private var entries: [String: Entry] = [:]
     private var order: [String] = []
     private var readiness: [String: TranslationReadiness] = [:]
-    private var sources: [String: String?] = [:]
+    private var sources: [String: String] = [:]
     private let queue = TranslationQueue()
-    private static let keptEntries = 600
+    private static let keptEntries = 1_000
 
     private init() {
         NotificationCenter.default.addObserver(forName: .translationPreferencesChanged, object: nil, queue: .main) { _ in
@@ -112,6 +115,7 @@ package final class TranslationCenter {
         guard !TranslationLanguages.isSame(source, target) else { return .none }
         let entryKey = Self.entryKey(key, target: target)
         if let entry = entries[entryKey] {
+            touch(entryKey)
             return Presentation(phase: entry.phase, source: entry.source, translation: entry.translation)
         }
         let pair = readiness[Self.pairKey(source, target)]
@@ -141,6 +145,7 @@ package final class TranslationCenter {
     package func toggleOriginal(key: String) {
         let entryKey = Self.entryKey(key, target: TranslationPreferences.targetLanguage)
         guard var entry = entries[entryKey], entry.translation != nil else { return }
+        touch(entryKey)
         switch entry.phase {
         case .translated: entry.phase = .original
         case .original: entry.phase = .translated
@@ -155,40 +160,69 @@ package final class TranslationCenter {
     package func translateDraft(_ markup: String, into target: String) async throws(TranslationFailure) -> String? {
         guard let translator, let source = LanguageDetector.language(of: TraktCommentText(markup).plainText),
               !TranslationLanguages.isSame(source, target) else { return nil }
-        guard try await prepare(source, target, asked: true) else { throw .notInstalled }
+        guard try await prepare(source, target, asked: true) else {
+            throw readiness[Self.pairKey(source, target)] == .unsupported ? .unsupported : .notInstalled
+        }
         return try await translator.translate(markup: markup, from: source, to: target)
     }
 
-    /// The language a draft is written in, when the device reads it clearly.
-    package func language(ofDraft markup: String) -> String? {
-        LanguageDetector.language(of: TraktCommentText(markup).plainText)
+    /// Whether a draft reads as another language than `target` that this device translates into `target`, which a
+    /// composer's Translate to English waits for.
+    package func canTranslateDraft(_ markup: String, into target: String) -> Bool {
+        guard isAvailable, let source = LanguageDetector.language(of: TraktCommentText(markup).plainText),
+              !TranslationLanguages.isSame(source, target), readiness[Self.pairKey(source, target)] != .unsupported else { return false }
+        let available = TranslationLanguages.available
+        return available.contains { TranslationLanguages.isSame($0, source) } && available.contains { TranslationLanguages.isSame($0, target) }
+    }
+
+    /// The language a text is written in, kept per key once the device has read it; a text it could not read is read
+    /// again next time, as when it was empty at first.
+    package func cachedSource(key: String) -> String? { sources[key] }
+
+    /// Forgets which language pairs were missing or unsupported, so they are asked again: called when the app comes
+    /// back, as the person may have downloaded or removed languages in Settings meanwhile.
+    package func refreshReadiness() {
+        let stale = readiness.filter { $0.value != .ready }
+        guard !stale.isEmpty else { return }
+        readiness = readiness.filter { $0.value == .ready }
+        NotificationCenter.default.post(name: .translationChanged, object: nil)
     }
 
     // MARK: - Work
 
     /// Starts a translation. `announcing` is false while a screen is asking for a text's presentation, which already
-    /// shows it translating, so no change is posted into the middle of its layout.
+    /// shows it translating, so no change is posted into the middle of its layout. When it was not asked for and the
+    /// languages turn out not to be ready, the text goes back to what their readiness says: Translate, or nothing.
     private func start(_ entryKey: String, text: String, source: String, target: String, asked: Bool, announcing: Bool = true) {
-        set(entryKey, Entry(source: source, phase: .translating, translation: nil), announcing: announcing)
-        Task { [weak self] in
+        let work = Task { [weak self] in
             guard let self else { return }
             do throws(TranslationFailure) {
                 guard try await prepare(source, target, asked: asked) else {
-                    set(entryKey, Entry(source: source, phase: readiness[Self.pairKey(source, target)] == .unsupported ? .none : .offer, translation: nil))
+                    if asked {
+                        set(entryKey, Entry(source: source, phase: readiness[Self.pairKey(source, target)] == .unsupported ? .none : .offer))
+                    } else {
+                        remove(entryKey)
+                    }
                     return
                 }
                 let translation = try await queue.run { [translator] () async throws(TranslationFailure) -> String in
                     guard let translator else { throw .unsupported }
                     return try await translator.translate(markup: text, from: source, to: target)
                 }
+                guard !Task.isCancelled else { return remove(entryKey) }
                 set(entryKey, Entry(source: source, phase: .translated, translation: translation))
             } catch {
+                guard !Task.isCancelled else { return remove(entryKey) }
                 if error == .notInstalled { readiness[Self.pairKey(source, target)] = .needsDownload }
                 if error == .unsupported { readiness[Self.pairKey(source, target)] = .unsupported }
-                let phase: Phase = error == .unsupported ? .none : (error == .notInstalled && !asked ? .offer : .failed)
-                set(entryKey, Entry(source: source, phase: phase, translation: nil))
+                if asked || error == .failed || error == .declined {
+                    set(entryKey, Entry(source: source, phase: error == .unsupported ? .none : .failed))
+                } else {
+                    remove(entryKey)
+                }
             }
         }
+        set(entryKey, Entry(source: source, phase: .translating, work: work), announcing: announcing)
     }
 
     /// Whether the languages are ready to translate between, asking the person to download them when they asked for the
@@ -199,6 +233,7 @@ package final class TranslationCenter {
         if state == nil || state == .needsDownload {
             state = await translator?.readiness(from: source, to: target) ?? .unsupported
             readiness[pair] = state
+            MidgarLog.notice("Translation \(pair): \(String(describing: state))", category: .lifecycle)
         }
         switch state {
         case .ready?: return true
@@ -206,6 +241,8 @@ package final class TranslationCenter {
             guard asked, let downloadLanguages else { return false }
             guard await downloadLanguages(source, target) else { return false }
             readiness[pair] = .ready
+            readinessChanged?()
+            NotificationCenter.default.post(name: .translationChanged, object: nil)
             return true
         default:
             return false
@@ -214,7 +251,7 @@ package final class TranslationCenter {
 
     private func source(of text: String, key: String, hint: String?) -> String? {
         if let known = sources[key] { return known }
-        let detected = LanguageDetector.language(of: TraktCommentText(text).plainText, hint: hint)
+        guard let detected = LanguageDetector.language(of: TraktCommentText(text).plainText, hint: hint) else { return nil }
         if sources.count > Self.keptEntries * 4 { sources.removeAll() }
         sources[key] = detected
         return detected
@@ -223,19 +260,41 @@ package final class TranslationCenter {
     private func set(_ entryKey: String, _ entry: Entry, announcing: Bool = true) {
         if entries[entryKey] == nil {
             order.append(entryKey)
-            if order.count > Self.keptEntries {
-                let dropped = order.removeFirst()
-                entries[dropped] = nil
-            }
+            evictIfFull()
         }
         entries[entryKey] = entry
         guard announcing else { return }
         NotificationCenter.default.post(name: .translationChanged, object: Self.textKey(of: entryKey))
     }
 
-    /// A change of language or of Translate Automatically starts over: what was translated stays kept per language, and
-    /// what was waiting to be offered may now translate on its own.
+    private func remove(_ entryKey: String) {
+        guard entries.removeValue(forKey: entryKey) != nil else { return }
+        order.removeAll { $0 == entryKey }
+        NotificationCenter.default.post(name: .translationChanged, object: Self.textKey(of: entryKey))
+    }
+
+    /// Marks a text as just used, so the ones dropped when too many are kept are those read longest ago.
+    private func touch(_ entryKey: String) {
+        guard order.last != entryKey, let index = order.firstIndex(of: entryKey) else { return }
+        order.remove(at: index)
+        order.append(entryKey)
+    }
+
+    /// Drops the text used longest ago once too many are kept, never one still translating.
+    private func evictIfFull() {
+        guard order.count > Self.keptEntries, let index = order.firstIndex(where: { entries[$0]?.phase != .translating }) else { return }
+        entries[order.remove(at: index)] = nil
+    }
+
+    /// A change of language or of Translate Automatically starts over: translations into another language than the one
+    /// now chosen stop, what was translated stays kept per language, and texts may now translate on their own.
     private func preferencesChanged() {
+        let target = TranslationPreferences.targetLanguage
+        for (entryKey, entry) in entries where entry.phase == .translating && !entryKey.hasPrefix("\(target)|") {
+            entry.work?.cancel()
+            entries[entryKey] = nil
+            order.removeAll { $0 == entryKey }
+        }
         readiness = readiness.filter { $0.value == .ready }
         NotificationCenter.default.post(name: .translationChanged, object: nil)
     }
@@ -256,9 +315,11 @@ actor TranslationQueue {
     private var running = 0
     private var waiting: [CheckedContinuation<Void, Never>] = []
 
+    /// Runs `work` once a place is free; a translation cancelled while it waited gives its place up without running.
     func run<Value: Sendable>(_ work: @Sendable () async throws(TranslationFailure) -> Value) async throws(TranslationFailure) -> Value {
         await acquire()
         defer { release() }
+        guard !Task.isCancelled else { throw .failed }
         return try await work()
     }
 

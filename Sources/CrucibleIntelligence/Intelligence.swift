@@ -1,5 +1,9 @@
 import CrucibleCore
 import Foundation
+import MidgarCore
+#if canImport(UIKit)
+import UIKit
+#endif
 #if canImport(FoundationModels)
 import FoundationModels
 #endif
@@ -15,6 +19,7 @@ package enum Intelligence {
     /// on-device model finishes downloading.
     package static func configureForLaunch(environment: [String: String] = ProcessInfo.processInfo.environment) {
         guard !isScripted(environment) else { return }
+        observeForeground()
         #if os(tvOS)
         if #available(tvOS 27.3, *) { configureModelTranslation() }
         #else
@@ -35,20 +40,40 @@ package enum Intelligence {
         return capture || (!brain.isEmpty && brain != "live")
     }
 
+    private static var foregroundObserver: NSObjectProtocol?
+    /// Learns again whether the on-device model's English answers can be put into the app's language.
+    private static var relearn: (@MainActor () -> Void)?
+
+    /// When the app comes back, languages may have been downloaded or removed in Settings, so what was missing is asked
+    /// again and the on-device model learns again what it can answer in.
+    private static func observeForeground() {
+        #if canImport(UIKit)
+        guard foregroundObserver == nil else { return }
+        foregroundObserver = NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { _ in
+            MainActor.assumeIsolated {
+                TranslationCenter.shared.refreshReadiness()
+                relearn?()
+            }
+        }
+        #endif
+    }
+
     /// The language the app is shown in, which recaps and reasons are written in.
     static var appLanguage: String { Bundle.main.preferredLocalizations.first ?? "en" }
 
     #if !os(tvOS)
     @available(iOS 26.0, macOS 26.0, *)
     private static func configureSystemTranslation() {
-        let translator = SystemTextTranslator()
+        let system = SystemTextTranslator()
+        let translator: any TextTranslating = ModelTextTranslator.supportedLanguages().isEmpty ? system : LayeredTranslator(first: system, second: ModelTextTranslator())
         TranslationCenter.shared.translator = translator
         #if os(iOS)
         TranslationCenter.shared.downloadLanguages = { source, target in await TranslationDownload.run(source: source, target: target) }
         #endif
         Task {
-            let languages = await SystemTextTranslator.supportedLanguages()
+            let languages = await SystemTextTranslator.supportedLanguages() + ModelTextTranslator.supportedLanguages()
             TranslationLanguages.setSupported(languages)
+            MidgarLog.notice("Translation offers \(TranslationLanguages.available.count) languages, into \(TranslationPreferences.targetLanguage)", category: .lifecycle)
             NotificationCenter.default.post(name: .translationPreferencesChanged, object: nil)
         }
     }
@@ -60,6 +85,7 @@ package enum Intelligence {
         let languages = ModelTextTranslator.supportedLanguages()
         TranslationCenter.shared.translator = languages.isEmpty ? nil : ModelTextTranslator()
         TranslationLanguages.setSupported(languages)
+        MidgarLog.notice("On-device translation: model \(SystemLanguageModel.default.availability), \(TranslationLanguages.available.count) languages", category: .lifecycle)
         NotificationCenter.default.post(name: .translationPreferencesChanged, object: nil)
         watchModelAvailability()
     }
@@ -68,7 +94,10 @@ package enum Intelligence {
     private static func installOnDeviceBrain() {
         guard let brain = OnDeviceBrain(appLanguage: appLanguage, translator: TranslationCenter.shared.translator) else { return }
         HostedBrain.installOnDevice(brain)
-        Task { await brain.learnWhetherAnswersTranslate() }
+        MidgarLog.notice("On-device model: \(SystemLanguageModel.default.availability)", category: .lifecycle)
+        relearn = { Task { await brain.learnWhetherAnswersTranslate() } }
+        TranslationCenter.shared.readinessChanged = relearn
+        relearn?()
         watchModelAvailability()
     }
 
