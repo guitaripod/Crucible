@@ -198,6 +198,7 @@ final class ArtworkPickerScreen: ScreenView {
                 self.state.show(.error(title: ManageCopy.failed, message: ConnectionError.message(for: error), retryTitle: String(localized: "Try Again"),
                                        retry: { [weak self] in
                                            self?.choices = [:]
+                                           self?.state.show(.loading(title: nil))
                                            self?.screenDidAppear()
                                        }))
             }
