@@ -768,6 +768,20 @@ enum SharedGPU {
         #expect(menu.superview == nil)
     }
 
+    @Test func aDropdownNobodyHoldsStillReportsTheChoice() {
+        var chosen: String?
+        do {
+            let menu = MenuView(title: "Ask", items: [MenuView.Item(id: "off", title: "Off"), MenuView.Item(id: "two", title: "After 2", isChecked: true)],
+                                anchor: Rect(x: 300, y: 200, width: 260, height: 40))
+            menu.onSelect = { chosen = $0.id }
+            menu.present(in: window)
+        }
+        window.settle()
+        window.handleKey(KeyEvent(key: .up))
+        window.handleKey(KeyEvent(key: .return))
+        #expect(chosen == "off", "the choice reaches the screen though only the window held the menu")
+    }
+
     @Test func aDropdownOnADeskHangsBelowItsButtonWithTheChosenRowLit() {
         var chosen: String?
         let button = Rect(x: 300, y: 200, width: 260, height: 40)

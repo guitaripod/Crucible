@@ -88,9 +88,8 @@ public final class MenuView: View {
         let items = rows.map(\.item)
         let entries = items.map { item in
             ContextMenuView.Entry.action(ContextMenuView.Action(item.title, detail: item.detail, symbol: item.symbol, shortcut: item.shortcut,
-                                                               isChecked: item.isChecked, isDestructive: item.isDestructive) { [weak self] in
-                self?.onSelect?(item)
-            })
+                                                               isChecked: item.isChecked, isDestructive: item.isDestructive) { self.choose(onDesk: item) }
+            )
         }
         let atPointer = anchor.width <= 2 && anchor.height <= 2
         let menu = atPointer
@@ -107,6 +106,12 @@ public final class MenuView: View {
         frame = .zero
         desk = menu
         menu.present(in: window)
+    }
+
+    /// A choice from the desktop menu. Its action holds this view, which nothing else keeps once it left the window, so
+    /// `onSelect` still runs after the desktop menu closed.
+    private func choose(onDesk item: Item) {
+        onSelect?(item)
     }
 
     private func choose(_ item: Item) {
