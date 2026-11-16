@@ -94,6 +94,10 @@ final class TransportView: View {
     private var paused = true
     private var buffering = false
     private var volume: Double = 100
+    /// The volume the wheel is turning toward, unrounded, so a touchpad's small steps add up.
+    private var wheelVolume: Double?
+    /// When the viewer last set the volume here, before the player has reported it back.
+    private var volumeSetAt: Double = 0
     private var muted = false
     private var maximumVolume: Double = 100
     private var hoverFraction: Float?
@@ -131,7 +135,10 @@ final class TransportView: View {
     /// The sound's state, for the desk's mute button and volume slider.
     func updateSound(volume: Double, muted: Bool, maximum: Double) {
         guard volume != self.volume || muted != self.muted || maximum != maximumVolume else { return }
-        if !draggingVolume { self.volume = volume }
+        if !draggingVolume && Window.now() - volumeSetAt > 0.6 {
+            self.volume = volume
+            wheelVolume = nil
+        }
         self.muted = muted
         maximumVolume = max(maximum, 1)
         setNeedsDisplay()
@@ -231,14 +238,25 @@ final class TransportView: View {
 
     private var deskButtons: [Button] { [.back, .play, .ahead, .mute, .fullscreen] + Control.allCases.map { .control($0) } }
 
-    /// The volume slider beside the mute button: its track, and the wider band that takes presses and the wheel.
+    /// The volume slider beside the mute button, as wide as the room before the menu buttons allows (none in a narrow
+    /// window), and the wider band that takes presses and the wheel, never over a button.
     private var volumeTrack: Rect {
         let metrics = Theme.current.metrics
         let mute = deskFrame(of: .mute)
-        return Rect(x: mute.maxX + metrics.tv(14), y: deskRowMidY - metrics.tv(6), width: metrics.tv(300), height: metrics.tv(12))
+        let room = deskFrame(of: .control(.audio)).minX - metrics.tv(48) - (mute.maxX + metrics.tv(14))
+        let width = min(metrics.tv(300), room)
+        return Rect(x: mute.maxX + metrics.tv(14), y: deskRowMidY - metrics.tv(6), width: width >= metrics.tv(90) ? width : 0, height: metrics.tv(12))
     }
 
-    private var volumeBand: Rect { volumeTrack.insetBy(-Theme.current.metrics.tv(18), -Theme.current.metrics.tv(44)) }
+    private var hasVolumeSlider: Bool { volumeTrack.width > 0 }
+
+    private var volumeBand: Rect {
+        guard hasVolumeSlider else { return .zero }
+        let metrics = Theme.current.metrics
+        let band = volumeTrack.insetBy(-metrics.tv(18), -metrics.tv(44))
+        let start = deskFrame(of: .mute).maxX + 1
+        return Rect(x: max(band.minX, start), y: band.minY, width: band.maxX - max(band.minX, start), height: band.height)
+    }
 
     private func deskButton(at point: Point) -> Button? {
         deskButtons.first { deskFrame(of: $0).contains(point) }
@@ -348,14 +366,14 @@ final class TransportView: View {
     override func pointerPressed(_ button: MouseButton, at point: Point) -> Bool {
         guard button == .primary else { return false }
         if isDesk {
-            if volumeBand.contains(point) {
-                draggingVolume = true
-                setVolume(at: point)
-                return true
-            }
             if let hit = deskButton(at: point) {
                 pressed = hit
                 setNeedsDisplay()
+                return true
+            }
+            if volumeBand.contains(point) {
+                draggingVolume = true
+                setVolume(at: point)
                 return true
             }
             if scrubBand.contains(point) { beginScrub(at: point) }
@@ -385,6 +403,7 @@ final class TransportView: View {
     override func pointerReleased(_ button: MouseButton, at point: Point, inside: Bool) {
         if draggingVolume {
             draggingVolume = false
+            onPointerActivity?(bounds.contains(point))
             return
         }
         if let hit = pressed {
@@ -396,6 +415,7 @@ final class TransportView: View {
         guard scrubbing else { return }
         scrubbing = false
         onScrub?(scrubFraction, .ended)
+        onPointerActivity?(bounds.contains(point))
         if !scrubBand.contains(point) {
             thicken.set(0, animation: .timed(duration: 0.18, curve: .easeOut))
             startAnimating()
@@ -418,6 +438,8 @@ final class TransportView: View {
         let track = volumeTrack
         let fraction = Double(min(max((point.x - track.x) / max(track.width, 1), 0), 1))
         volume = (fraction * maximumVolume).rounded()
+        wheelVolume = nil
+        volumeSetAt = Window.now()
         onVolume?(volume)
         setNeedsDisplay()
     }
@@ -428,7 +450,11 @@ final class TransportView: View {
         guard isDesk, let pointer, volumeBand.contains(pointer) || deskFrame(of: .mute).contains(pointer) else { return false }
         let step = event.isDiscrete ? Double(-event.notchesY + event.notchesX) * 5 : Double(-event.dy + event.dx) * 0.2
         guard step != 0 else { return true }
-        volume = min(max(volume + step, 0), maximumVolume).rounded()
+        let exact = min(max((wheelVolume ?? volume) + step, 0), maximumVolume)
+        wheelVolume = exact
+        volumeSetAt = Window.now()
+        guard exact.rounded() != volume else { return true }
+        volume = exact.rounded()
         onVolume?(volume)
         setNeedsDisplay()
         return true
@@ -487,7 +513,7 @@ final class TransportView: View {
             let inset = button == .play ? rect.width * 0.28 : rect.width * 0.29
             context.symbol(symbol(of: button), in: rect.insetBy(inset, inset), color: lit ? accent : label)
         }
-        drawVolume(label: label, context: &context)
+        if hasVolumeSlider { drawVolume(label: label, context: &context) }
         drawBar(label: label, scale: scale, context: &context)
     }
 
