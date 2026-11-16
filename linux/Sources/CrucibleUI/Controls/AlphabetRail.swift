@@ -53,9 +53,13 @@ public final class AlphabetRailView: View {
         }
     }
 
+    /// Fades the canvas in under the letters from the content's edge, so cards and chips running up to the side margin
+    /// stay whole and the letters stay readable over what scrolls past them in the margin.
     public override func draw(_ context: inout DrawContext) {
         let canvas = Theme.current.palette.canvas
-        context.gradient(bounds, vertical: false, stops: [(0, canvas.withAlpha(0)), (0.25, canvas), (1, canvas)])
+        let edge = max(0, bounds.width - Theme.current.metrics.sideMargin)
+        let fade = Rect(x: edge, y: 0, width: bounds.width - edge, height: bounds.height)
+        context.gradient(fade, vertical: false, stops: [(0, canvas.withAlpha(0)), (0.5, canvas), (1, canvas)])
     }
 }
 
