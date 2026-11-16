@@ -249,16 +249,17 @@ package final class PlaybackSession {
         return resolved
     }
 
-    /// A start read off a screen's copy of the title moves to where the server has it now. The resolver reads the same
-    /// metadata next, so this costs no extra request. A server slower than `serverStartGrace` or failing leaves the start as
-    /// the screen had it, and its answer still serves the resolver.
+    /// A start read off a screen's copy of the title moves to where the title is now: the server's place, or this device's
+    /// own run when the server has not heard of it yet. The resolver reads the same metadata next, so this costs no extra
+    /// request. A server slower than `serverStartGrace` or failing leaves the start as the screen had it, and its answer still
+    /// serves the resolver.
     private func catchUpWithServer() async {
         guard request.serverStart != nil, request.offline == nil else { return }
         let api = api
         let ratingKey = request.ratingKey
         let lookup = Task { try? await api.requestContainer(.metadata(ratingKey: ratingKey)).Metadata?.first }
         guard let answer = await Settle.value(of: lookup, within: Self.serverStartGrace), let item = answer,
-              let followed = request.followingServer(item) else { return }
+              let followed = request.followingServer(item, devicePoint: resumeStore.point(server: serverID, ratingKey: ratingKey)) else { return }
         MidgarLog.notice("Starting \(request.ratingKey) at \(Int(followed.resumePosition)) s where the server has it, not \(Int(request.resumePosition)) s", category: .playback)
         request = followed
     }
@@ -380,12 +381,12 @@ package final class PlaybackSession {
         }
         watchers = []
         await invalidateCaches()
+        if player != nil { keepPosition(finalPosition, finished: finished) }
         let reported = reporter != nil
         await reporter?.stop(positionSecs: Self.reportPosition(for: finalPosition, finished: finished, duration: request.durationSecs))
         reporter = nil
         releasePlayingTitle()
         if reported { announceStop() }
-        if player != nil { keepPosition(finalPosition, finished: finished) }
         if finished { recordFinish() }
         removePlayheadObservers()
         await stopTranscodeIfNeeded()

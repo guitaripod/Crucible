@@ -200,11 +200,13 @@ package struct PlaybackRequest: Sendable {
         )
     }
 
-    /// The same request starting where the server now has `item`, which it was built from an older copy of; nil when the
-    /// start was the caller's own choice or already matches.
-    package func followingServer(_ item: PlexMetadata) -> PlaybackRequest? {
+    /// The same request starting where the title really is now, which it was built from an older copy of; nil when the
+    /// start was the caller's own choice or already matches. That is where the server has `item`, unless `devicePoint`, this
+    /// device's own record of the title, holds a run the server has not heard of yet: a player closed a moment ago whose
+    /// last report is still on its way, or never arrived.
+    package func followingServer(_ item: PlexMetadata, devicePoint: ResumePoint? = nil) -> PlaybackRequest? {
         guard let serverStart, offline == nil else { return nil }
-        let seconds = serverStart.seconds(for: item)
+        let seconds = Self.startSeconds(serverStart, item: item, devicePoint: devicePoint.flatMap { $0.ratingKey == ratingKey ? $0 : nil })
         guard abs(seconds - resumePosition) > ResumePoint.reportTolerance else { return nil }
         return PlaybackRequest(
             ratingKey: ratingKey,
@@ -219,6 +221,18 @@ package struct PlaybackRequest: Sendable {
             offline: offline,
             queue: queue
         )
+    }
+
+    /// The device's run when it is one the server should still be told of (the rule the launch report follows), else the
+    /// server's place. A run that finished the title starts it over, as a watched title does.
+    private static func startSeconds(_ rule: ServerStart, item: PlexMetadata, devicePoint: ResumePoint?) -> Double {
+        guard let point = devicePoint, point.needsReport, ResumeFlushRule.shouldSend(
+            point: point,
+            serverOffsetSecs: item.positionSecs,
+            serverViewedAt: item.lastViewedAt.map { Date(timeIntervalSince1970: TimeInterval($0)) },
+            serverWatched: item.isWatched
+        ) else { return rule.seconds(for: item) }
+        return point.finished || point.isWatched ? 0 : point.positionSecs
     }
 
     /// The URL offset the transcoder is asked to start at, or nil when playback starts at the beginning.

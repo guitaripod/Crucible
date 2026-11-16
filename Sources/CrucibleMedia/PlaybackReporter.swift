@@ -1,7 +1,7 @@
 import AVFoundation
 import CrucibleCore
 import Foundation
-import os
+import MidgarCore
 
 /// Reports the playhead to the server's timeline: the player's state every ten seconds (and whenever the
 /// periodic observer fires on a seek or a new item), `playing`/`paused` on every state change and `stopped`
@@ -18,8 +18,6 @@ import os
 /// dropped, and only `stopped` follows it.
 @MainActor
 package final class PlaybackReporter {
-    private static let log = Logger(subsystem: "com.guitaripod.crucible", category: "playback")
-
     private let api: APIClient
     private let ratingKey: String
     private let durationMs: Int
@@ -112,10 +110,13 @@ package final class PlaybackReporter {
         server: String
     ) async {
         do {
-            try await api.requestVoid(.timeline(ratingKey: ratingKey, state: state, timeMs: Int(position * 1000), durationMs: durationMs))
+            try await api.requestConfirmed(.timeline(ratingKey: ratingKey, state: state, timeMs: Int(position * 1000), durationMs: durationMs))
             resumeStore.recordReport(server: server, ratingKey: ratingKey, positionSecs: position)
+            if state == "stopped" {
+                MidgarLog.notice("Reported the stop of \(ratingKey) at \(Int(position)) s", category: .playback)
+            }
         } catch {
-            log.error("Timeline report (\(state, privacy: .public)) failed for \(ratingKey, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            MidgarLog.error("Timeline report (\(state)) failed for \(ratingKey) at \(Int(position)) s: \(error.localizedDescription)", category: .playback)
         }
     }
 

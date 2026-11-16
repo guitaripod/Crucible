@@ -148,6 +148,23 @@ struct ServerStateTests {
         #expect(continuing.followingServer(nearEnd)?.resumePosition == 0)
     }
 
+    @Test func aRunTheServerHasNotHeardOfYetIsWhereTheTitleStarts() throws {
+        let saved = Date(timeIntervalSince1970: 1_800_000_000)
+        let server = DetailFixtures.item(["ratingKey": "e13", "type": "episode", "viewOffset": 600_000, "duration": 2_400_000, "lastViewedAt": 1_799_999_000])
+        let request = PlaybackRequest(item: DetailFixtures.item(["ratingKey": "e13", "type": "episode", "viewOffset": 300_000, "duration": 2_400_000]))
+        func point(_ secs: Double, reported: Double? = nil, finished: Bool = false, ratingKey: String = "e13") -> ResumePoint {
+            ResumePoint(server: "s", ratingKey: ratingKey, positionSecs: secs, durationSecs: 2_400, savedAt: saved, reportedSecs: reported, finished: finished)
+        }
+        #expect(request.followingServer(server, devicePoint: point(900))?.resumePosition == 900, "the stop report is still on its way")
+        #expect(request.followingServer(server, devicePoint: point(900, reported: 900))?.resumePosition == 600, "the server already has it")
+        #expect(request.followingServer(server, devicePoint: point(900, ratingKey: "other"))?.resumePosition == 600)
+        #expect(request.followingServer(server, devicePoint: point(2_390, finished: true))?.resumePosition == 0, "a finished run starts over")
+        let watchedSince = DetailFixtures.item(["ratingKey": "e13", "type": "episode", "viewCount": 1, "duration": 2_400_000, "lastViewedAt": 1_800_000_500])
+        #expect(request.followingServer(watchedSince, devicePoint: point(900))?.resumePosition == 0, "another device finished it since")
+        let playedSince = DetailFixtures.item(["ratingKey": "e13", "type": "episode", "viewOffset": 1_500_000, "duration": 2_400_000, "lastViewedAt": 1_800_000_600])
+        #expect(request.followingServer(playedSince, devicePoint: point(900))?.resumePosition == 1_500, "another device watched further since")
+    }
+
     @Test func anAnswerFromBeforeAChangeIsNeitherKeptNorServed() async throws {
         let server = DetailStubServer()
         let api = server.client
