@@ -301,7 +301,7 @@ class DetailScreen: ScreenView {
         page.frame = bounds
         state.frame = bounds
         skeleton.frame = bounds
-        let heroHeight = max(metrics.heroHeight, frame.height * 0.5)
+        let heroHeight = Theme.current.density == .desk ? max(metrics.heroHeight, frame.height * 0.36) : max(metrics.heroHeight, frame.height * 0.5)
         heroRoom.height = heroHeight
         hero.frame = Rect(x: metrics.sideMargin, y: metrics.heroTopClearance, width: frame.width - metrics.sideMargin * 2,
                           height: heroHeight - metrics.heroTopClearance - metrics.heroBottomClearance)

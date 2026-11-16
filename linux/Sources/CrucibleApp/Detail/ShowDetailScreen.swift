@@ -30,6 +30,8 @@ final class ShowDetailScreen: DetailScreen {
     private var missingByID: [String: MissingEpisode] = [:]
     private let seasons = ChipRowView()
     private let episodes = ShelfView(header: nil, style: .episode)
+    /// The season's episodes as a list, in the Desktop layout.
+    private let episodeList = EpisodeListView()
     private let episodesLoading = SkeletonShelfView(style: .episode)
     private let episodesFailed = SeasonMessageView()
     private let cast = ShelfView(header: SectionHeader(title: String(localized: "Cast & Crew")), style: .person)
@@ -62,6 +64,11 @@ final class ShowDetailScreen: DetailScreen {
             guard let self, let episode = self.episode(card.id) else { return }
             self.presentEpisodeMenu(episode, at: point, from: self.episodes.card(for: card.id))
         }
+        episodeList.onActivate = episodes.onActivate
+        episodeList.onContextMenu = { [weak self] card, point in
+            guard let self, let episode = self.episode(card.id) else { return }
+            self.presentEpisodeMenu(episode, at: point, from: self.episodeList.row(for: card.id))
+        }
         community.onReshape = { [weak self] in self?.rebuild() }
         episodesFailed.onRetry = { [weak self] in
             guard let key = self?.model?.selectedSeasonKey else { return }
@@ -80,7 +87,11 @@ final class ShowDetailScreen: DetailScreen {
             guard let self, let item = self.model?.related.first(where: { "related.\($0.id)" == card.id }) else { return }
             ItemActions.present(for: item, api: self.api, at: point, in: self) { [weak self] in self?.reload() }
         }
-        episodes.onToggleWatched = { [weak self] card in self?.markWatched(!card.isWatched, ratingKey: card.id) }
+        episodes.onToggleWatched = { [weak self] card in
+            guard let self, let episode = self.episode(card.id) else { return }
+            self.markWatched(!card.isWatched, ratingKey: episode.id)
+        }
+        episodeList.onToggleWatched = episodes.onToggleWatched
         episodes.onPlay = { [weak self] card in
             guard let self, let episode = self.episode(card.id) else { return false }
             self.rootView?.play(item: episode, api: self.api)
@@ -90,6 +101,7 @@ final class ShowDetailScreen: DetailScreen {
             guard let self, let item = self.model?.related.first(where: { "related.\($0.id)" == card.id }) else { return false }
             return ItemActions.playPause(item, api: self.api, from: self)
         }
+        episodeList.onPlay = episodes.onPlay
     }
 
     /// Play/Pause with no episode under focus plays Up Next, as the show's Play button does.
@@ -138,7 +150,16 @@ final class ShowDetailScreen: DetailScreen {
         if let art = show.art { backdrop.show(.path(art, .backdrop), immediate: true) }
     }
 
+    /// The layout the episodes were last laid out for: a switch of layout lays them out again as a shelf or a list.
+    private var builtDensity = Theme.current.density
+
+    override func layoutSubviews() {
+        if builtDensity != Theme.current.density { rebuild() }
+        super.layoutSubviews()
+    }
+
     private func rebuild() {
+        builtDensity = Theme.current.density
         guard let model else { return }
         let shield = SpoilerShield.isOn(showKey)
         let highlightKeys = model.highlightKeys
@@ -163,6 +184,8 @@ final class ShowDetailScreen: DetailScreen {
         episodes.header = SectionHeader(title: model.selectedSeasonTitle,
                                         secondaryText: loading || model.episodesFailed ? nil : Self.episodesDetail(model, count: Self.countedEpisodes(model, rows: rows)))
         episodes.setItems(cards)
+        episodeList.header = episodes.header
+        episodeList.setItems(cards)
         let roles = MovieDetailModel(item: model.show).castAndCrew
         cast.setItems(roles.enumerated().map { DetailMapping.person($1, index: $0) })
         related.setItems(DetailMapping.related(model.related))
@@ -180,7 +203,7 @@ final class ShowDetailScreen: DetailScreen {
                 episodesFailed.showsRetry = false
                 sections.append(episodesFailed)
             } else {
-                sections.append(episodes)
+                sections.append(Theme.current.density == .desk ? episodeList : episodes)
             }
         }
         if !roles.isEmpty { sections.append(cast) }
@@ -197,7 +220,7 @@ final class ShowDetailScreen: DetailScreen {
         return CardItem(id: "episode.\(episode.id)", artwork: shielded ? nil : episode.thumb.map { .path($0, .backdrop) },
                         title: shielded ? status.title : number + status.title, subtitle: status.metaText.isEmpty ? nil : status.metaText,
                         eyebrow: Self.eyebrow(for: status.marker), progress: status.progress, isWatched: status.isWatched,
-                        isDimmed: status.isWatched || status.isSkipped, placeholderSymbol: "tv").linked(to: episode)
+                        isDimmed: status.isWatched || status.isSkipped, placeholderSymbol: "tv").linked(to: episode).summarised(shielded ? nil : episode.summary)
     }
 
     /// An aired episode the server lacks, dimmed with "Not on your server" (`TVDetailMapping.missingEpisode`).

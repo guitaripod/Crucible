@@ -189,6 +189,13 @@ enum TitleCards {
 
 extension CardItem {
     /// The card with `item`'s `crucible://` link, which a middle click opens in a new window.
+    /// The card with `text` as its summary, for a list that shows one.
+    func summarised(_ text: String?) -> CardItem {
+        var card = self
+        card.summary = text
+        return card
+    }
+
     func linked(to item: PlexMetadata) -> CardItem {
         var card = self
         card.link = DeepLink.item(ratingKey: item.id, mediaType: item.mediaType).url

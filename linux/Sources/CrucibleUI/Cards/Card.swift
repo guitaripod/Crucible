@@ -24,6 +24,8 @@ public struct CardItem: Hashable, Sendable {
     public var titleHighlights: [Range<Int>] = []
     /// Initials on a gradient drawn while the card has no picture (a person without a photo), in place of the symbol.
     public var monogram: Monogram?
+    /// A longer description where a list has room for it (an episode's synopsis in the desktop episode list).
+    public var summary: String?
 
     public struct Monogram: Hashable, Sendable {
         public var initials: String
