@@ -365,6 +365,7 @@ private final class HistoryRowView: View {
         self.item = item
         plate = HistoryPlate(presentation: item.row)
         super.init()
+        play.spokenTitle = String(localized: "Play")
         plate.onActivate = { [weak self] in
             guard let self else { return }
             self.onOpen?(self.item)

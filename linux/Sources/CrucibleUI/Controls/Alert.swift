@@ -2,8 +2,10 @@ import Foundation
 import Kiln
 
 /// An alert (`UIAlertController` on the Apple TV): the screen dims behind a glass panel holding a title, a message, an
-/// optional text field and the buttons stacked full width. The keyboard stays inside it, Escape picks the cancel button
-/// (or just closes when there is none), Return in the field picks the first button, and focus goes back where it was.
+/// optional text field and the buttons stacked full width, or on a desk, when they fit, side by side as a desktop dialog's
+/// with Cancel first. The keyboard stays inside it, Escape picks the cancel button (or just closes when there is none),
+/// Return in the field picks the first button, a confirmation of something destructive starts on Cancel so Return alone
+/// never destroys, and focus goes back where it was.
 @MainActor
 public final class AlertView: View {
     public struct Action {
@@ -92,7 +94,26 @@ public final class AlertView: View {
         appear.set(1, animation: .spring(response: 0.3, dampingFraction: 0.9))
         startAnimating()
         window.focus.setVisible(true)
-        window.focus.focus(field ?? buttons.first, animated: false)
+        window.focus.focus(preferredFocusView, animated: false)
+    }
+
+    /// The button the keyboard starts on: Cancel when another button destroys something, else the first.
+    private var startingButton: ButtonView? {
+        if actions.contains(where: { $0.role == .destructive }), let cancel = actions.firstIndex(where: { $0.role == .cancel }) { return buttons[cancel] }
+        return buttons.first
+    }
+
+    /// On a desk, the buttons in one row when they fit side by side, Cancel first, in the order they sit.
+    private var rowOrder: [Int]? {
+        guard Theme.current.density == .desk, buttons.count <= 3 else { return nil }
+        let order = actions.indices.filter { actions[$0].role == .cancel } + actions.indices.filter { actions[$0].role != .cancel }
+        let widths = order.map { rowButtonWidth(buttons[$0]) }
+        let total = widths.reduce(0, +) + gap * Float(max(widths.count - 1, 0))
+        return total <= panelWidth - inset * 2 ? order : nil
+    }
+
+    private func rowButtonWidth(_ button: ButtonView) -> Float {
+        max(button.sizeThatFits(Size(width: 10_000, height: Theme.current.metrics.primaryControlHeight)).width, Theme.current.metrics.tv(220))
     }
 
     public func dismiss() {
@@ -108,7 +129,7 @@ public final class AlertView: View {
         actions[index].handler?()
     }
 
-    public override var preferredFocusView: View? { field ?? buttons.first }
+    public override var preferredFocusView: View? { field ?? startingButton }
     public override var isFocusScope: Bool { true }
     public override var isPointerInteractive: Bool { true }
     public override var cursor: Cursor { .default }
@@ -140,9 +161,10 @@ public final class AlertView: View {
         message.map { TextLayout($0, font: Theme.current.type.callout, maxWidth: panelWidth - inset * 2, maxLines: 16, alignment: .center, scale: scale) }
     }
 
-    /// The buttons' full height, all of them stacked.
+    /// The buttons' full height, all of them stacked, or one row.
     private var buttonsHeight: Float {
-        Float(buttons.count) * Theme.current.metrics.primaryControlHeight + Float(max(buttons.count - 1, 0)) * gap
+        if rowOrder != nil { return Theme.current.metrics.primaryControlHeight }
+        return Float(buttons.count) * Theme.current.metrics.primaryControlHeight + Float(max(buttons.count - 1, 0)) * gap
     }
 
     /// The panel and how tall its buttons may show: all of them, or as many as fit the window, the rest scrolling.
@@ -181,6 +203,15 @@ public final class AlertView: View {
         list.frame = Rect(x: area.x, y: y - lift, width: area.width, height: shown + lift * 2)
         list.contentLength = buttonsHeight + lift * 2
         list.revealInsets = EdgeInsets(top: lift, bottom: lift)
+        if let order = rowOrder {
+            let widths = order.map { rowButtonWidth(buttons[$0]) }
+            var x = ((area.width - widths.reduce(0, +) - gap * Float(widths.count - 1)) / 2).rounded()
+            for (index, width) in zip(order, widths) {
+                buttons[index].frame = Rect(x: x, y: lift, width: width, height: metrics.primaryControlHeight)
+                x += width + gap
+            }
+            return
+        }
         var buttonY = lift
         for button in buttons {
             button.frame = Rect(x: inset, y: buttonY, width: area.width - inset * 2, height: metrics.primaryControlHeight)

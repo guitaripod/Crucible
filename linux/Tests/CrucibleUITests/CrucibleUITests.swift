@@ -227,6 +227,63 @@ enum SharedGPU {
         }
     }
 
+    @Test func aTextFieldSelectsWithShiftAndUndoesAWordAtATime() {
+        let field = TextFieldView(placeholder: "Search")
+        field.frame = Rect(x: 0, y: 0, width: 600, height: 60)
+        window.contentView.addSubview(field)
+        window.focus.focus(field, animated: false)
+        type("hello world")
+        for _ in 0..<5 { window.handleKey(KeyEvent(key: .left, modifiers: .shift)) }
+        window.handleKey(KeyEvent(key: Key.character("c"), modifiers: .control))
+        #expect(window.pasteboardText() == "world")
+        type("there")
+        #expect(field.text == "hello there")
+        window.handleKey(KeyEvent(key: Key.character("z"), modifiers: .control))
+        #expect(field.text == "hello world", "typing a word is one undo step")
+        window.handleKey(KeyEvent(key: Key.character("z"), modifiers: [.control, .shift]))
+        #expect(field.text == "hello there")
+        window.handleKey(KeyEvent(key: .home, modifiers: .shift))
+        window.handleKey(KeyEvent(key: .backspace))
+        #expect(field.text.isEmpty)
+        field.removeFromSuperview()
+    }
+
+    @Test func aClickPlacesTheCaretAndADoubleClickSelectsAWord() async {
+        let field = TextFieldView(placeholder: "Search", symbol: nil)
+        field.frame = Rect(x: 0, y: 200, width: 600, height: 60)
+        window.contentView.addSubview(field)
+        window.focus.focus(field, animated: false)
+        type("salt flats")
+        window.render()
+        click(Point(x: field.frame.minX + Theme.current.metrics.controlInset + 20, y: field.frame.midY))
+        type("X")
+        #expect(field.text.first != "X" && field.text.last != "X" && field.text.contains("X"), "a click puts the caret under the pointer")
+        window.handleKey(KeyEvent(key: Key.character("z"), modifiers: .control))
+        try? await Task.sleep(for: .milliseconds(500))
+        click(Point(x: field.frame.maxX - 120, y: field.frame.midY))
+        type("!")
+        #expect(field.text == "salt flats!", "a click past the text puts the caret at its end")
+        try? await Task.sleep(for: .milliseconds(500))
+        field.setText("salt flats", notify: false)
+        window.render()
+        click(Point(x: field.frame.minX + 15, y: field.frame.midY), count: 2)
+        type("Pale")
+        #expect(field.text == "Pale flats", "a double click selects the word under the pointer")
+        field.removeFromSuperview()
+    }
+
+    @Test func aDestructiveConfirmationStartsOnCancelWithItsButtonsInARow() {
+        AlertView.confirm(title: "Delete Playlist?", confirm: "Delete", in: window) {}
+        window.settle()
+        let alert = window.contentView.subviews.compactMap { $0 as? AlertView }.first
+        #expect((window.focusedView as? ButtonView)?.title == "Cancel")
+        let buttons = alert?.subviews.compactMap { $0 as? ScrollView }.first?.subviews.compactMap { $0 as? ButtonView } ?? []
+        #expect(buttons.count == 2)
+        #expect(Set(buttons.map { $0.frame.y }).count == 1, "on a desk the two buttons sit side by side")
+        #expect(buttons.first { $0.title == "Cancel" }.map { $0.frame.minX } ?? 0 < buttons.first { $0.title == "Delete" }.map { $0.frame.minX } ?? 0)
+        window.handleKey(KeyEvent(key: .escape))
+    }
+
     @Test func aDesktopScrollbarPagesOnAClickAndDragsItsThumb() {
         ScrollView.desktopScrollbars = true
         defer { ScrollView.desktopScrollbars = false }

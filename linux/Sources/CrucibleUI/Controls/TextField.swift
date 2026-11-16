@@ -1,10 +1,13 @@
 import Foundation
 import Kiln
 
-/// A one-line text field in a glass capsule (the desk's Search field): typing inserts at the caret, Backspace and Delete
-/// remove a character or with Ctrl a word, Left and Right move the caret, Home and End jump, Ctrl+A selects everything so
-/// the next key replaces it, Ctrl+C, Ctrl+X and Ctrl+V copy, cut and paste, Escape clears and then lets go. The caret
-/// blinks while the field has focus. The desktop's input method composes into it (text-input-v3): the composition shows
+/// A one-line text field in a glass capsule (the desk's Search field): typing inserts at the caret, replacing a selection,
+/// Backspace and Delete remove the selection, a character or with Ctrl a word, Left and Right move the caret (with Ctrl a
+/// word), Home and End jump, Shift with any of those selects, Ctrl+A selects everything, Ctrl+C, Ctrl+X and Ctrl+V copy,
+/// cut and paste, Ctrl+Z and Ctrl+Shift+Z (or Ctrl+Y) undo and redo, Escape clears and then lets go. The pointer places
+/// the caret where it clicks, selects by dragging or with Shift, a word on a double click and everything on a triple, and
+/// a right click offers Cut, Copy, Paste and Select All; a clear button shows while there is text. The caret blinks while
+/// the field has focus. The desktop's input method composes into it (text-input-v3): the composition shows
 /// underlined at the caret until the input method commits it.
 @MainActor
 public final class TextFieldView: View, TextInputClient {
@@ -32,7 +35,20 @@ public final class TextFieldView: View, TextInputClient {
     public var onSubmit: ((String) -> Void)?
 
     private var caret = 0 { didSet { if caret != oldValue { reportTextInput() } } }
-    private var selectAll = false { didSet { if selectAll != oldValue { reportTextInput() } } }
+    /// Where a selection started; the selection runs from here to the caret.
+    private var anchor: Int? { didSet { if anchor != oldValue { reportTextInput() } } }
+    /// The text before each edit that can be undone, newest last, and what undoing took back.
+    private var undoStack: [(text: String, caret: Int)] = []
+    private var redoStack: [(text: String, caret: Int)] = []
+    /// Whether the last edit was typing, which the next typed character joins as one undo step.
+    private var lastEditWasTyping = false
+
+    /// The selected characters, when any are.
+    private var selection: Range<Int>? {
+        guard let anchor, anchor != caret else { return nil }
+        let count = text.count
+        return min(anchor, caret, count)..<min(max(anchor, caret), count)
+    }
     /// The input method's composition, shown at the caret, with its cursor as UTF-8 offsets into it (nil hides the caret).
     private var composition: (text: String, cursor: Range<Int>?)?
     private var textInputReported = false
@@ -79,35 +95,73 @@ public final class TextFieldView: View, TextInputClient {
     public func setText(_ value: String, notify: Bool = true) {
         text = value
         caret = value.count
-        selectAll = false
+        anchor = nil
         if notify { onChange?(value) }
     }
 
-    private func edit(_ change: (inout [Character], inout Int) -> Void) {
+    private func edit(typing: Bool = false, _ change: (inout [Character], inout Int) -> Void) {
+        let before = (text, caret)
         var characters = Array(text)
-        if selectAll {
-            characters.removeAll()
-            caret = 0
-            selectAll = false
+        if let selection {
+            characters.removeSubrange(selection)
+            caret = selection.lowerBound
         }
+        anchor = nil
         change(&characters, &caret)
         let updated = String(characters)
         restartBlink()
         if updated != text {
+            if !(typing && lastEditWasTyping) { undoStack.append(before) }
+            if undoStack.count > 100 { undoStack.removeFirst() }
+            redoStack.removeAll()
+            lastEditWasTyping = typing
             text = updated
             onChange?(updated)
         }
         setNeedsDisplay()
     }
 
-    /// Copy and Cut take the whole text once Ctrl+A selected it (never a secure field's) and otherwise pass the key on, so
-    /// the window copies text selected elsewhere; Paste inserts at the caret, or replaces the selection, with line breaks
-    /// turned into spaces.
+    /// Puts back the text before the last edit (`undo`) or the one undone (`redo`).
+    private func restore(undo: Bool) {
+        guard let state = undo ? undoStack.popLast() : redoStack.popLast() else { return }
+        if undo { redoStack.append((text, caret)) } else { undoStack.append((text, caret)) }
+        lastEditWasTyping = false
+        text = state.text
+        caret = min(state.caret, state.text.count)
+        anchor = nil
+        restartBlink()
+        onChange?(text)
+        setNeedsDisplay()
+    }
+
+    /// Moves the caret to `index`, keeping the selection's other end when `extending`, else dropping the selection.
+    private func moveCaret(to index: Int, extending: Bool) {
+        if extending {
+            if anchor == nil { anchor = caret }
+        } else {
+            anchor = nil
+        }
+        caret = min(max(index, 0), text.count)
+        lastEditWasTyping = false
+        restartBlink()
+        setNeedsDisplay()
+    }
+
+    /// Selects every character.
+    public func selectEverything() {
+        guard !text.isEmpty else { return }
+        anchor = 0
+        caret = text.count
+        setNeedsDisplay()
+    }
+
+    /// Copy and Cut take the selection (never a secure field's) and otherwise pass the key on, so the window copies text
+    /// selected elsewhere; Paste inserts at the caret, or replaces the selection, with line breaks turned into spaces.
     private func perform(_ command: ClipboardCommand) -> Bool {
         switch command {
         case .copy, .cut:
-            guard selectAll, !isSecure else { return false }
-            window?.copy(text)
+            guard let selection, !isSecure else { return false }
+            window?.copy(String(Array(text)[selection]))
             if command == .cut { edit { _, _ in } }
         case .paste:
             guard let pasted = window?.pasteboardText().map(TextFieldView.oneLine), !pasted.isEmpty else { return true }
@@ -126,7 +180,8 @@ public final class TextFieldView: View, TextInputClient {
 
     public var textInputState: TextInputState {
         let utf8Caret = String(text.prefix(caret)).utf8.count
-        return TextInputState(text: text, cursor: selectAll ? text.utf8.count : utf8Caret, anchor: selectAll ? 0 : utf8Caret,
+        let utf8Anchor = selection.map { _ in String(text.prefix(anchor ?? caret)).utf8.count } ?? utf8Caret
+        return TextInputState(text: text, cursor: utf8Caret, anchor: utf8Anchor,
                               caret: caretRect(scale: window?.scale ?? 1), purpose: isSecure ? .password : .normal)
     }
 
@@ -134,7 +189,7 @@ public final class TextFieldView: View, TextInputClient {
     /// them, or to a new composition), and the new composition shows at the caret.
     public func applyTextInput(_ event: TextInputEvent) {
         composition = nil
-        if event.commit != nil || event.deleteBefore > 0 || event.deleteAfter > 0 || (event.preedit != nil && selectAll) {
+        if event.commit != nil || event.deleteBefore > 0 || event.deleteAfter > 0 || (event.preedit != nil && selection != nil) {
             edit { characters, caret in
                 let result = event.applied(to: String(characters), caret: caret)
                 characters = Array(result.text)
@@ -175,7 +230,7 @@ public final class TextFieldView: View, TextInputClient {
         let metrics = theme.metrics
         var x = metrics.controlInset
         if symbol != nil { x += theme.type.control.size * 1.1 + metrics.tv(20) }
-        let available = bounds.width - x - metrics.controlInset
+        let available = bounds.width - x - metrics.controlInset - (clearButton == nil ? 0 : metrics.tv(48))
         let font = theme.type.searchField
         let shown = displayed
         let layout = TextLayout(shown.text.isEmpty ? " " : shown.text, font: font, scale: scale)
@@ -210,7 +265,17 @@ public final class TextFieldView: View, TextInputClient {
     public override func keyPressed(_ event: KeyEvent) -> Bool {
         if let command = event.clipboardCommand { return perform(command) }
         let control = event.modifiers.contains(.control)
+        let shift = event.modifiers.contains(.shift)
         switch event.key {
+        case Key.character("z") where control:
+            restore(undo: !shift)
+            return true
+        case Key.character("y") where control:
+            restore(undo: false)
+            return true
+        case .backspace where selection != nil, .delete where selection != nil:
+            edit { _, _ in }
+            return true
         case .backspace:
             edit { characters, caret in
                 guard caret > 0 else { return }
@@ -226,25 +291,23 @@ public final class TextFieldView: View, TextInputClient {
                 characters.removeSubrange(caret..<end)
             }
             return true
+        case .left where !shift && selection != nil:
+            moveCaret(to: selection?.lowerBound ?? caret, extending: false)
+            return true
+        case .right where !shift && selection != nil:
+            moveCaret(to: selection?.upperBound ?? caret, extending: false)
+            return true
         case .left where !text.isEmpty && caret > 0:
-            caret = control ? wordStart(Array(text), from: caret) : caret - 1
-            selectAll = false
-            restartBlink()
-            setNeedsDisplay()
+            moveCaret(to: control ? wordStart(Array(text), from: caret) : caret - 1, extending: shift)
             return true
         case .right where caret < text.count:
-            caret = control ? wordEnd(Array(text), from: caret) : caret + 1
-            selectAll = false
-            restartBlink()
-            setNeedsDisplay()
+            moveCaret(to: control ? wordEnd(Array(text), from: caret) : caret + 1, extending: shift)
             return true
         case .home:
-            caret = 0
-            setNeedsDisplay()
+            moveCaret(to: 0, extending: shift)
             return true
         case .end:
-            caret = text.count
-            setNeedsDisplay()
+            moveCaret(to: text.count, extending: shift)
             return true
         case .return, .keypadEnter:
             onSubmit?(text)
@@ -253,14 +316,15 @@ public final class TextFieldView: View, TextInputClient {
             setText("")
             return true
         case Key.character("a") where control:
-            selectAll = !text.isEmpty
-            setNeedsDisplay()
+            selectEverything()
             return true
+        case .menu:
+            return showContextMenu(at: nil)
         default:
             break
         }
         guard let typed = event.typedText else { return false }
-        edit { characters, caret in
+        edit(typing: true) { characters, caret in
             characters.insert(contentsOf: Array(typed), at: caret)
             caret += typed.count
         }
@@ -268,7 +332,10 @@ public final class TextFieldView: View, TextInputClient {
     }
 
     public override func focusDidChange(focused: Bool, animated: Bool) {
-        if !focused { composition = nil }
+        if !focused {
+            composition = nil
+            anchor = nil
+        }
         focus.set(focused ? 1 : 0, animation: .focus)
         restartBlink()
         startAnimating()
@@ -300,10 +367,96 @@ public final class TextFieldView: View, TextInputClient {
     }
 
     public override func pointerPressed(_ button: MouseButton, at point: Point) -> Bool {
+        guard let window else { return false }
+        if button == .secondary {
+            window.focus.focus(self, animated: true, reveal: false)
+            return showContextMenu(at: transformToWindow.apply(point))
+        }
         guard button == .primary else { return false }
-        window?.focus.focus(self, animated: true, reveal: false)
-        caret = text.count
+        window.focus.focus(self, animated: true, reveal: false)
+        if clearButton.map({ $0.contains(point) }) == true {
+            setText("")
+            return true
+        }
+        let index = characterIndex(at: point.x)
+        switch window.clickCount {
+        case 1:
+            moveCaret(to: index, extending: window.modifiers.contains(.shift))
+        case 2:
+            let characters = Array(text)
+            let start = index < characters.count && !characters[index].isWhitespace ? wordStart(characters, from: index + 1) : index
+            anchor = start
+            caret = wordEnd(characters, from: start)
+            setNeedsDisplay()
+        default:
+            selectEverything()
+        }
         return true
+    }
+
+    /// Dragging from a press selects from where it pressed to the pointer.
+    public override func pointerDragged(to point: Point) {
+        guard window?.clickCount == 1 else { return }
+        moveCaret(to: characterIndex(at: point.x), extending: true)
+    }
+
+    /// Cut, Copy, Paste and Select All for the right click or the Menu key, at the pointer or under the field.
+    public override func showContextMenu(at point: Point?) -> Bool {
+        guard let window else { return false }
+        let hasSelection = selection != nil && !isSecure
+        let canPaste = window.pasteboardText()?.isEmpty == false
+        let entries: [ContextMenuView.Entry] = [
+            .action(ContextMenuView.Action(Strings.text("Cut"), shortcut: "Ctrl+X", isEnabled: hasSelection) {
+                [weak self] in _ = self?.perform(.cut)
+            }),
+            .action(ContextMenuView.Action(Strings.text("Copy"), shortcut: "Ctrl+C", isEnabled: hasSelection) {
+                [weak self] in _ = self?.perform(.copy)
+            }),
+            .action(ContextMenuView.Action(Strings.text("Paste"), shortcut: "Ctrl+V", isEnabled: canPaste) {
+                [weak self] in _ = self?.perform(.paste)
+            }),
+            .separator,
+            .action(ContextMenuView.Action(Strings.text("Select All"), shortcut: "Ctrl+A", isEnabled: !text.isEmpty) {
+                [weak self] in self?.selectEverything()
+            }),
+        ]
+        let menu = point.map { ContextMenuView(at: $0, highlightingFirstRow: false) { entries } }
+            ?? ContextMenuView(anchor: frameInWindow) { entries }
+        menu.present(in: window)
+        return true
+    }
+
+    /// The character boundary nearest `x` in the field's points.
+    private func characterIndex(at x: Float) -> Int {
+        let scale = window?.scale ?? 1
+        let geometry = textGeometry(scale: scale)
+        let font = Theme.current.type.searchField
+        let shown = shownText
+        let target = x - (geometry.x - geometry.shift)
+        guard target > 0, !shown.isEmpty else { return 0 }
+        var previous: Float = 0
+        for count in 1...shown.count {
+            let width = TextLayout(String(shown.prefix(count)), font: font, scale: scale).size.width
+            if width >= target { return target - previous < width - target ? count - 1 : count }
+            previous = width
+        }
+        return shown.count
+    }
+
+    /// The clear button's circle at the trailing end, while there is text to clear.
+    private var clearButton: Rect? {
+        guard !text.isEmpty, composition == nil else { return nil }
+        let metrics = Theme.current.metrics
+        let side = metrics.tv(38)
+        return Rect(x: bounds.width - metrics.controlInset * 0.6 - side, y: bounds.midY - side / 2, width: side, height: side)
+    }
+
+    public override func cursor(at point: Point) -> Cursor {
+        clearButton.map { $0.insetBy(-4, -4).contains(point) } == true ? .pointer : .text
+    }
+
+    public override func tooltip(at point: Point) -> String? {
+        clearButton.map { $0.insetBy(-4, -4).contains(point) } == true ? Strings.text("Clear") : nil
     }
 
     public override func advanceAnimations(_ dt: Float) -> Bool {
@@ -331,7 +484,11 @@ public final class TextFieldView: View, TextInputClient {
             x += side + metrics.tv(20)
         }
         let font = theme.type.searchField
-        let available = rect.width - x - metrics.controlInset
+        let available = rect.width - x - metrics.controlInset - (clearButton == nil ? 0 : metrics.tv(48))
+        if let clear = clearButton {
+            context.fill(clear, radius: clear.height / 2, color: label.withAlpha(0.55))
+            context.symbol("xmark", in: clear.insetBy(clear.width * 0.25, clear.height * 0.25), color: GlassStyle.label(tone: 1 - tone.value))
+        }
         let shown = displayed
         if shown.text.isEmpty {
             let layout = TextLayout(placeholder, font: font, maxWidth: available, scale: scale)
@@ -341,8 +498,10 @@ public final class TextFieldView: View, TextInputClient {
             let geometry = textGeometry(scale: scale)
             let y = geometry.top
             context.clipped(to: Rect(x: x, y: 0, width: available, height: rect.height)) { inner in
-                if selectAll {
-                    inner.fill(Rect(x: x - geometry.shift - 2, y: y, width: layout.size.width + 4, height: layout.size.height), radius: 4,
+                if let selection, composition == nil {
+                    let start = TextLayout(String(shown.text.prefix(selection.lowerBound)), font: font, scale: scale).size.width
+                    let end = TextLayout(String(shown.text.prefix(selection.upperBound)), font: font, scale: scale).size.width
+                    inner.fill(Rect(x: x - geometry.shift + start - 1, y: y, width: end - start + 2, height: layout.size.height), radius: 4,
                                color: theme.palette.accent.withAlpha(0.35))
                 }
                 inner.text(layout, at: Point(x: x - geometry.shift, y: y), color: label)
@@ -351,7 +510,7 @@ public final class TextFieldView: View, TextInputClient {
                                              height: layout.size.height, color: label, scale: scale, context: &inner)
                 }
             }
-            if caretShown && shown.caret != nil {
+            if caretShown && shown.caret != nil && selection == nil {
                 context.fill(Rect(x: geometry.caretX, y: y + 2, width: max(metrics.tv(3), 1.5), height: layout.size.height - 4), color: theme.palette.accent)
             }
             return

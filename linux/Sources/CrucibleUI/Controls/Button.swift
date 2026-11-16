@@ -151,8 +151,18 @@ public final class ButtonView: View {
 
     /// What a screen reader reads after the label: what pressing the button does when its title does not say.
     public var hint: String?
-    /// The name read for a button that shows only a symbol.
+    /// The name read for a button that shows only a symbol, and its tooltip.
     public var spokenTitle: String?
+    /// The key that does the same, added to the tooltip ("Mark Watched (W)").
+    public var shortcut: String?
+
+    /// A symbol-only button's name, or any button's name with its key when it has one.
+    public override func tooltip(at point: Point) -> String? {
+        let name = title.flatMap { $0.isEmpty ? nil : $0 } ?? spokenTitle
+        guard let name else { return nil }
+        if let shortcut { return "\(name) (\(shortcut))" }
+        return title?.isEmpty == false ? nil : name
+    }
 
     public override var canBecomeFocused: Bool { isEnabled }
     public override var accessibilityLabel: String? { title ?? spokenTitle }
