@@ -68,7 +68,7 @@ final class SeerrSettingsScreen: SettingsScaffold {
     private func render() {
         let account = SeerrAccount.shared
         var items: [RowItem] = []
-        var body = SeerrCopy.pitch.headline + "\n" + SeerrCopy.pitch.story + "\n\n" + SeerrCopy.privacy
+        var body = SeerrCopy.pitch.headline + "\n\n" + SeerrCopy.pitch.story + "\n\n" + SeerrCopy.privacy
         switch account.status {
         case .restricted:
             body = SeerrCopy.restricted
