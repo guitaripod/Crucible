@@ -41,7 +41,7 @@ enum PlaylistPicker {
     }
 
     private static func promptForName(adding keys: [String], api: APIClient, in window: Window) {
-        var prompt: AlertView?
+        weak var prompt: AlertView?
         let alert = AlertView(title: PlaylistFormat.namePrompt, actions: [
             AlertView.Action(PlaylistFormat.create) {
                 let name = prompt?.text ?? ""

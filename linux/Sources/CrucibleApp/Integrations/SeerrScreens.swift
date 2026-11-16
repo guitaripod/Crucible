@@ -229,16 +229,17 @@ final class SeerrSettingsScreen: SettingsScaffold {
         guard let window else { return }
         var text = ""
         if case .found(let address, _) = discovery { text = SeerrDiscovery.displayAddress(address) }
-        var entry: AlertView?
+        weak var entry: AlertView?
         let confirm = thenAPIKey ? String(localized: "Next") : SeerrCopy.connect
-        entry = AlertView(title: SeerrCopy.addressTitle, message: SeerrCopy.addressMessage, actions: [
+        let shown = AlertView(title: SeerrCopy.addressTitle, message: SeerrCopy.addressMessage, actions: [
             AlertView.Action(confirm) { [weak self] in
                 guard let typed = entry?.text, !typed.isEmpty else { return }
                 self?.resolve(typed, thenAPIKey: thenAPIKey)
             },
             AlertView.Action(String(localized: "Cancel"), role: .cancel),
         ], fieldPlaceholder: SeerrCopy.addressPlaceholder, fieldText: text)
-        entry?.present(in: window)
+        entry = shown
+        shown.present(in: window)
     }
 
     private func resolve(_ typed: String, thenAPIKey: Bool) {
@@ -263,15 +264,16 @@ final class SeerrSettingsScreen: SettingsScaffold {
     private func askForAPIKey() {
         guard case .found(let address, let settings) = discovery else { return askForAddress(thenAPIKey: true) }
         guard let window else { return }
-        var entry: AlertView?
-        entry = AlertView(title: SeerrCopy.apiKeyTitle, message: SeerrCopy.apiKeyMessage, actions: [
+        weak var entry: AlertView?
+        let shown = AlertView(title: SeerrCopy.apiKeyTitle, message: SeerrCopy.apiKeyMessage, actions: [
             AlertView.Action(String(localized: "Connect", comment: "Button that connects Seerr with the API key")) { [weak self] in
                 guard let key = entry?.text, !key.isEmpty else { return }
                 self?.connect(address: address, settings: settings, apiKey: key)
             },
             AlertView.Action(String(localized: "Cancel"), role: .cancel),
         ], fieldPlaceholder: SeerrCopy.apiKeyPlaceholder)
-        entry?.present(in: window)
+        entry = shown
+        shown.present(in: window)
     }
 
     private func loadApprovals() {
@@ -369,15 +371,16 @@ final class SeerrGuideScreen: SettingsScaffold {
             onReady(url, settings)
         case "seerrGuide.enterAddress":
             guard let window else { return }
-            var entry: AlertView?
-            entry = AlertView(title: SeerrCopy.addressTitle, message: SeerrCopy.addressMessage, actions: [
+            weak var entry: AlertView?
+            let shown = AlertView(title: SeerrCopy.addressTitle, message: SeerrCopy.addressMessage, actions: [
                 AlertView.Action(SeerrGuide.lookThere) { [weak self] in
                     guard let typed = entry?.text, !typed.isEmpty else { return }
                     self?.watcher.add(typed: typed)
                 },
                 AlertView.Action(String(localized: "Cancel"), role: .cancel),
             ], fieldPlaceholder: SeerrCopy.addressPlaceholder)
-            entry?.present(in: window)
+            entry = shown
+            shown.present(in: window)
         case "seerrGuide.host":
             let hosts = SeerrHost.allCases
             watcher.choose(hosts[((hosts.firstIndex(of: watcher.host) ?? 0) + 1) % hosts.count])

@@ -124,12 +124,13 @@ final class CrucibleServerScreen: SettingsScaffold {
 
     private func askForCode() {
         guard let window else { return }
-        var alert: AlertView?
-        alert = AlertView(title: CompanionCopy.enterCode, message: CompanionCopy.stepsTV, actions: [
+        weak var alert: AlertView?
+        let shown = AlertView(title: CompanionCopy.enterCode, message: CompanionCopy.stepsTV, actions: [
             AlertView.Action(CompanionCopy.pair) { [weak self] in self?.pair(code: alert?.text ?? "") },
             AlertView.Action(String(localized: "Cancel"), role: .cancel),
         ], fieldPlaceholder: CompanionCopy.codePlaceholder)
-        alert?.present(in: window)
+        alert = shown
+        shown.present(in: window)
     }
 
     private func pair(code: String) {

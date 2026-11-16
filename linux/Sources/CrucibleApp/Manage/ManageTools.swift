@@ -289,7 +289,7 @@ final class FixMatchScreen: SettingsScaffold {
         switch id {
         case Self.searchID:
             guard let window else { return }
-            var alert: AlertView?
+            weak var alert: AlertView?
             let shown = AlertView(title: String(localized: "Title and year", comment: "Placeholder of the Fix Match search field"), actions: [
                 AlertView.Action(String(localized: "Search", comment: "Button that runs a search")) { [weak self] in
                     self?.query = alert?.text ?? ""
@@ -427,7 +427,7 @@ final class EditDetailsScreen: SettingsScaffold {
             return
         }
         guard let field = Field(rawValue: String(id.dropFirst("editDetails.".count))), let window else { return }
-        var alert: AlertView?
+        weak var alert: AlertView?
         let shown = AlertView(title: field.label, actions: [
             AlertView.Action(String(localized: "Done", comment: "Button that accepts the typed text")) { [weak self] in
                 self?.set(alert?.text ?? "", for: field)

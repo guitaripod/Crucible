@@ -285,7 +285,7 @@ final class ProfilesScreen: SettingsScaffold {
     /// The four-digit PIN of a protected profile, typed in a field that shows dots.
     private func askForPIN(for profile: HomeProfile, after error: String? = nil) {
         guard let window else { return }
-        var alert: AlertView?
+        weak var alert: AlertView?
         let shown = AlertView(title: String(localized: "Enter PIN for \(profile.title)", comment: "Title of the PIN prompt for a Plex Home profile"),
                               message: error, actions: [
                                 AlertView.Action(String(localized: "Switch", comment: "Button that switches to a Plex Home profile")) { [weak self] in

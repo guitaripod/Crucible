@@ -142,12 +142,13 @@ final class OwnModelSettingsScreen: SettingsScaffold {
 
     private func ask(_ title: String, placeholder: String, text: String, secure: Bool = false, then save: @escaping (String) -> Void) {
         guard let window else { return }
-        var alert: AlertView?
-        alert = AlertView(title: title, actions: [
+        weak var alert: AlertView?
+        let shown = AlertView(title: title, actions: [
             AlertView.Action(String(localized: "Save")) { save(alert?.text ?? "") },
             AlertView.Action(String(localized: "Cancel"), role: .cancel),
         ], fieldPlaceholder: placeholder, fieldText: text, secureField: secure)
-        alert?.present(in: window)
+        alert = shown
+        shown.present(in: window)
     }
 
     /// Asks the model to turn a small request into limits, which shows the address, the model and the key all work.
