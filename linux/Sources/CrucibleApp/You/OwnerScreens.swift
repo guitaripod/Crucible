@@ -244,7 +244,11 @@ final class ProfilesScreen: SettingsScaffold {
     }
 
     private func load() {
-        guard let token = ServerBootstrap.accountToken else { return }
+        guard let token = ServerBootstrap.accountToken else {
+            showState(.error(title: String(localized: "Couldn’t Load Profiles"), message: nil, retryTitle: String(localized: "Try Again"),
+                             retry: { [weak self] in self?.load() }))
+            return
+        }
         loadTask?.cancel()
         loadTask = Task { [weak self] in
             do {
