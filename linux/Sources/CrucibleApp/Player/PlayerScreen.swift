@@ -186,7 +186,7 @@ final class PlayerScreen: View {
             if inside {
                 self.showChrome(autoHide: false)
             } else if self.window?.pointerLocation == nil {
-                self.holdChrome()
+                self.pointerLeftWindow()
             } else {
                 self.showChrome(autoHide: true)
             }
@@ -1102,11 +1102,23 @@ final class PlayerScreen: View {
         showChrome(autoHide: !transport.frame.contains(point))
     }
 
-    /// The pointer leaving the window (onto its border, another window or screen) leaves the chrome as it is: shown chrome
-    /// stays until the pointer comes back and rests again.
     override func pointerExited() {
-        guard window?.pointerLocation == nil, chrome.target > 0 else { return }
-        holdChrome()
+        guard window?.pointerLocation == nil else { return }
+        pointerLeftWindow()
+    }
+
+    /// The pointer left the window (onto its border, another window or screen): shown chrome goes after the usual rest,
+    /// not at once, and hidden chrome stays hidden.
+    private func pointerLeftWindow() {
+        guard chrome.target > 0 else { return }
+        showChrome(autoHide: true)
+    }
+
+    /// The window changing size (its border dragged) keeps shown chrome up for another rest, so it does not vanish
+    /// mid-resize.
+    private func windowResized() {
+        guard chrome.target > 0, player?.state.isPaused == false else { return }
+        showChrome(autoHide: true)
     }
 
     /// The gamepad's triggers scrub: the right one forward and the left one back, faster the further they are pulled, up to
@@ -1172,8 +1184,13 @@ final class PlayerScreen: View {
         return true
     }
 
+    /// The size the player was last laid out at, to tell a resize from other layouts.
+    private var laidOutSize: Size?
+
     override func layoutSubviews() {
         let metrics = Theme.current.metrics
+        if let previous = laidOutSize, previous != bounds.size { windowResized() }
+        laidOutSize = bounds.size
         followFullscreen()
         videoView?.frame = bounds
         seekVeil?.frame = bounds
