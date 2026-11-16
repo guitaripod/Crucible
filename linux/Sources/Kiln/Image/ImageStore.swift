@@ -145,14 +145,44 @@ public final class ImageStore {
     private var preloaded: [URL: Texture] = [:]
     private var clock: UInt64 = 0
     private var residentBytes = 0
+    private var loadsSinceTrim = 0
+    private let diskBudgetBytes: Int64
 
-    /// `diskDirectory` keeps fetched files between launches (`$XDG_CACHE_HOME/crucible/images`); nil keeps them in memory only.
-    public init(gpu: GPU, diskDirectory: URL?, budgetBytes: Int = 768 << 20, fetch: @escaping Fetch) {
+    /// `diskDirectory` keeps fetched files between launches (`$XDG_CACHE_HOME/crucible/images`), up to `diskBudgetBytes`;
+    /// nil keeps them in memory only.
+    public init(gpu: GPU, diskDirectory: URL?, budgetBytes: Int = 768 << 20, diskBudgetBytes: Int64 = 512 << 20, fetch: @escaping Fetch) {
         self.gpu = gpu
         self.fetch = fetch
         self.diskDirectory = diskDirectory
         self.budgetBytes = budgetBytes
-        if let diskDirectory { try? FileManager.default.createDirectory(at: diskDirectory, withIntermediateDirectories: true) }
+        self.diskBudgetBytes = diskBudgetBytes
+        if let diskDirectory {
+            try? FileManager.default.createDirectory(at: diskDirectory, withIntermediateDirectories: true)
+            Self.trimDisk(diskDirectory, budget: diskBudgetBytes)
+        }
+    }
+
+    /// Takes the disk cache down to three quarters of `budget` once it holds more, removing the files used longest ago
+    /// first (a read marks a file used), off the main thread. Without it every poster and backdrop ever shown stayed on
+    /// disk, at every size it was asked for.
+    nonisolated static func trimDisk(_ directory: URL, budget: Int64) {
+        Task.detached(priority: .utility) {
+            let keys: [URLResourceKey] = [.contentModificationDateKey, .totalFileAllocatedSizeKey, .isRegularFileKey]
+            guard let files = try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: keys) else { return }
+            var listed: [(url: URL, used: Date, bytes: Int64)] = []
+            var total: Int64 = 0
+            for file in files {
+                guard let values = try? file.resourceValues(forKeys: Set(keys)), values.isRegularFile == true else { continue }
+                let bytes = Int64(values.totalFileAllocatedSize ?? 0)
+                total += bytes
+                listed.append((file, values.contentModificationDate ?? .distantPast, bytes))
+            }
+            guard total > budget else { return }
+            for file in listed.sorted(by: { $0.used < $1.used }) {
+                guard total > budget * 3 / 4 else { break }
+                if (try? FileManager.default.removeItem(at: file.url)) != nil { total -= file.bytes }
+            }
+        }
     }
 
     /// Serves `texture` for every request of `url`, whatever size it asks for (artwork drawn at runtime, fixtures).
@@ -196,7 +226,10 @@ public final class ImageStore {
         let uploader = gpu.uploader
         let loaded: LoadedImage? = await Task.detached(priority: .userInitiated) {
             var data: Data?
-            if let diskURL { data = try? Data(contentsOf: diskURL) }
+            if let diskURL {
+                data = try? Data(contentsOf: diskURL)
+                if data != nil { try? FileManager.default.setAttributes([.modificationDate: Date()], ofItemAtPath: diskURL.path) }
+            }
             if data == nil {
                 data = try? await fetch(request.url)
                 if let data, let diskURL { try? data.write(to: diskURL, options: .atomic) }
@@ -216,6 +249,11 @@ public final class ImageStore {
         entries[request] = entry
         residentBytes += entry.bytes
         evictIfNeeded()
+        loadsSinceTrim += 1
+        if loadsSinceTrim >= 500, let diskDirectory {
+            loadsSinceTrim = 0
+            Self.trimDisk(diskDirectory, budget: diskBudgetBytes)
+        }
         return texture
     }
 
