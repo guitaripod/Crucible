@@ -146,6 +146,11 @@ public final class TextRenderer {
     }
 
     /// The text's coverage texture and metrics, from the cache when this text and style were drawn recently.
+    /// Whether `text` in `style` is already rasterised, so drawing it costs nothing new.
+    func hasTexture(for text: String, style: TextStyle) -> Bool {
+        cache[Key(text: text, style: style)] != nil
+    }
+
     public func texture(for text: String, style: TextStyle) throws(RenderError) -> (texture: Texture, metrics: TextMetrics)? {
         let key = Key(text: text, style: style)
         if let cached = cache[key] {

@@ -75,9 +75,15 @@ public struct DrawContext {
             colorText(layout, at: origin, color: color)
             return
         }
+        let placed = transform.apply(Rect(origin: origin, size: layout.size))
+        if let sharp = renderer.sharpText(layout, pixelScale: transform.scale) {
+            applyClip()
+            renderer.painter.mask(sharp, in: Rect(x: placed.x, y: placed.y, width: Float(sharp.width), height: Float(sharp.height)),
+                                  color: color.multipliedAlpha(alpha))
+            return
+        }
         guard let texture = layout.texture(renderer: renderer.text) else { return }
         applyClip()
-        let placed = transform.apply(Rect(origin: origin, size: layout.size))
         let pixelWidth = Float(texture.width) * transform.scale / renderer.scale
         let pixelHeight = Float(texture.height) * transform.scale / renderer.scale
         renderer.painter.mask(texture, in: Rect(x: placed.x, y: placed.y, width: pixelWidth, height: pixelHeight), color: color.multipliedAlpha(alpha))
@@ -114,7 +120,7 @@ public struct DrawContext {
     /// Draws a symbol's mask into `rect`, tinted.
     public func symbol(_ symbol: Symbol, in rect: Rect, color: Color) {
         let pixels = transform.apply(rect)
-        guard let texture = renderer.symbols.texture(for: symbol, pixelSize: Int((max(rect.width, rect.height) * renderer.scale).rounded())) else { return }
+        guard let texture = renderer.symbols.texture(for: symbol, pixelSize: Int(max(pixels.width, pixels.height).rounded())) else { return }
         applyClip()
         let side = max(pixels.width, pixels.height)
         renderer.painter.mask(texture, in: Rect(x: pixels.midX - side / 2, y: pixels.midY - side / 2, width: side, height: side),

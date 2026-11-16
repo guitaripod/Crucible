@@ -19,6 +19,9 @@ final class SceneRenderer {
     private var luminanceMap: (width: Int, height: Int, values: [Float])?
     /// Whether glass blurred the backdrop earlier in this frame, so the next glass may reuse it.
     private var blurredThisFrame = false
+    /// How many labels this frame may still rasterise at a lifted scale; the rest draw stretched until a later frame.
+    private var sharpTextBudget = 0
+    private static let sharpTextPerFrame = 12
     /// How far around glass, in target pixels, the frost and the refraction reach for what is behind it.
     private static let glassReach: Float = 128
 
@@ -44,6 +47,7 @@ final class SceneRenderer {
         collectReadback()
         readbackStarted = false
         blurredThisFrame = false
+        sharpTextBudget = Self.sharpTextPerFrame
         painter.clip = nil
         painter.clear(background)
         let context = DrawContext(renderer: self, transform: Affine(scale: scale), alpha: 1, clip: nil)
@@ -52,6 +56,7 @@ final class SceneRenderer {
         painter.clip = nil
         text.endFrame()
         shapes.endFrame()
+        symbols.endFrame()
     }
 
     private func draw(_ view: View, in parent: DrawContext) {
@@ -72,6 +77,19 @@ final class SceneRenderer {
             for subview in view.subviews { draw(subview, in: inner) }
         }
         view.drawOverlay(&context)
+    }
+
+    /// `layout`'s text rasterised at `pixelScale` pixels per point when that differs from the window's (a lifted card or
+    /// row), so it is drawn at its own size and stays sharp instead of a stretched mask; nil when the scales match, or when
+    /// this frame has rasterised its share and the text is not ready yet (it then draws stretched for a frame or two).
+    func sharpText(_ layout: TextLayout, pixelScale: Float) -> Texture? {
+        guard !layout.text.isEmpty, abs(pixelScale / scale - 1) > 0.002, pixelScale / scale < 2 else { return nil }
+        let style = layout.style(atScale: (pixelScale * 512).rounded() / 512)
+        if !text.hasTexture(for: layout.text, style: style) {
+            guard sharpTextBudget > 0 else { return nil }
+            sharpTextBudget -= 1
+        }
+        return (try? text.texture(for: layout.text, style: style))?.texture
     }
 
     /// Builds every pipeline Kiln draws with on a small target (the batch, the long gradient and the glow, clears and

@@ -59,7 +59,8 @@ public final class SymbolRenderer {
     public static func has(_ symbol: Symbol) -> Bool { map[symbol.name] != nil }
 
     private let gpu: GPU
-    private var cache: [Key: Texture] = [:]
+    private var cache: [Key: (texture: Texture, frame: Int)] = [:]
+    private var frame = 0
 
     public init(gpu: GPU) {
         self.gpu = gpu
@@ -68,7 +69,10 @@ public final class SymbolRenderer {
     public func texture(for symbol: Symbol, pixelSize: Int) -> Texture? {
         guard pixelSize > 0 else { return nil }
         let key = Key(symbol: symbol, pixelSize: pixelSize)
-        if let cached = cache[key] { return cached }
+        if let cached = cache[key] {
+            cache[key]?.frame = frame
+            return cached.texture
+        }
         let started = Window.now()
         defer { FrameTrace.symbolTime += Window.now() - started }
         guard let document = Self.document(for: symbol, pixelSize: pixelSize) else { return nil }
@@ -81,23 +85,39 @@ public final class SymbolRenderer {
         defer { kiln_image_free(pixels) }
         guard let texture = try? gpu.texture(width: pixelSize, height: pixelSize, format: .r8, renderable: false) else { return nil }
         _ = texture.upload(pixels, rowBytes: Int(stride))
-        cache[key] = texture
+        cache[key] = (texture, frame)
         return texture
     }
+
+    /// Drops symbols not drawn for a few seconds of frames (the in-between sizes of a lift); called once per frame.
+    public func endFrame() {
+        frame += 1
+        guard frame % 600 == 0 else { return }
+        cache = cache.filter { frame - $0.value.frame < 600 }
+    }
+
+    /// The Lucide icon's SVG, read from the bundle once.
+    private static func source(_ icon: String) -> String? {
+        if let known = sources[icon] { return known }
+        guard let directory, let text = try? String(contentsOf: directory.appendingPathComponent("\(icon).svg"), encoding: .utf8) else { return nil }
+        sources[icon] = text
+        return text
+    }
+
+    private static var sources: [String: String] = [:]
 
     /// The SVG to rasterise: the Lucide icon with its stroke weighted for the size (Lucide draws 2 units on 24 for every
     /// size; small symbols read better a little heavier, large ones lighter), filled for `.fill` names, or a filled disc
     /// with its inner glyph cut out for the badge-like `.circle.fill` names.
     static func document(for symbol: Symbol, pixelSize: Int) -> Data? {
-        guard let entry = map[symbol.name], let directory else { return nil }
-        guard let source = try? String(contentsOf: directory.appendingPathComponent("\(entry.icon).svg"), encoding: .utf8) else { return nil }
+        guard let entry = map[symbol.name], let original = Self.source(entry.icon) else { return nil }
         let strokeWidth = pixelSize <= 20 ? 2.25 : pixelSize >= 64 ? 1.75 : 2.0
-        var svg = source.replacingOccurrences(of: "stroke-width=\"2\"", with: "stroke-width=\"\(strokeWidth)\"")
+        var svg = original.replacingOccurrences(of: "stroke-width=\"2\"", with: "stroke-width=\"\(strokeWidth)\"")
         if entry.fill {
             svg = svg.replacingOccurrences(of: "fill=\"none\"", with: "fill=\"black\"")
         }
         if entry.knockout {
-            svg = knockout(svg, glyphSource: entry.glyph.flatMap { try? String(contentsOf: directory.appendingPathComponent("\($0).svg"), encoding: .utf8) },
+            svg = knockout(svg, glyphSource: entry.glyph.flatMap { Self.source($0) },
                            strokeWidth: strokeWidth)
         }
         return Data(svg.utf8)

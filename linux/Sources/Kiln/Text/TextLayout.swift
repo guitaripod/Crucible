@@ -106,6 +106,17 @@ public struct TextLayout {
     /// Whether the layout draws in colour (`inColor`) rather than as a coverage mask.
     public var isInColor: Bool { style.inColor }
 
+    /// The style this layout's text takes rasterised at `pixelScale` pixels per point (a lifted card's or row's), with the
+    /// same text and line breaks.
+    func style(atScale pixelScale: Float) -> TextStyle {
+        var scaled = style
+        let factor = Double(pixelScale / scale)
+        scaled.sizePixels *= factor
+        scaled.letterSpacingPixels *= factor
+        scaled.maxWidthPixels = maxWidth > 0 ? Int((maxWidth * pixelScale).rounded(.down)) : 0
+        return scaled
+    }
+
     func texture(renderer: TextRenderer) -> Texture? {
         guard !text.isEmpty else { return nil }
         return (try? renderer.texture(for: text, style: style))?.texture
