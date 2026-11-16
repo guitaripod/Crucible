@@ -12,6 +12,8 @@ reach CrucibleCore's package-level API. Design and plan: `../docs/LINUX.md`.
   Home, the libraries, title pages, Search, You and the player (libmpv's gpu-next on Kiln's Vulkan device).
   `linux/scripts/install.sh` builds it in release with a static Swift runtime and installs it to `~/.local/lib/crucible`
   with `~/.local/bin/crucible`, a desktop entry and the icon.
+  `linux/scripts/steam-shortcut.py` (with Steam closed) adds `crucible --couch` to Steam for Big Picture, with Steam
+  Input's own gamepad templates.
 - `crucible-gallery`: every component with fixture content, in a window (keys 1 to 5 switch pages) or captured to PNG.
 - `kiln-spike`: the P0 spike, an FP16 scRGB window with a glass tab bar over a moving HDR scene, printing timings.
 - `Spikes/vulkan-video`: libmpv's `gpu-next` Vulkan render API on a Kiln-style device, with zero-copy decode.

@@ -243,7 +243,7 @@ A Linux job in CI (`.github/workflows/linux-core.yml`) runs `CRUCIBLE_CORE_ONLY=
 | `crucible://` links and one instance | A desktop entry with `MimeType=x-scheme-handler/crucible;` and the D-Bus name `org.guitaripod.Crucible`, which hands a second launch's link to the running app and Core's deep-link parser |
 | Notifications | `org.freedesktop.Notifications` for `LibraryNews` while the app runs; a systemd user timer for background refresh can follow |
 | Output HDR and refresh rate | `kde_output_management_v2` (§7.4) |
-| Couch | `crucible --couch` as a non-Steam shortcut for Big Picture, with a Steam Input template |
+| Couch | `crucible --couch` as a non-Steam shortcut for Big Picture: `linux/scripts/steam-shortcut.py` adds it to every Steam account with Steam closed and picks Steam Input's own gamepad templates for it (gamepad and trackpad mouse on the Steam Deck and DualSense, gamepad elsewhere) |
 | Clean exit | SIGTERM, SIGINT and SIGHUP save resume positions and send the stopped timeline before exiting (the Tailscode lesson that an unhandled SIGTERM counts as a crash) |
 
 ## 10. Layout, build and install
