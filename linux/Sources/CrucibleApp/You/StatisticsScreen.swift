@@ -121,6 +121,7 @@ final class StatisticsScreen: ScreenView {
         DemoTour.shared.record(.statistics)
         let focusedID = window?.focusedView.flatMap { focused in sectionViews.first { focused.isDescendant(of: $0.view) }?.id }
         sectionViews = StatsSections.make(loaded, animate: animate, open: { [weak self] destination in self?.open(destination) })
+        sectionViews.append(("share", shareRow))
         page.setSections([heading, controls] + sectionViews.map(\.view))
         if !isShowingContent { page.fadeIn() }
         isShowingContent = true
@@ -131,6 +132,13 @@ final class StatisticsScreen: ScreenView {
     }
 
     private var sectionViews: [(id: String, view: View)] = []
+    private lazy var shareRow = ShareYearRow { [weak self] in self?.shareYear() }
+
+    /// Opens the Year in Review poster for the page shown (`shareWrapped`); free on Linux, as every feature is.
+    private func shareYear() {
+        guard !shown.isEmpty else { return }
+        rootView?.push(YearPosterScreen(page: shown, source: source))
+    }
 
     private func show(placeholder: StatsPlaceholder) {
         switch placeholder {
@@ -364,6 +372,29 @@ enum StatsSections {
         let destinations = Dictionary(items.map { ($0.card.id, $0.destination) }, uniquingKeysWith: { first, _ in first })
         shelf.onActivate = { card in destinations[card.id].map(open) }
         return shelf
+    }
+}
+
+/// Share Your Year at the foot of the page, as on the phone, centred at its own width.
+@MainActor
+private final class ShareYearRow: View {
+    private let button = ButtonView(style: .primary, title: String(localized: "Share Your Year"), symbol: "square.and.arrow.up")
+
+    init(onPress: @escaping () -> Void) {
+        super.init()
+        button.onPress = onPress
+        addSubview(button)
+    }
+
+    override var preferredFocusView: View? { button }
+
+    override func sizeThatFits(_ size: Size) -> Size {
+        Size(width: size.width, height: button.sizeThatFits(.zero).height + Theme.current.metrics.tv(64))
+    }
+
+    override func layoutSubviews() {
+        let size = button.sizeThatFits(.zero)
+        button.frame = Rect(x: ((frame.width - size.width) / 2).rounded(), y: Theme.current.metrics.tv(8), width: size.width, height: size.height)
     }
 }
 
