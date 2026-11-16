@@ -105,9 +105,10 @@ def wide():
 
 
 def hero():
+    """Steam shows the hero's middle band (about three quarters of its height on a Steam Deck), so the crystal stays inside it."""
     width, height = 3840, 1240
-    canvas = backdrop(width, height, (2880, height / 2), 1050).convert("RGBA")
-    place_crystal(canvas, 1100, (2880, height / 2))
+    canvas = backdrop(width, height, (2880, height / 2), 900).convert("RGBA")
+    place_crystal(canvas, 720, (2880, height / 2))
     return canvas.convert("RGB")
 
 
