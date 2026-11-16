@@ -52,6 +52,16 @@ struct TailnetAddressTests {
         #expect(!TailnetPresence.isTailnetAddress("100.91.211"))
         #expect(!TailnetPresence.isTailnetAddress("arch"))
     }
+
+    @Test func theTunnelIsTheInterfaceTailscaleUsesOnThisPlatform() {
+        #if canImport(Darwin)
+        #expect(TailnetPresence.isTunnelInterface("utun4"))
+        #expect(!TailnetPresence.isTunnelInterface("en0"))
+        #else
+        #expect(TailnetPresence.isTunnelInterface("tailscale0"))
+        #expect(!TailnetPresence.isTunnelInterface("enp5s0"))
+        #endif
+    }
 }
 
 struct MagicDNSNameTests {
