@@ -27,8 +27,6 @@ struct PlayerTweaks: Equatable {
         var gamma = 0
         /// Turn subtitles on while the sound is muted.
         var subtitlesWhenMuted = true
-        /// Show subtitles for the stretch replayed after a skip back.
-        var subtitlesOnSkipBack = true
     }
 
     /// How the picture fills the view: as made, cropped to fill it, stretched to it, or as another shape.

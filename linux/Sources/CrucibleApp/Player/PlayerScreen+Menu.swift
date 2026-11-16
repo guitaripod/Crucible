@@ -58,7 +58,6 @@ extension PlayerScreen {
         entries.append(.action(Action(String(localized: "Skip Back \(back) s", comment: "Player menu, with the skip distance"), shortcut: KeyName.left,
                                       keepsOpen: true) { [weak self] in
             guard let self else { return }
-            self.skippedBack(from: self.playhead)
             self.seek(to: self.playhead - Double(back))
         }))
         entries.append(.action(Action(String(localized: "Skip Ahead \(ahead) s", comment: "Player menu, with the skip distance"), shortcut: KeyName.right,
@@ -213,13 +212,6 @@ extension PlayerScreen {
                                       isChecked: tweaks.taste.subtitlesWhenMuted, keepsOpen: true) { [weak self] in
             guard let self else { return }
             self.tweaks.taste.subtitlesWhenMuted.toggle()
-            self.saveTaste()
-        }))
-        entries.append(.action(Action(String(localized: "Show on Skip Back", comment: "Player menu: subtitles appear for a replayed stretch"),
-                                      detail: String(localized: "Catch the line you missed", comment: "Player menu: what Show on Skip Back is for"),
-                                      isChecked: tweaks.taste.subtitlesOnSkipBack, keepsOpen: true) { [weak self] in
-            guard let self else { return }
-            self.tweaks.taste.subtitlesOnSkipBack.toggle()
             self.saveTaste()
         }))
         return entries

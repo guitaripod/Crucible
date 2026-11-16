@@ -92,7 +92,7 @@ final class PlayerScreen: View {
     var toast: PlayerToast?
     /// A subtitle shown on its own for a while: while the sound is muted, or until the stretch a skip back replays has
     /// played again (`until`, on the title's timeline).
-    var borrowedSubtitle: (until: Double?, track: Int)?
+    var borrowedSubtitle: Int?
     /// The repeated stretch of A-B Loop, on the title's timeline.
     var loop: (a: Double?, b: Double?) = (nil, nil)
     /// The subtitle chosen last in this player, which turning subtitles back on brings back.
@@ -1054,7 +1054,6 @@ final class PlayerScreen: View {
         guard isRepeat else {
             holdOrigin = playhead
             holdHandled = false
-            if !forward { skippedBack(from: playhead) }
             seek(to: playhead + step)
             return
         }

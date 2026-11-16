@@ -167,12 +167,12 @@ extension PlayerScreen {
             ?? stream.subtitles.first { !$0.isBitmap && $0.forced != true && $0.key == nil }
     }
 
-    /// Shows a subtitle by itself, without choosing it, while the sound is muted or a skipped-back stretch replays, when the
-    /// viewer turned that on and plays the file directly with no subtitle chosen.
-    func borrowSubtitle(until: Double?) {
+    /// Shows a subtitle by itself, without choosing it, while the sound is muted, when the viewer turned that on and plays
+    /// the file directly with no subtitle chosen.
+    func borrowSubtitle() {
         guard borrowedSubtitle == nil, let stream, stream.isDirectPlay, stream.chosenSubtitleId == nil,
               let pick = captionChoice(in: stream), let track = FileTracks.subtitleTrack(pick.id, among: stream.subtitles) else { return }
-        borrowedSubtitle = (until, track)
+        borrowedSubtitle = track
         player?.setSubtitleTrack(track)
     }
 
@@ -182,28 +182,13 @@ extension PlayerScreen {
         if stream?.chosenSubtitleId == nil { player?.setSubtitleTrack(nil) }
     }
 
-    /// Follows the sound and the playhead for the borrowed subtitle: muted shows it, unmuted takes it back, and a replayed
-    /// stretch keeps it only until the place the skip back left from.
+    /// Follows the sound for the borrowed subtitle: muted shows it, unmuted takes it back.
     func followBorrowedSubtitle(muted: Bool) {
-        if let borrowed = borrowedSubtitle {
-            if let until = borrowed.until {
-                if position >= until { returnBorrowedSubtitle() }
-            } else if !muted {
-                returnBorrowedSubtitle()
-            }
+        if borrowedSubtitle != nil {
+            if !muted { returnBorrowedSubtitle() }
         } else if muted, tweaks.taste.subtitlesWhenMuted {
-            borrowSubtitle(until: nil)
+            borrowSubtitle()
         }
-    }
-
-    /// A skip back by the viewer: with Show on Skip Back on, the replayed stretch has subtitles.
-    func skippedBack(from origin: Double) {
-        guard tweaks.taste.subtitlesOnSkipBack else { return }
-        if let borrowed = borrowedSubtitle, let until = borrowed.until {
-            borrowedSubtitle = (max(until, origin), borrowed.track)
-            return
-        }
-        borrowSubtitle(until: origin)
     }
 
     // MARK: Sound
