@@ -73,4 +73,46 @@ struct ScrubStillsTests {
         #expect(ScrubStillQueue.standIn(for: 100, among: [10, 300]) == nil)
         #expect(ScrubStillQueue.standIn(for: 100, among: [Int]()) == nil)
     }
+
+    private func bif(stamps: [UInt32], unit: UInt32, stills: [[UInt8]]) -> Data {
+        var bytes: [UInt8] = [0x89, 0x42, 0x49, 0x46, 0x0D, 0x0A, 0x1A, 0x0A]
+        func word(_ value: UInt32) { bytes += [UInt8(value & 0xFF), UInt8(value >> 8 & 0xFF), UInt8(value >> 16 & 0xFF), UInt8(value >> 24)] }
+        word(0)
+        word(UInt32(stamps.count))
+        word(unit)
+        bytes += [UInt8](repeating: 0, count: 44)
+        var offset = UInt32(64 + (stamps.count + 1) * 8)
+        for (stamp, still) in zip(stamps, stills) {
+            word(stamp)
+            word(offset)
+            offset += UInt32(still.count)
+        }
+        word(0xFFFF_FFFF)
+        word(offset)
+        stills.forEach { bytes += $0 }
+        return Data(bytes)
+    }
+
+    @Test func aBIFIndexReadsEveryStillWithItsTimeAndBytes() throws {
+        let data = bif(stamps: [0, 1, 2], unit: 2000, stills: [[1, 2], [3, 4, 5], [6]])
+        let index = try #require(BIFIndex(data))
+        #expect(index.frames.map(\.seconds) == [0, 2, 4])
+        #expect(index.frames.map { [UInt8](data[$0.bytes]) } == [[1, 2], [3, 4, 5], [6]])
+    }
+
+    @Test func aBIFIndexFindsTheStillShowingAMoment() throws {
+        let index = try #require(BIFIndex(bif(stamps: [0, 1, 2, 3], unit: 0, stills: [[1], [2], [3], [4]])))
+        #expect(index.frame(at: -5) == 0)
+        #expect(index.frame(at: 0.5) == 0)
+        #expect(index.frame(at: 1) == 1)
+        #expect(index.frame(at: 2.9) == 2)
+        #expect(index.frame(at: 99) == 3)
+    }
+
+    @Test func somethingElseIsNotABIFIndex() {
+        #expect(BIFIndex(Data("<html>not found</html>".utf8)) == nil)
+        var truncated = [UInt8](bif(stamps: [0, 1], unit: 1000, stills: [[1, 2, 3], [4, 5, 6]]))
+        truncated.removeLast(4)
+        #expect(BIFIndex(Data(truncated)) == nil)
+    }
 }
