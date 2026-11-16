@@ -324,8 +324,10 @@ enum StatsSections {
         case .libraries:
             let libraries = page.libraries
             let breakdown = LibrariesBreakdownView()
-            breakdown.configure(slices: zip(libraries.segments, libraries.legend).map { segment, row in
-                LibrariesBreakdownView.Slice(title: row.title, value: segment.value, valueText: row.value, colorIndex: row.colorIndex)
+            breakdown.configure(slices: libraries.segments.enumerated().map { index, segment in
+                let row = libraries.legend.indices.contains(index) ? libraries.legend[index] : nil
+                return LibrariesBreakdownView.Slice(title: row?.title ?? segment.label, value: segment.value, valueText: row?.value ?? "",
+                                                    colorIndex: segment.colorIndex, isListed: row != nil)
             }, centerTitle: libraries.centerTitle, centerSubtitle: libraries.centerSubtitle, animate: animate)
             return Margins(StatsPanelView(title: String(localized: "Your Libraries"), content: breakdown, summary: libraries.accessibilitySummary))
         case .genres:

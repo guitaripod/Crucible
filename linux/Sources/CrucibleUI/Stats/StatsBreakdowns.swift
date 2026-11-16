@@ -11,16 +11,21 @@ public final class LibrariesBreakdownView: View {
         public var value: Int
         public var valueText: String
         public var colorIndex: Int
+        /// Whether the slice has a row beside the ring; past the first few libraries it is only an arc, so the ring and the
+        /// shares still add up to the total in the hole.
+        public var isListed: Bool
 
-        public init(title: String, value: Int, valueText: String, colorIndex: Int) {
+        public init(title: String, value: Int, valueText: String, colorIndex: Int, isListed: Bool = true) {
             self.title = title
             self.value = value
             self.valueText = valueText
             self.colorIndex = colorIndex
+            self.isListed = isListed
         }
     }
 
     private var slices: [Slice] = []
+    private var listed: [Slice] { slices.filter(\.isListed) }
     private var centerTitle = ""
     private var centerSubtitle = ""
     private var sweep = Animated(1)
@@ -47,7 +52,8 @@ public final class LibrariesBreakdownView: View {
     private var stacked: Bool { frame.width < side + metrics.tv(64) + metrics.tv(500) }
 
     public override func sizeThatFits(_ size: Size) -> Size {
-        let legend = Float(slices.count) * rowHeight + Float(max(0, slices.count - 1)) * metrics.tv(24)
+        let rows = listed.count
+        let legend = Float(rows) * rowHeight + Float(max(0, rows - 1)) * metrics.tv(24)
         let isStacked = size.width < side + metrics.tv(64) + metrics.tv(500)
         return Size(width: size.width, height: isStacked ? side + metrics.tv(40) + legend : max(side, legend))
     }
@@ -64,12 +70,13 @@ public final class LibrariesBreakdownView: View {
         drawRing(in: ring, context: &context)
         let legendX = stacked ? Float(0) : side + metrics.tv(64)
         let legendWidth = min(frame.width - legendX, metrics.tv(880))
-        let legendHeight = Float(slices.count) * rowHeight + Float(max(0, slices.count - 1)) * metrics.tv(24)
+        let rows = listed
+        let legendHeight = Float(rows.count) * rowHeight + Float(max(0, rows.count - 1)) * metrics.tv(24)
         var y = stacked ? side + metrics.tv(40) : ((frame.height - legendHeight) / 2).rounded()
         let total = max(1, slices.reduce(0) { $0 + $1.value })
         let scale = window?.scale ?? 1
         let type = Theme.current.type
-        for slice in slices {
+        for slice in rows {
             let dot = metrics.tv(24)
             context.fill(Rect(x: legendX, y: y + ((rowHeight - dot) / 2).rounded(), width: dot, height: dot), radius: dot / 2, color: StatsStyle.categorical(slice.colorIndex))
             let share = Int((Double(slice.value) / Double(total) * 100).rounded())
