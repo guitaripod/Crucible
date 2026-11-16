@@ -376,7 +376,8 @@ final class PlayerScreen: View {
     }
 
     /// Answers a failed stream as `PlaybackSession` does: a file that fails to play as it is gets converted by the server
-    /// from the playhead, once; anything else says so with Retry.
+    /// from the playhead, once; anything else says so with Retry, and stops keeping the dead session alive, whose ping would
+    /// otherwise rebuild it behind the error every 20 seconds.
     private func recover(from message: String) {
         switch failurePolicy.decide(wasDirectPlay: stream?.isDirectPlay ?? false, isOffline: false) {
         case .fallBackToTranscode:
@@ -384,6 +385,7 @@ final class PlayerScreen: View {
         case .ignore:
             break
         case .restartTranscode, .fail:
+            pingTask?.cancel()
             presentFailure(message, retry: { [weak self] in self?.retryFromPlayhead() })
         }
     }
