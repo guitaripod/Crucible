@@ -503,7 +503,8 @@ public final class Window {
     private var ambientSteps: [ObjectIdentifier: Double] = [:]
     private var ambientWake: Double?
 
-    /// Draws again at `time` for the ambient views, unless something draws sooner.
+    /// Draws again at `time` for the ambient views, unless something draws sooner. The wake asks for a frame without
+    /// counting as a change, so a window the compositor stopped sending frame callbacks to (hidden, minimised) still waits.
     private func scheduleAmbientFrame(at time: Double) {
         if let ambientWake, ambientWake <= time, ambientWake > Window.now() { return }
         ambientWake = time
@@ -511,7 +512,7 @@ public final class Window {
             MainActor.assumeIsolated {
                 guard let self, self.ambientWake == time else { return }
                 self.ambientWake = nil
-                self.setNeedsDisplay()
+                self.needsDisplay = true
             }
         }
     }
@@ -527,7 +528,7 @@ public final class Window {
         for (key, view) in animating {
             var step = dt
             if let interval = view.animationInterval {
-                step = Float(min(max(time - (ambientSteps[key] ?? time - interval), 0), 0.25))
+                step = Float(min(max(time - (ambientSteps[key] ?? time - interval), 0), hasKeyboardFocus ? 0.25 : 1))
                 ambientSteps[key] = time
             }
             if view.window !== self {
