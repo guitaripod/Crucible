@@ -510,6 +510,8 @@ private final class TopResultView: View {
         let made = SearchTopResultModel(item: newItem)
         model = made
         poster.source = made.posterPath.map { .path($0, .poster) }
+        laidOut = nil
+        superview?.setNeedsLayout()
         play.isHidden = !made.canPlay
         play.title = SearchItemActions.playTitle(for: newItem)
         switch newItem.mediaType {
@@ -526,9 +528,51 @@ private final class TopResultView: View {
         return Size(width: metrics.tv(200), height: metrics.tv(300))
     }
 
+    /// The eyebrow, the title and the meta line beside the poster, laid out once per title, width and scale.
+    @MainActor
+    private struct TextBlock {
+        let eyebrow: TextLayout
+        let title: TextLayout
+        let match: TextLayout?
+        let meta: TextLayout
+
+        /// From the poster's top to the end of the meta line.
+        var height: Float {
+            let metrics = Theme.current.metrics
+            return metrics.tv(20) + eyebrow.size.height + metrics.tv(8) + title.size.height + metrics.tv(8) + meta.size.height
+        }
+    }
+
+    private var laidOut: (width: Float, scale: Float, block: TextBlock)?
+
+    private func textBlock(width: Float) -> TextBlock? {
+        guard let model else { return nil }
+        let scale = window?.scale ?? 1
+        if let laidOut, laidOut.width == width, laidOut.scale == scale { return laidOut.block }
+        let type = Theme.current.type
+        let title = TextLayout(model.title, font: type.screenTitle, maxWidth: width, maxLines: 2, scale: scale)
+        let block = TextBlock(
+            eyebrow: TextLayout(SearchCopy.topResultEyebrow.uppercased(), font: type.eyebrow, maxWidth: width, scale: scale),
+            title: title,
+            match: title.showingOnly(utf16: SearchScreen.highlights(of: query, in: model.title).map { (location: $0.lowerBound, length: $0.count) }),
+            meta: TextLayout(model.meta, font: type.screenSummary, maxWidth: width, scale: scale))
+        laidOut = (width, scale, block)
+        return block
+    }
+
+    private func textWidth(in width: Float) -> Float { width - textX - Theme.current.metrics.sideMargin }
+
+    /// Where the buttons go: level with the poster's foot, or under the text when larger type pushes the text down that far.
+    private func buttonsY(posterTop: Float, block: TextBlock?) -> Float {
+        let metrics = Theme.current.metrics
+        let resting = posterTop + posterSize.height - metrics.primaryControlHeight - metrics.tv(20)
+        return max(resting, posterTop + (block?.height ?? 0) + metrics.tv(24))
+    }
+
     override func sizeThatFits(_ size: Size) -> Size {
         let metrics = Theme.current.metrics
-        return Size(width: size.width, height: posterSize.height + metrics.shelfTopInset + metrics.shelfBottomInset)
+        let bottom = buttonsY(posterTop: 0, block: textBlock(width: textWidth(in: size.width))) + metrics.primaryControlHeight + metrics.tv(20)
+        return Size(width: size.width, height: max(posterSize.height, bottom) + metrics.shelfTopInset + metrics.shelfBottomInset)
     }
 
     private var textX: Float { Theme.current.metrics.sideMargin + posterSize.width + Theme.current.metrics.gutter }
@@ -539,7 +583,7 @@ private final class TopResultView: View {
         let height = metrics.primaryControlHeight
         let playSize = play.sizeThatFits(Size(width: 600, height: height))
         let openSize = openButton.sizeThatFits(Size(width: 600, height: height))
-        let y = poster.frame.maxY - height - metrics.tv(20)
+        let y = buttonsY(posterTop: poster.frame.minY, block: textBlock(width: textWidth(in: bounds.width)))
         var x = textX
         if !play.isHidden {
             play.frame = Rect(x: x, y: y, width: playSize.width, height: playSize.height)
@@ -549,22 +593,16 @@ private final class TopResultView: View {
     }
 
     override func draw(_ context: inout DrawContext) {
-        guard let model, let scale = window?.scale else { return }
+        guard let block = textBlock(width: textWidth(in: bounds.width)) else { return }
         let theme = Theme.current
         let metrics = theme.metrics
-        let width = bounds.width - textX - metrics.sideMargin
         var y = poster.frame.minY + metrics.tv(20)
-        let eyebrow = TextLayout(SearchCopy.topResultEyebrow.uppercased(), font: theme.type.eyebrow, maxWidth: width, scale: scale)
-        context.text(eyebrow, at: Point(x: textX, y: y), color: theme.palette.accentText)
-        y += eyebrow.size.height + metrics.tv(8)
-        let title = TextLayout(model.title, font: theme.type.screenTitle, maxWidth: width, maxLines: 2, scale: scale)
-        context.text(title, at: Point(x: textX, y: y), color: theme.palette.label)
-        if let match = title.showingOnly(utf16: SearchScreen.highlights(of: query, in: model.title).map { (location: $0.lowerBound, length: $0.count) }) {
-            context.text(match, at: Point(x: textX, y: y), color: theme.palette.accentText)
-        }
-        y += title.size.height + metrics.tv(8)
-        let line = TextLayout(model.meta, font: theme.type.screenSummary, maxWidth: width, scale: scale)
-        context.text(line, at: Point(x: textX, y: y), color: theme.palette.labelSecondary)
+        context.text(block.eyebrow, at: Point(x: textX, y: y), color: theme.palette.accentText)
+        y += block.eyebrow.size.height + metrics.tv(8)
+        context.text(block.title, at: Point(x: textX, y: y), color: theme.palette.label)
+        if let match = block.match { context.text(match, at: Point(x: textX, y: y), color: theme.palette.accentText) }
+        y += block.title.size.height + metrics.tv(8)
+        context.text(block.meta, at: Point(x: textX, y: y), color: theme.palette.labelSecondary)
     }
 }
 
