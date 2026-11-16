@@ -13,6 +13,9 @@ struct TraktCommentMarkupTests {
         "> only a quote",
         "Trailing break\n",
         "snake_case and 5 * 3 stay as written",
+        "**https://example.com/a** in bold",
+        "Escaped \\*not italic\\* and \\[not a link\\](here)",
+        "*Hello* **world** side by side",
     ]
 
     @Test func markupReadsBackIntoTheSameText() {
@@ -45,6 +48,17 @@ struct TraktCommentMarkupTests {
             TraktCommentText.Line(runs: [.init(text: "Una cita")], isQuote: true),
         ]
         #expect(TraktCommentText.markup(lines) == "Me encantó. [spoiler]**El padre muere**[/spoiler] al final.\n> Una cita")
+    }
+
+    @Test func runsThatWouldReadBackWronglyAreEscapedOrLoseOnlyTheirEmphasis() {
+        let adjacent = [TraktCommentText.Line(runs: [.init(text: "Hello", styles: [.italic]), .init(text: "world", styles: [.bold])])]
+        let read = TraktCommentText(TraktCommentText.markup(adjacent))
+        #expect(read.plainText == "Helloworld")
+        let literal = [TraktCommentText.Line(runs: [.init(text: "a *starred* word and [x](y)")])]
+        let markup = TraktCommentText.markup(literal)
+        #expect(TraktCommentText(markup).runs == [.init(text: "a *starred* word and [x](y)")])
+        let plain = [TraktCommentText.Line(runs: [.init(text: "5 * 3 and snake_case")])]
+        #expect(TraktCommentText.markup(plain) == "5 * 3 and snake_case")
     }
 
     @Test func aLineWithOnlyCodeOrLinksHasNoWordsToTranslate() {
