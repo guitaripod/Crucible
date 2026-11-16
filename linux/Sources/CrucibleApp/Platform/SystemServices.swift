@@ -26,7 +26,9 @@ enum ScreenAwake {
 
 /// Lets go of decoded artwork nothing on screen shows when the kernel reports memory running short (a pressure-stall
 /// trigger), as the Apple TV does on a memory warning; at most once every ten seconds, and not while the app is still
-/// starting, when reading its own files from disk stalls like pressure does.
+/// starting, when reading its own files from disk stalls like pressure does. The trigger is system-wide, so a stall that
+/// leaves plenty of memory available (another program swapping in, a full disk's writeback, as on a Steam Deck under
+/// Steam) is not taken as a warning: artwork thrown away then only costs decoding it again.
 @MainActor
 final class MemoryPressure {
     private static let spacing: Duration = .seconds(10)
@@ -49,9 +51,21 @@ final class MemoryPressure {
         let now = ContinuousClock.now
         guard started.duration(to: now) >= Self.startupGrace else { return }
         if let lastPurge, lastPurge.duration(to: now) < Self.spacing { return }
+        guard Self.isMemoryShort() else { return }
         lastPurge = now
         MidgarLog.notice("Memory is short: purging decoded artwork", category: .lifecycle)
         windows.forEach { $0.purgeImageMemory() }
+    }
+
+    /// Whether less than a tenth of memory (and under 1.5 GB) is available, from /proc/meminfo; true when it cannot be read.
+    static func isMemoryShort(meminfo: String? = try? String(contentsOfFile: "/proc/meminfo", encoding: .utf8)) -> Bool {
+        guard let meminfo else { return true }
+        func kilobytes(_ key: String) -> Double? {
+            guard let line = meminfo.split(separator: "\n").first(where: { $0.hasPrefix(key + ":") }) else { return nil }
+            return line.split(separator: " ").dropFirst().first.flatMap { Double($0) }
+        }
+        guard let total = kilobytes("MemTotal"), let available = kilobytes("MemAvailable"), total > 0 else { return true }
+        return available < total * 0.1 && available < 1_572_864
     }
 }
 
