@@ -92,6 +92,7 @@ package final class PlaybackSession {
     /// The sleep timer the viewer set, if any.
     package internal(set) var sleepTimer: SleepTimer?
     var volumeBeforeFade: Float?
+    var fadeTask: Task<Void, Never>?
     /// Whether the player was playing when an audio interruption began, which is the only case its end may resume.
     var playingBeforeInterruption = false
     let installsRemoteCommands: Bool
@@ -462,7 +463,8 @@ package final class PlaybackSession {
     }
 
     private func cancelBackgroundWork() {
-        for task in [pingTask, undoTask, upNextTask, fallbackTask, heartbeatTask, routeCheckTask, rebuildTask, subtitleSyncTask] { task?.cancel() }
+        for task in [pingTask, undoTask, upNextTask, fallbackTask, heartbeatTask, routeCheckTask, rebuildTask, subtitleSyncTask, fadeTask] { task?.cancel() }
+        fadeTask = nil
         subtitleSyncTask = nil
         routeCheckTask = nil
         rebuildTask = nil

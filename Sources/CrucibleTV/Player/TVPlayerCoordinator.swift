@@ -82,6 +82,7 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
     var isRevealing = false
     /// The session's player is attached and the pre-roll waits for its item to load.
     var isAwaitingReveal = false
+    var sleepMenuTask: Task<Void, Never>?
     var isUpNextCardVisible = false
     var unattendedEpisodes = 0
     /// A timed sleep timer that outlives one session, so it keeps counting into the next episode.
@@ -457,6 +458,8 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         revealTask?.cancel()
         revealTask = nil
         isAwaitingReveal = false
+        sleepMenuTask?.cancel()
+        sleepMenuTask = nil
         upNextTask?.cancel()
         postPlayTask?.cancel()
         postPlayTask = nil

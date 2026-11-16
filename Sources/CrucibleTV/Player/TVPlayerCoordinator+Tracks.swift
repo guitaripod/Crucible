@@ -37,7 +37,8 @@ extension TVPlayerCoordinator {
         ))]
     }
 
-    /// The sleep timer: a few lengths of time or the end of what is playing, with the time left in the menu's title.
+    /// The sleep timer: a few lengths of time or the end of what is playing, with the time left in the menu's title, which is
+    /// rebuilt whenever that time passes another minute so it never shows a figure that is no longer true.
     private func sleepMenu(_ session: PlaybackSession) -> UIMenu {
         let timer = session.sleepTimer
         let off = UIAction(title: SleepTimer.off, state: timer == nil ? .on : .off) { [weak self] _ in self?.setSleepTimer(nil) }
@@ -46,11 +47,34 @@ extension TVPlayerCoordinator {
                 self?.setSleepTimer(choice)
             }
         }
+        followSleepTimer(timer)
         return UIMenu(
             title: timer?.menuTitle(isEpisode: request.isEpisode) ?? SleepTimer.title,
             image: UIImage(systemName: timer == nil ? "moon.zzz" : "moon.zzz.fill"),
             children: [off] + choices
         )
+    }
+
+    /// Rebuilds the menus when a timed sleep timer's time left reaches the next whole minute down. A rebuild closes a menu that
+    /// is open, so while one is it waits until the viewer has left it.
+    private func followSleepTimer(_ timer: SleepTimer?) {
+        sleepMenuTask?.cancel()
+        sleepMenuTask = nil
+        guard let remaining = timer?.remaining(), remaining > 0 else { return }
+        let untilNextMinute = remaining.truncatingRemainder(dividingBy: 60)
+        sleepMenuTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds((untilNextMinute == 0 ? 60 : untilNextMinute) + 0.05))
+            while !Task.isCancelled, self?.isViewerInTransportBar == true {
+                try? await Task.sleep(for: .seconds(2))
+            }
+            guard !Task.isCancelled else { return }
+            self?.refreshTrackMenus()
+        }
+    }
+
+    /// Whether one of the transport bar's menus is open: focus is then on one of its rows.
+    private var isViewerInTransportBar: Bool {
+        UIFocusSystem.focusSystem(for: playerVC.view)?.focusedItem is UICollectionViewCell
     }
 
     private func setSleepTimer(_ choice: SleepTimerChoice?) {

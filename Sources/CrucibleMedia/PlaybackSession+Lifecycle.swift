@@ -188,9 +188,28 @@ extension PlaybackSession {
         let now = wallClock()
         if timer.isDue(now: now) {
             fallAsleep()
-        } else if let player, player.rate > 0, timer.startsFading(now: now), let remaining = timer.remaining(now: now) {
-            if volumeBeforeFade == nil { volumeBeforeFade = player.volume }
-            player.volume = (volumeBeforeFade ?? 1) * Float(remaining / SleepTimer.fadeSeconds)
+        } else if let player, player.rate > 0, timer.startsFading(now: now), fadeTask == nil {
+            fadeOut(towards: timer)
+        }
+    }
+
+    /// Lowers the volume over the timer's last seconds in steps too small to hear, from wherever it stood to silence at the
+    /// deadline, which then ends playback on the dot instead of at the next heartbeat.
+    private func fadeOut(towards timer: SleepTimer) {
+        guard let player else { return }
+        if volumeBeforeFade == nil { volumeBeforeFade = player.volume }
+        let full = volumeBeforeFade ?? 1
+        fadeTask = Task { [weak self] in
+            while !Task.isCancelled {
+                guard let self, let remaining = timer.remaining(now: wallClock()) else { return }
+                player.volume = full * Float(min(1, remaining / SleepTimer.fadeSeconds))
+                guard remaining > 0 else {
+                    fadeTask = nil
+                    checkSleepTimer()
+                    return
+                }
+                try? await Task.sleep(for: .milliseconds(50))
+            }
         }
     }
 
@@ -204,6 +223,8 @@ extension PlaybackSession {
     }
 
     private func restoreVolumeAfterFade() {
+        fadeTask?.cancel()
+        fadeTask = nil
         guard let volume = volumeBeforeFade else { return }
         player?.volume = volume
         volumeBeforeFade = nil
