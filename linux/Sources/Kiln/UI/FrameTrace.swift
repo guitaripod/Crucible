@@ -49,15 +49,29 @@ public final class FrameTrace {
     private var requested: Double?
     private var lastWrite = Window.now()
     private let opened = Window.now()
-    private let output: FileHandle?
+    private var output: FileHandle?
+    /// Whether `KILN_TRACE` named the file, which `record(to:)` then leaves alone.
+    private let fromEnvironment: Bool
 
     public init() {
         if let path = ProcessInfo.processInfo.environment["KILN_TRACE"], !path.isEmpty,
            FileManager.default.createFile(atPath: path, contents: nil) {
             output = FileHandle(forWritingAtPath: path)
+            fromEnvironment = true
         } else {
             output = nil
+            fromEnvironment = false
         }
+    }
+
+    /// Starts writing the trace to `url`, emptied first, or stops with nil; a trace `KILN_TRACE` started keeps going.
+    public func record(to url: URL?) {
+        guard !fromEnvironment else { return }
+        try? output?.close()
+        output = nil
+        guard let url else { return }
+        try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        if FileManager.default.createFile(atPath: url.path, contents: nil) { output = FileHandle(forWritingAtPath: url.path) }
     }
 
     public var isWriting: Bool { output != nil }

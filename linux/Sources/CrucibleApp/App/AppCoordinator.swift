@@ -177,6 +177,7 @@ final class AppCoordinator: WindowDelegate {
             return
         }
         opened.makeTooltip = { TooltipView(text: $0) }
+        opened.hudTraceFile = AppPlatform.cachesDirectory.appendingPathComponent("frame-trace.txt")
         LinuxDisplay.applyCanvas(to: opened)
         DesktopAccessibility.apply(to: opened)
         opened.useImages(diskDirectory: LinuxSession.imageCacheDirectory, fetch: PlexArtworkPipeline.fetcher(token: payload.connection.authToken))

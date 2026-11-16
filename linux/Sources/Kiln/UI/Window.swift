@@ -91,8 +91,16 @@ public final class Window {
     /// Where frame time goes; `KILN_TRACE=path` writes it out, and the HUD draws it.
     public let trace = FrameTrace()
 
-    /// Draws the frame trace's last second over the window (Ctrl+Shift+P in the app).
-    public var showsPerformanceHUD = false { didSet { setNeedsDisplay() } }
+    /// Draws the frame trace's last second over the window (Ctrl+Shift+P in the app) and writes the trace to `hudTraceFile`
+    /// while it shows, so a slow moment on a real screen can be read afterwards.
+    public var showsPerformanceHUD = false {
+        didSet {
+            trace.record(to: showsPerformanceHUD ? hudTraceFile : nil)
+            setNeedsDisplay()
+        }
+    }
+    /// Where the trace goes while the HUD shows; nil keeps it on screen only.
+    public var hudTraceFile: URL?
     /// Builds the label a tooltip shows; without it there are no tooltips.
     public var makeTooltip: ((String) -> View)?
     private var tooltip: (text: String, view: View?)?

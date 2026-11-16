@@ -50,6 +50,7 @@ func runCrucible() -> Int32 {
         FileHandle.standardError.write(Data("crucible: \(error)\n".utf8))
         return 1
     }
+    window.hudTraceFile = AppPlatform.cachesDirectory.appendingPathComponent("frame-trace.txt")
     if arguments.contains("--fullscreen") || arguments.contains("--couch") { window.setFullscreen(true) }
     LinuxDisplay.applyCanvas(to: window)
     TextRenderer.warmUp(Theme.current.type.all, scale: window.scale)
