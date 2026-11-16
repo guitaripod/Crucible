@@ -55,6 +55,8 @@ package enum PreferenceSetting: CaseIterable, Sendable {
     case quietHours
     case preferLocalConnection
     case allowRelayConnection
+    case translateAutomatically
+    case translationLanguage
 
     package enum Control: Equatable, Sendable {
         case choice([SettingChoice])
@@ -99,6 +101,8 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         case .quietHours: return String(localized: "Quiet Hours", comment: "Setting: hold reminders between 22:00 and 9:00")
         case .preferLocalConnection: return String(localized: "Prefer Local Connection")
         case .allowRelayConnection: return String(localized: "Allow Relay")
+        case .translateAutomatically: return TranslationCopy.automaticSetting
+        case .translationLanguage: return TranslationCopy.languageSetting
         }
     }
 
@@ -138,6 +142,8 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         case .quietHours: return String(localized: "Reminders and the recap wait until 9:00 instead of arriving between 22:00 and 9:00.")
         case .preferLocalConnection: return String(localized: "Uses your home network's address for the server whenever it answers there.")
         case .allowRelayConnection: return String(localized: "Plex Relay reaches a server no other way can, at a lower speed.")
+        case .translateAutomatically: return TranslationCopy.automaticExplanation
+        case .translationLanguage: return TranslationCopy.languageExplanation
         }
     }
 
@@ -176,6 +182,8 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         case .quietHours: return "moon"
         case .preferLocalConnection: return "house.and.flag"
         case .allowRelayConnection: return "arrow.triangle.branch"
+        case .translateAutomatically: return "character.bubble"
+        case .translationLanguage: return "translate"
         }
     }
 
@@ -259,6 +267,10 @@ package enum PreferenceSetting: CaseIterable, Sendable {
             return .toggle(isOn: Preferences.preferLocalConnection)
         case .allowRelayConnection:
             return .toggle(isOn: Preferences.allowRelayConnection)
+        case .translateAutomatically:
+            return .toggle(isOn: TranslationPreferences.translatesAutomatically)
+        case .translationLanguage:
+            return .choice(Self.translationLanguageChoices())
         }
     }
 
@@ -280,8 +292,12 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         }
     }
 
-    /// Whether the value differs from what a new install starts with, for Restore Defaults.
-    package var isChanged: Bool { control != Self.defaults[self] }
+    /// Whether the value differs from what a new install starts with, for Restore Defaults. The translation language's
+    /// choices depend on the device, so it counts as changed only while a language is chosen over Automatic.
+    package var isChanged: Bool {
+        guard self != .translationLanguage else { return TranslationPreferences.chosenLanguage != nil }
+        return control != Self.defaults[self]
+    }
 
     @MainActor
     package func select(_ choice: SettingChoice) {
@@ -337,6 +353,9 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         case .ratingReminderTiming:
             guard let timing = RatingReminderTiming(rawValue: choice.id) else { return }
             Preferences.ratingReminderTiming = timing
+        case .translationLanguage:
+            guard choice.id == 0 || TranslationLanguages.catalog.indices.contains(choice.id - 1) else { return }
+            TranslationPreferences.chosenLanguage = choice.id == 0 ? nil : TranslationLanguages.catalog[choice.id - 1]
         default:
             return
         }
@@ -356,6 +375,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         case .matchContent: Preferences.matchesContent = isOn
         case .preferLocalConnection: Preferences.preferLocalConnection = isOn
         case .allowRelayConnection: Preferences.allowRelayConnection = isOn
+        case .translateAutomatically: TranslationPreferences.translatesAutomatically = isOn
         case .notifyRatingReminders, .notifyNewEpisodes, .notifyWatchlistArrivals, .notifyWeeklyRecap, .notifyYearInReview, .notifyDownloads:
             guard let kind = notificationKind else { return }
             Preferences.setNotifies(kind, isOn)
@@ -371,6 +391,10 @@ package enum PreferenceSetting: CaseIterable, Sendable {
     /// Puts the setting back to what a new install starts with.
     @MainActor
     package func restoreDefault() {
+        if self == .translationLanguage {
+            if TranslationPreferences.chosenLanguage != nil { select(SettingChoice(id: 0, title: "", isSelected: true)) }
+            return
+        }
         switch Self.defaults[self] {
         case .toggle(let isOn)?:
             if self.isOn != isOn { setOn(isOn) }
@@ -420,11 +444,27 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         .quietHours: .toggle(isOn: true),
         .preferLocalConnection: .toggle(isOn: true),
         .allowRelayConnection: .toggle(isOn: false),
+        .translateAutomatically: .toggle(isOn: true),
     ]
 
     private static func qualityChoices(current: Preferences.Quality?, same: String) -> [SettingChoice] {
         [SettingChoice(id: Preferences.sameQuality, title: same, isSelected: current == nil)]
             + Preferences.Quality.allCases.map { SettingChoice(id: $0.rawValue, title: $0.title, isSelected: $0 == current) }
+    }
+
+    /// Automatic first, naming the language it lands on, then every language the device translates into by name. A
+    /// choice's id is its place in the catalog plus one, so it survives a change in what the device offers.
+    private static func translationLanguageChoices() -> [SettingChoice] {
+        let available = TranslationLanguages.available
+        let automatic = TranslationPreferences.automaticLanguage(available: available, preferred: TranslationPreferences.personalLanguages)
+        let chosen = TranslationPreferences.chosenLanguage.flatMap { available.contains($0) ? $0 : nil }
+        let languages = available
+            .map { (identifier: $0, name: TranslationLanguages.name($0)) }
+            .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+            .map { language in
+                SettingChoice(id: (TranslationLanguages.catalog.firstIndex(of: language.identifier) ?? 0) + 1, title: language.name, isSelected: language.identifier == chosen)
+            }
+        return [SettingChoice(id: 0, title: TranslationCopy.automaticLanguage(TranslationLanguages.name(automatic)), isSelected: chosen == nil)] + languages
     }
 
     private static func skipChoices(current: Int) -> [SettingChoice] {

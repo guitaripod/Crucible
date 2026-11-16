@@ -72,6 +72,7 @@ package enum SettingsCategory: String, CaseIterable, Sendable {
     case downloads
     case notifications
     case integrations
+    case translation
     case appearance
     case connection
     case privacy
@@ -85,6 +86,7 @@ package enum SettingsCategory: String, CaseIterable, Sendable {
         case .downloads: return String(localized: "Downloads")
         case .notifications: return String(localized: "Notifications", comment: "Settings category for notifications")
         case .integrations: return TraktCopy.integrationsTitle
+        case .translation: return TranslationCopy.title
         case .appearance: return String(localized: "Appearance")
         case .connection: return String(localized: "Server & Connection")
         case .privacy: return String(localized: "Privacy & Data", comment: "Settings category for privacy and stored data")
@@ -100,6 +102,7 @@ package enum SettingsCategory: String, CaseIterable, Sendable {
         case .downloads: return "arrow.down.circle"
         case .notifications: return "bell.badge"
         case .integrations: return "puzzlepiece.extension"
+        case .translation: return "translate"
         case .appearance: return "circle.lefthalf.filled"
         case .connection: return "server.rack"
         case .privacy: return "hand.raised"
@@ -122,6 +125,7 @@ package enum SettingsCategory: String, CaseIterable, Sendable {
             guard platform == .linux else { return String(localized: "Rating reminders, new episodes, watchlist arrivals and your weekly recap.") }
             return String(localized: "New episodes and watchlist arrivals from your server.", comment: "Linux Settings: what the notifications category holds")
         case .integrations: return TraktCopy.integrationsExplanation
+        case .translation: return TranslationCopy.categoryExplanation
         case .appearance: return String(localized: "Light or dark, and poster size.")
         case .connection: return String(localized: "How Crucible reaches your Plex server.")
         case .privacy: return String(localized: "What is kept on this device, and how to clear it.")
@@ -242,6 +246,8 @@ package enum SettingsCatalog {
             Spec(item: .preference(.notifyDownloads), category: .notifications, section: news, platforms: phone),
             Spec(item: .destination(.trakt), category: .integrations, section: nil, platforms: all),
             Spec(item: .destination(.seerr), category: .integrations, section: nil, platforms: all),
+            Spec(item: .preference(.translateAutomatically), category: .translation, section: nil, platforms: both),
+            Spec(item: .preference(.translationLanguage), category: .translation, section: nil, platforms: both),
             Spec(item: .preference(.appearance), category: .appearance, section: nil, platforms: phone),
             Spec(item: .preference(.libraryGrid), category: .appearance, section: nil, platforms: phone),
             Spec(item: .destination(.serverConnection), category: .connection, section: nil, platforms: all),
@@ -260,7 +266,8 @@ package enum SettingsCatalog {
     }
 
     private static func includes(_ spec: Spec, on platform: SettingsPlatform) -> Bool {
-        switch platform {
+        if spec.category == .translation, !TranslationLanguages.isAvailable { return false }
+        return switch platform {
         case .phone: spec.platforms.contains(.phone)
         case .tv: spec.platforms.contains(.tv)
         case .linux: spec.platforms.contains(.linux)
@@ -316,6 +323,8 @@ package enum SettingsCatalog {
             return String(localized: "\(on) of \(kinds.count) on", comment: "Summary of notification switches, e.g. 5 of 6 on")
         case .integrations:
             return Integrations.summary
+        case .translation:
+            return TranslationCopy.summary(language: TranslationLanguages.name(TranslationPreferences.targetLanguage), automatic: TranslationPreferences.translatesAutomatically)
         case .appearance:
             return PreferenceSetting.appearance.valueLabel
         case .connection:
@@ -476,6 +485,8 @@ package enum SettingsCatalog {
                 return String(localized: "push, alert, notify, badge, quiet, night", comment: "Search keywords for notification settings, comma separated")
             case .preferLocalConnection, .allowRelayConnection:
                 return String(localized: "network, LAN, remote, relay, Tailscale, wifi", comment: "Search keywords for connection settings, comma separated")
+            case .translateAutomatically, .translationLanguage:
+                return TranslationCopy.keywords
             }
         case .destination(let destination):
             switch destination {
