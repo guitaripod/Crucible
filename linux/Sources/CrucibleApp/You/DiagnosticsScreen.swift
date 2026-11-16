@@ -96,7 +96,6 @@ final class DiagnosticsScreen: ScreenView {
         let left = metrics.tv(620)
         let gap = metrics.tv(60)
         let top = metrics.tabBarClearance
-        heading.columnWidth = left
         let headingHeight = heading.sizeThatFits(Size(width: left + metrics.sideMargin * 2, height: 0)).height
         heading.frame = Rect(x: 0, y: top, width: left + metrics.sideMargin * 2, height: headingHeight)
         let statsHeight = stats.sizeThatFits(Size(width: left, height: 0)).height
