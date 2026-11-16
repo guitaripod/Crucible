@@ -63,6 +63,18 @@ public struct GlassTone {
         return true
     }
 
+    /// Reads the tone for text on glass whose panel reads `panel`: the text turns dark with the panel, and also where a bright
+    /// patch (glare in a picture) lies right under it while the panel as a whole reads dark. Returns whether it flipped.
+    public mutating func update(_ context: DrawContext, rect: Rect, on panel: GlassTone) -> Bool {
+        guard let luminance = context.backdropLuminance(of: rect) else { return false }
+        let glare = isLight ? luminance > 0.5 : luminance > 0.62
+        let light = panel.isLight || glare
+        guard light != isLight else { return false }
+        isLight = light
+        animated.set(light ? 1 : 0, animation: .fade)
+        return true
+    }
+
     public mutating func advance(_ dt: Float) -> Bool { animated.advance(dt) }
 }
 

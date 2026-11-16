@@ -35,6 +35,9 @@ public final class MenuView: View {
     private var appear = Animated(0)
     private weak var returnFocus: View?
     private var tone = GlassTone()
+    /// The header's own tone: a bright strip at the top of the panel (glare in a video) can need dark text while the panel
+    /// as a whole reads dark.
+    private var headerTone = GlassTone()
 
     /// A menu of `items` opening from `anchor` (window points).
     public init(title: String? = nil, items: [Item], anchor: Rect) {
@@ -119,7 +122,7 @@ public final class MenuView: View {
     }
 
     public override func advanceAnimations(_ dt: Float) -> Bool {
-        let moving = [appear.advance(dt), tone.advance(dt)].contains(true)
+        let moving = [appear.advance(dt), tone.advance(dt), headerTone.advance(dt)].contains(true)
         setNeedsDisplay()
         return moving
     }
@@ -135,8 +138,9 @@ public final class MenuView: View {
                                    tone: tone.value, context: &inner)
                 if let header, let scale = window?.scale {
                     let layout = TextLayout(header, font: Theme.current.type.caption1, maxWidth: area.width - Theme.current.metrics.tv(48), scale: scale)
-                    inner.text(layout, at: Point(x: area.x + Theme.current.metrics.tv(28), y: area.y + Theme.current.metrics.tv(24)),
-                               color: GlassStyle.secondaryLabel(tone: tone.value))
+                    let origin = Point(x: area.x + Theme.current.metrics.tv(28), y: area.y + Theme.current.metrics.tv(24))
+                    if headerTone.update(inner, rect: Rect(origin: origin, size: layout.size), on: tone) { startAnimating() }
+                    inner.text(layout, at: origin, color: GlassStyle.secondaryLabel(tone: headerTone.value))
                 }
             }
         }

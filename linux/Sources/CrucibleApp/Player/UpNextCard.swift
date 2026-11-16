@@ -22,6 +22,8 @@ final class UpNextCard: View {
     private let asksStillWatching: Bool
     private var appear = Animated(0)
     private var tone = GlassTone()
+    /// The text column's tone: the card's, or dark where glare in the picture lies right under the text.
+    private var textTone = GlassTone()
 
     init(offer: UpNextOffer, asksStillWatching: Bool = false, stopsAfterItem: Bool = false) {
         self.offer = offer
@@ -87,7 +89,7 @@ final class UpNextCard: View {
     }
 
     override func advanceAnimations(_ dt: Float) -> Bool {
-        var moving = [appear.advance(dt), tone.advance(dt)].contains(true)
+        var moving = [appear.advance(dt), tone.advance(dt), textTone.advance(dt)].contains(true)
         alpha = appear.value
         translation = Point(x: (1 - appear.value) * Theme.current.metrics.tv(60), y: 0)
         if counting {
@@ -109,10 +111,11 @@ final class UpNextCard: View {
         if tone.update(context, rect: bounds) { startAnimating() }
         GlassStyle.capsule(in: bounds, radius: metrics.radiusL, light: Point(x: bounds.midX, y: bounds.minY - bounds.height), floating: true,
                            tone: tone.value, context: &context)
-        let label = GlassStyle.label(tone: tone.value)
-        let secondary = GlassStyle.secondaryLabel(tone: tone.value)
         let x = artwork.frame.maxX + metrics.tv(28)
         let width = bounds.width - x - metrics.tv(28)
+        if textTone.update(context, rect: Rect(x: x, y: 0, width: width, height: artwork.frame.maxY), on: tone) { startAnimating() }
+        let label = GlassStyle.label(tone: textTone.value)
+        let secondary = GlassStyle.secondaryLabel(tone: textTone.value)
         var y = metrics.tv(30)
         let eyebrow = TextLayout(UpNextText.eyebrow(asksStillWatching: asksStillWatching), font: theme.type.eyebrow, maxWidth: width, scale: scale)
         context.text(eyebrow, at: Point(x: x, y: y), color: theme.palette.accentText)
