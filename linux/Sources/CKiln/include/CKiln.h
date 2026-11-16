@@ -150,6 +150,9 @@ bool kiln_wl_raise(kiln_wl *wl);
 
 /** Sets the pointer's cursor over the window (a link hand over clickable content, hidden while video plays). */
 void kiln_wl_set_cursor(kiln_wl *wl, enum kiln_cursor cursor);
+/** The physical size in millimetres of the screen the window is on (the first screen before it shows), as the screen's
+ * EDID reports it; false when the compositor gives none (a projector, a virtual output). */
+bool kiln_wl_output_size_mm(kiln_wl *wl, int32_t *width_mm, int32_t *height_mm);
 /** Makes `text` the clipboard, as of the latest key or button press. */
 bool kiln_wl_set_clipboard(kiln_wl *wl, const char *text);
 /** The clipboard as UTF-8 text, to free, or NULL when it holds none; another app's clipboard is read for up to half a

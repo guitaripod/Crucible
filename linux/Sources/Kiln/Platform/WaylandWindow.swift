@@ -111,6 +111,14 @@ public final class WaylandWindow {
         return String(cString: raw)
     }
 
+    /// The physical size of the screen the window is on, in millimetres, when the screen reports one.
+    public var screenSizeMillimetres: (width: Int, height: Int)? {
+        var width: Int32 = 0
+        var height: Int32 = 0
+        guard kiln_wl_output_size_mm(connection, &width, &height) else { return nil }
+        return (Int(width), Int(height))
+    }
+
     /// Turns the input method on for a focused text field, or off.
     public func setTextInputEnabled(_ enabled: Bool) {
         kiln_wl_text_input_enable(connection, enabled)

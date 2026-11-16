@@ -11,6 +11,16 @@
 #include <linux/input-event-codes.h>
 #include <sys/mman.h>
 
+enum { KILN_MAX_OUTPUTS = 8 };
+
+/** A screen the compositor announced, with the physical size its EDID reports. */
+typedef struct {
+    struct wl_output *output;
+    uint32_t name;
+    int32_t width_mm;
+    int32_t height_mm;
+} kiln_output;
+
 struct kiln_wl {
     struct wl_display *display;
     struct wl_registry *registry;
@@ -41,6 +51,9 @@ struct kiln_wl {
     /** The clipboard this app set, answered from memory while it holds the selection. */
     struct wl_data_source *own_source;
     char *own_text;
+    kiln_output outputs[KILN_MAX_OUTPUTS];
+    /** The screen the window was last shown on. */
+    struct wl_output *current_output;
     struct zwp_text_input_manager_v3 *text_input_manager;
     struct zwp_text_input_v3 *text_input;
     /** Whether the seat's text-input focus is on the window, and whether a text field there wants the input method. */
@@ -367,9 +380,13 @@ static void seat_name(void *data, struct wl_seat *seat, const char *name) {}
 
 static const struct wl_seat_listener seat_listener = { .capabilities = seat_capabilities, .name = seat_name };
 
+static void add_output(kiln_wl *wl, struct wl_registry *registry, uint32_t name, uint32_t version);
+
 static void registry_global(void *data, struct wl_registry *registry, uint32_t name, const char *interface, uint32_t version) {
     kiln_wl *wl = data;
-    if (strcmp(interface, wl_compositor_interface.name) == 0) {
+    if (strcmp(interface, wl_output_interface.name) == 0) {
+        add_output(wl, registry, name, version);
+    } else if (strcmp(interface, wl_compositor_interface.name) == 0) {
         wl->compositor = wl_registry_bind(registry, name, &wl_compositor_interface, kiln_min(version, 6));
     } else if (strcmp(interface, xdg_wm_base_interface.name) == 0) {
         wl->wm_base = wl_registry_bind(registry, name, &xdg_wm_base_interface, kiln_min(version, 6));
@@ -403,7 +420,83 @@ static void registry_global(void *data, struct wl_registry *registry, uint32_t n
     }
 }
 
-static void registry_remove(void *data, struct wl_registry *registry, uint32_t name) {}
+static void output_geometry(void *data, struct wl_output *output, int32_t x, int32_t y, int32_t width_mm, int32_t height_mm,
+                            int32_t subpixel, const char *make, const char *model, int32_t transform) {
+    kiln_wl *wl = data;
+    for (int index = 0; index < KILN_MAX_OUTPUTS; index++) {
+        if (wl->outputs[index].output != output) continue;
+        wl->outputs[index].width_mm = width_mm;
+        wl->outputs[index].height_mm = height_mm;
+    }
+}
+
+static void output_mode(void *data, struct wl_output *output, uint32_t flags, int32_t width, int32_t height, int32_t refresh) {}
+static void output_done(void *data, struct wl_output *output) {}
+static void output_scale(void *data, struct wl_output *output, int32_t factor) {}
+static void output_name(void *data, struct wl_output *output, const char *name) {}
+static void output_description(void *data, struct wl_output *output, const char *description) {}
+
+static const struct wl_output_listener output_listener = {
+    .geometry = output_geometry,
+    .mode = output_mode,
+    .done = output_done,
+    .scale = output_scale,
+    .name = output_name,
+    .description = output_description,
+};
+
+static void add_output(kiln_wl *wl, struct wl_registry *registry, uint32_t name, uint32_t version) {
+    for (int index = 0; index < KILN_MAX_OUTPUTS; index++) {
+        if (wl->outputs[index].output) continue;
+        wl->outputs[index] = (kiln_output) { .output = wl_registry_bind(registry, name, &wl_output_interface, kiln_min(version, 2)), .name = name };
+        wl_output_add_listener(wl->outputs[index].output, &output_listener, wl);
+        return;
+    }
+}
+
+static void registry_remove(void *data, struct wl_registry *registry, uint32_t name) {
+    kiln_wl *wl = data;
+    for (int index = 0; index < KILN_MAX_OUTPUTS; index++) {
+        if (!wl->outputs[index].output || wl->outputs[index].name != name) continue;
+        if (wl->current_output == wl->outputs[index].output) wl->current_output = NULL;
+        wl_output_destroy(wl->outputs[index].output);
+        wl->outputs[index] = (kiln_output) { 0 };
+    }
+}
+
+static void surface_enter(void *data, struct wl_surface *surface, struct wl_output *output) {
+    kiln_wl *wl = data;
+    wl->current_output = output;
+}
+
+static void surface_leave(void *data, struct wl_surface *surface, struct wl_output *output) {
+    kiln_wl *wl = data;
+    if (wl->current_output == output) wl->current_output = NULL;
+}
+
+static void surface_preferred_scale(void *data, struct wl_surface *surface, int32_t factor) {}
+static void surface_preferred_transform(void *data, struct wl_surface *surface, uint32_t transform) {}
+
+static const struct wl_surface_listener surface_listener = {
+    .enter = surface_enter,
+    .leave = surface_leave,
+    .preferred_buffer_scale = surface_preferred_scale,
+    .preferred_buffer_transform = surface_preferred_transform,
+};
+
+bool kiln_wl_output_size_mm(kiln_wl *wl, int32_t *width_mm, int32_t *height_mm) {
+    const kiln_output *found = NULL;
+    for (int index = 0; index < KILN_MAX_OUTPUTS; index++) {
+        const kiln_output *output = &wl->outputs[index];
+        if (!output->output) continue;
+        if (output->output == wl->current_output || !found) found = output;
+        if (output->output == wl->current_output) break;
+    }
+    if (!found || found->width_mm <= 0 || found->height_mm <= 0) return false;
+    *width_mm = found->width_mm;
+    *height_mm = found->height_mm;
+    return true;
+}
 
 enum { OFFER_UTF8 = 1, OFFER_UTF8_STRING = 2, OFFER_PLAIN = 4 };
 
@@ -738,6 +831,9 @@ void kiln_wl_disconnect(kiln_wl *wl) {
     if (wl->text_input_manager) zwp_text_input_manager_v3_destroy(wl->text_input_manager);
     free(wl->text_input_surrounding);
     text_input_clear_pending(wl);
+    for (int index = 0; index < KILN_MAX_OUTPUTS; index++) {
+        if (wl->outputs[index].output) wl_output_destroy(wl->outputs[index].output);
+    }
     if (wl->pointer) wl_pointer_release(wl->pointer);
     if (wl->keyboard) wl_keyboard_release(wl->keyboard);
     if (wl->xkb_state) xkb_state_unref(wl->xkb_state);
@@ -828,6 +924,7 @@ bool kiln_wl_create_window(kiln_wl *wl, const char *title, const char *app_id, k
     wl->callbacks = callbacks;
     wl->context = context;
     wl->surface = wl_compositor_create_surface(wl->compositor);
+    wl_surface_add_listener(wl->surface, &surface_listener, wl);
     wl->xdg_surface = xdg_wm_base_get_xdg_surface(wl->wm_base, wl->surface);
     xdg_surface_add_listener(wl->xdg_surface, &xdg_surface_listener, wl);
     wl->toplevel = xdg_surface_get_toplevel(wl->xdg_surface);

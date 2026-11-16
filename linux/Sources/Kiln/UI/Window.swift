@@ -114,6 +114,8 @@ public final class Window {
         listener = WaylandListener()
         self.size = size
         self.scale = scale
+        surfaceSize = size
+        outputScale = scale
         renderer = try SceneRenderer(gpu: gpu, width: Int((size.width * scale).rounded()), height: Int((size.height * scale).rounded()))
         renderer.scale = scale
         self.contentView = contentView
@@ -133,6 +135,8 @@ public final class Window {
         _ = surface.pump(readable: false)
         size = Size(width: Float(surface.width), height: Float(surface.height))
         scale = Float(surface.scale)
+        surfaceSize = size
+        outputScale = scale
         gpu = try GPU(display: surface.display, surface: surface.surface)
         if let shaderCache { gpu.useShaderCache(at: shaderCache) }
         renderer = try SceneRenderer(gpu: gpu, width: Int((size.width * scale).rounded()), height: Int((size.height * scale).rounded()))
@@ -242,7 +246,9 @@ public final class Window {
     }
 
     private func sendTextInputState(_ state: TextInputState, of view: View) {
-        surface?.updateTextInput(state, caret: view.transformToWindow.apply(state.caret))
+        let caret = view.transformToWindow.apply(state.caret)
+        surface?.updateTextInput(state, caret: Rect(x: caret.minX * canvasZoom, y: caret.minY * canvasZoom, width: caret.width * canvasZoom,
+                                                    height: caret.height * canvasZoom))
     }
 
     /// A gamepad's right stick: the focused view and its ancestors in turn (the content view when nothing has the focus),
@@ -263,6 +269,15 @@ public final class Window {
             if view.gamepadTriggered(left: left, right: right) { return }
             responder = view.superview
         }
+    }
+
+    /// The diagonal of the screen the window is on, in inches, from the size the screen reports; nil offscreen or when the
+    /// screen reports none.
+    public var screenDiagonalInches: Float? {
+        guard let size = surface?.screenSizeMillimetres else { return nil }
+        let width = Float(size.width)
+        let height = Float(size.height)
+        return (width * width + height * height).squareRoot() / 25.4
     }
 
     /// Hands `link` to the app to open in a new window.
@@ -482,10 +497,30 @@ public final class Window {
 
     // MARK: Resizing
 
+    /// The window's size in the compositor's points and the output's scale, before any canvas.
+    private var surfaceSize = Size.zero
+    private var outputScale: Float = 1
+
+    /// When set, the content is laid out at this size in points and drawn scaled to fit the window, wider or taller where
+    /// the window's shape differs (Couch's 1920 by 1080 tvOS canvas on any screen).
+    public var canvas: Size? {
+        didSet {
+            guard canvas != oldValue, surfaceSize.width > 0 else { return }
+            resize(width: Int(surfaceSize.width), height: Int(surfaceSize.height), scale: outputScale)
+        }
+    }
+
+    /// How much larger than the compositor's points the content is drawn: the canvas fitted to the window, or 1.
+    public private(set) var canvasZoom: Float = 1
+
     func resize(width: Int, height: Int, scale newScale: Float) {
-        size = Size(width: Float(width), height: Float(height))
-        scale = newScale
-        renderer.scale = newScale
+        surfaceSize = Size(width: Float(width), height: Float(height))
+        outputScale = newScale
+        let zoom = canvas.map { min(Float(width) / max($0.width, 1), Float(height) / max($0.height, 1)) }.flatMap { $0 > 0 ? $0 : nil } ?? 1
+        canvasZoom = zoom
+        size = Size(width: Float(width) / zoom, height: Float(height) / zoom)
+        scale = newScale * zoom
+        renderer.scale = scale
         let pixelWidth = Int((Float(width) * newScale).rounded())
         let pixelHeight = Int((Float(height) * newScale).rounded())
         if let surface {
@@ -505,7 +540,7 @@ public final class Window {
 
     /// Resizes an offscreen window.
     public func resizeOffscreen(to size: Size, scale: Float? = nil) {
-        resize(width: Int(size.width), height: Int(size.height), scale: scale ?? self.scale)
+        resize(width: Int(size.width), height: Int(size.height), scale: scale ?? outputScale)
     }
 
     // MARK: Focus
@@ -696,7 +731,7 @@ public final class Window {
 
         func windowScaleChanged(_ surface: WaylandWindow, scale: Double) {
             guard let window else { return }
-            window.resize(width: Int(window.size.width), height: Int(window.size.height), scale: Float(scale))
+            window.resize(width: Int(window.surfaceSize.width), height: Int(window.surfaceSize.height), scale: Float(scale))
         }
 
         func windowPresented(_ surface: WaylandWindow, nanoseconds: UInt64, refreshNanoseconds: UInt32, sequence: UInt64) {
@@ -711,7 +746,8 @@ public final class Window {
         }
 
         func windowPointerMoved(_ surface: WaylandWindow, x: Double, y: Double) {
-            window?.handlePointerMoved(to: Point(x: Float(x), y: Float(y)))
+            guard let window else { return }
+            window.handlePointerMoved(to: Point(x: Float(x) / window.canvasZoom, y: Float(y) / window.canvasZoom))
         }
 
         func windowPointerLeft(_ surface: WaylandWindow) {
