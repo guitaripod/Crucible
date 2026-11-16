@@ -43,15 +43,21 @@ extension TVPlayerCoordinator {
         return targetTime
     }
 
-    /// Press-and-hold on each side of the clickpad. A side left at the system's scan keeps the player's own
-    /// rewind and fast forward; a side set to jump, start over or play the next episode does that instead.
+    /// Press-and-hold on a side of the clickpad set to jump, start over or play the next episode. That side's presses go to
+    /// the hold first: the system player only sees them once the hold has failed, so a click still skips and a hold does only
+    /// what the viewer chose, without the system's fast-forward running on from it. A side left at the system's scan keeps
+    /// the player's own rewind and fast forward and gets no recognizer at all.
     func installHoldGestures() {
-        for (press, action) in [(UIPress.PressType.leftArrow, #selector(heldLeft(_:))), (.rightArrow, #selector(heldRight(_:)))] {
-            let hold = UILongPressGestureRecognizer(target: self, action: action)
+        for (press, action, selector) in [
+            (UIPress.PressType.leftArrow, Preferences.holdLeftAction, #selector(heldLeft(_:))),
+            (.rightArrow, Preferences.holdRightAction, #selector(heldRight(_:))),
+        ] where action != .scan {
+            let hold = UILongPressGestureRecognizer(target: self, action: selector)
             hold.allowedPressTypes = [NSNumber(value: press.rawValue)]
-            hold.minimumPressDuration = 0.6
-            hold.cancelsTouchesInView = false
+            hold.minimumPressDuration = Self.holdDuration
+            hold.delaysTouchesBegan = true
             hold.delegate = self
+            holdRecognizers.append(hold)
             playerVC.view.addGestureRecognizer(hold)
         }
     }
@@ -70,24 +76,54 @@ extension TVPlayerCoordinator {
         guard let session, action != .scan else { return }
         MidgarLog.notice("Hold \(forward ? "right" : "left") ratingKey=\(request.ratingKey) action=\(action.title(forward: forward))", category: .playback)
         viewerActed()
+        session.viewerNavigated()
         switch action {
         case .scan:
             break
         case .edge:
-            if forward { session.requestUpNext() } else { session.startOver() }
+            if forward {
+                session.requestUpNext()
+            } else {
+                showJump(action.title(forward: false), symbol: "backward.end.fill")
+                session.startOver()
+            }
         default:
             guard let seconds = action.jumpSeconds else { return }
+            showJump(action.title(forward: forward), symbol: forward ? "goforward" : "gobackward")
             session.move(by: forward ? Double(seconds) : -Double(seconds), reason: "hold \(forward ? "right" : "left")")
         }
+    }
+
+    private func showJump(_ text: String, symbol: String) {
+        guard let overlay = playerVC.contentOverlayView else { return }
+        let indicator = jumpIndicator ?? TVPlayerJumpIndicator.install(in: overlay)
+        jumpIndicator = indicator
+        indicator.show(text, symbol: symbol)
     }
 }
 
 extension TVPlayerCoordinator: UIGestureRecognizerDelegate {
-    /// The hold recognizers only watch; the player's own recognizers keep working beside them.
+    /// A hold only watches the arrows while they move the playhead: the Up Next card and the transport bar's buttons and menus
+    /// take them for moving focus, which a hold must neither delay nor turn into a jump.
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive press: UIPress) -> Bool {
+        !isUpNextCardVisible && !isFocusOnPlayerControl
+    }
+
+    /// The player's own recognizers wait for a hold to fail, so they act on a click and never on the hold. Recognizers outside
+    /// the player, such as the window's for Menu and focus, are left alone.
     func gestureRecognizer(
         _ gestureRecognizer: UIGestureRecognizer,
-        shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
+        shouldBeRequiredToFailBy otherGestureRecognizer: UIGestureRecognizer
     ) -> Bool {
-        true
+        guard holdRecognizers.contains(where: { $0 === gestureRecognizer }),
+              !holdRecognizers.contains(where: { $0 === otherGestureRecognizer }),
+              let view = otherGestureRecognizer.view else { return false }
+        return view.isDescendant(of: playerVC.view)
+    }
+
+    /// Whether focus is on one of the transport bar's buttons or in one of its menus rather than on the picture.
+    private var isFocusOnPlayerControl: Bool {
+        let focused = UIFocusSystem.focusSystem(for: playerVC.view)?.focusedItem
+        return focused is UIControl || focused is UICollectionViewCell
     }
 }

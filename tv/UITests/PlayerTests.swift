@@ -108,6 +108,9 @@ final class PlayerTests: PlayerTestCase {
         let reports = timeline(since: mark).map(\.timeMs)
         XCTAssertTrue(reports.contains { (128_000...148_000).contains($0) }, "the hold jumps about two minutes ahead: \(reports)")
         TVTest.capture("01-held-right-jumped", in: self)
+        TVTest.settle(3)
+        let later = currentPositionMs()
+        XCTAssertLessThan(later, 175_000, "the system's fast forward does not run on from the hold: \(later)")
     }
 
     /// Clicks in quick succession each move the chosen distance from where the one before landed: three clicks at 5 s land

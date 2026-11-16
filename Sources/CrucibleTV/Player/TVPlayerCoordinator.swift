@@ -24,6 +24,9 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
     /// How long the pre-roll waits for the stream to load before the player shows its own buffering.
     private static let revealTimeout: Duration = .seconds(10)
 
+    /// How long a side of the clickpad set to a hold action has to be held before the action runs; a shorter press is a click.
+    static let holdDuration: TimeInterval = 0.6
+
     /// `openTitle` opens a show picked at the end of playback on the screen the player was started from.
     static func start(
         api: APIClient,
@@ -90,6 +93,9 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
     /// Runs once the player is off screen, before anything else speaks up: opening a show picked at the end.
     var afterDismiss: (@MainActor () -> Void)?
     let openTitle: (@MainActor (DetailRoute, UIViewController) -> Void)?
+    /// The press-and-hold recognizers for the sides of the clickpad set to a hold action.
+    var holdRecognizers: [UIGestureRecognizer] = []
+    var jumpIndicator: TVPlayerJumpIndicator?
 
     private init(api: APIClient, request: PlaybackRequest, openTitle: (@MainActor (DetailRoute, UIViewController) -> Void)?) {
         self.api = api
