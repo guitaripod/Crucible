@@ -296,7 +296,7 @@ enum StatsSections {
                 var subtitle = show.valueText
                 if let completion = show.completion { subtitle += " · \(Int((completion * 100).rounded()))%" }
                 let card = CardItem(id: "show-\(show.ratingKey)", artwork: show.thumb.map { .path($0, .poster) }, title: show.title, subtitle: subtitle,
-                                    badgeText: "#\(show.rank)", placeholderSymbol: "tv")
+                                    badgeText: "#\(show.rank)", placeholderSymbol: "tv").linked(to: StatsDestination.show(ratingKey: show.ratingKey))
                 return (card, StatsDestination.show(ratingKey: show.ratingKey))
             }, open: open)
         case .topMovies:
@@ -355,7 +355,7 @@ enum StatsSections {
 
     private static func card(_ poster: StatsPoster, id: String) -> CardItem {
         CardItem(id: id, artwork: poster.posterPath.map { .path($0, .poster) }, title: poster.title, subtitle: poster.subtitle,
-                 placeholderSymbol: Symbol(poster.placeholderSymbol))
+                 placeholderSymbol: Symbol(poster.placeholderSymbol)).linked(to: poster.destination)
     }
 
     private static func shelf(_ title: String, items: [(card: CardItem, destination: StatsDestination)], open: @escaping (StatsDestination) -> Void) -> View {

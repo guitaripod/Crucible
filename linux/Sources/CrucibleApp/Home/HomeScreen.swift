@@ -329,7 +329,7 @@ final class HomeScreen: ScreenView {
             isUnwatched: model.isUnwatched,
             badgeText: model.news?.badge.uppercased(),
             placeholderSymbol: model.usesSeriesPlaceholder ? "tv" : "film"
-        )
+        ).linked(to: media)
     }
 
     private func card(for ask: RatingAsk) -> CardItem {
@@ -659,7 +659,7 @@ final class HomeSeeAllScreen: ScreenView {
             let model = HomeCardModel(item: media, bucket: bucket, layout: layout)
             return CardItem(id: media.id, artwork: model.imagePath.map { .path($0, layout == .poster ? .poster : .backdrop) }, title: model.title,
                             subtitle: model.subtitle, detail: model.trailingText, progress: model.progress, isUnwatched: model.isUnwatched,
-                            placeholderSymbol: model.usesSeriesPlaceholder ? "tv" : "film")
+                            placeholderSymbol: model.usesSeriesPlaceholder ? "tv" : "film").linked(to: media)
         })
         heading.summary = current.count == 1 ? String(localized: "1 title") : String(localized: "\(current.count) titles")
         state.isHidden = !current.isEmpty

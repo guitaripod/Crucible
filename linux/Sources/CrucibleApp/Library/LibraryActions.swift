@@ -86,12 +86,13 @@ enum LibraryCards {
         return CardItem(id: item.id, artwork: poster.posterPath.map { .path($0, .poster) }, title: poster.title, subtitle: poster.subtitle,
                         progress: poster.progress, isUnwatched: poster.isUnwatched, isWatched: kind == .movie && item.isWatched,
                         badgeText: poster.unwatchedCount.map { String(localized: "\($0) unwatched") }, placeholderSymbol: Symbol(poster.placeholderIcon))
+            .linked(to: item)
     }
 
     static func recent(_ item: PlexMetadata, kind: LibraryGridKind) -> CardItem {
         let poster = LibraryPoster(recent: item, kind: kind)
         return CardItem(id: item.id, artwork: poster.posterPath.map { .path($0, .poster) }, title: poster.title, subtitle: poster.subtitle,
-                        placeholderSymbol: Symbol(poster.placeholderIcon))
+                        placeholderSymbol: Symbol(poster.placeholderIcon)).linked(to: item)
     }
 
     /// A folder entry. Movies and episodes carry progress, the unwatched dot or the watched check.
@@ -101,7 +102,7 @@ enum LibraryCards {
         let progress = item.progressFraction
         return CardItem(id: item.id, artwork: poster.posterPath.map { .path($0, .poster) }, title: poster.title, subtitle: poster.subtitle,
                         progress: tracksWatched && progress > 0 ? progress : nil, isUnwatched: tracksWatched && !item.isWatched && progress <= 0,
-                        isWatched: tracksWatched && item.isWatched, placeholderSymbol: Symbol(poster.placeholderIcon))
+                        isWatched: tracksWatched && item.isWatched, placeholderSymbol: Symbol(poster.placeholderIcon)).linked(to: item)
     }
 
     /// The samples a grid's shape is read from: each card's image and the shape its kind of item has.

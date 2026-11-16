@@ -35,22 +35,23 @@ final class MemoryPressure {
     private let started = ContinuousClock.now
     private var lastPurge: ContinuousClock.Instant?
 
-    init?(loop: EventLoop, window: Window) {
+    /// Watches the kernel's pressure trigger and purges every window `windows` lists.
+    init?(loop: EventLoop, windows: @escaping @MainActor () -> [Window]) {
         fd = crucible_memory_pressure_open()
         guard fd >= 0 else { return nil }
-        loop.add(urgentFD: fd) { [weak self, weak window] urgent in
-            guard urgent, let self, let window else { return }
-            self.purge(window)
+        loop.add(urgentFD: fd) { [weak self] urgent in
+            guard urgent, let self else { return }
+            self.purge(windows())
         }
     }
 
-    private func purge(_ window: Window) {
+    private func purge(_ windows: [Window]) {
         let now = ContinuousClock.now
         guard started.duration(to: now) >= Self.startupGrace else { return }
         if let lastPurge, lastPurge.duration(to: now) < Self.spacing { return }
         lastPurge = now
         MidgarLog.notice("Memory is short: purging decoded artwork", category: .lifecycle)
-        window.purgeImageMemory()
+        windows.forEach { $0.purgeImageMemory() }
     }
 }
 

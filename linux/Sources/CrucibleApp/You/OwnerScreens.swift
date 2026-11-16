@@ -18,7 +18,7 @@ enum OwnerScreens {
             return CardItem(id: session.entryID, artwork: card.posterPath.map { .path($0, .poster) },
                             title: session.mediaType == "episode" ? (session.grandparentTitle ?? session.title) : session.title,
                             subtitle: ServerActivity.subtitle(session), progress: card.progress,
-                            placeholderSymbol: card.isShow || session.mediaType == "episode" ? "tv" : "film")
+                            placeholderSymbol: card.isShow || session.mediaType == "episode" ? "tv" : "film").linked(to: session)
         }
         grid.refreshInterval = .seconds(10)
         grid.liveRefresh = { $0.isPlayback }

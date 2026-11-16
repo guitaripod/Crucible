@@ -72,6 +72,9 @@ enum ItemActions {
         if ManageTools.offers(media) {
             items.append(.init(id: "manage", title: ManageCopy.menuTitle, symbol: "wrench.and.screwdriver"))
         }
+        if view.rootView?.onNewWindow != nil {
+            items.append(.init(id: "window", title: String(localized: "Open in New Window"), symbol: "macwindow.badge.plus"))
+        }
         items.append(.init(id: "copy", title: String(localized: "Copy Title"), symbol: "doc.on.doc"))
         items += extras.map(\.item)
         let frame = window.focusedView?.frameInWindow ?? view.frameInWindow
@@ -109,6 +112,8 @@ enum ItemActions {
                 ManageTools.presentItemMenu(for: media, api: api, host: view, anchor: anchor, reload: afterChange)
             case "copy":
                 window.copy(media.title)
+            case "window":
+                view.rootView?.onNewWindow?(DeepLink.item(ratingKey: media.id, mediaType: media.mediaType).url)
             default:
                 extras.first { $0.item.id == item.id }?.run()
             }

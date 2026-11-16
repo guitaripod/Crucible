@@ -264,6 +264,7 @@ final class SearchScreen: ScreenView {
         return CardItem(id: item.id, artwork: model.posterPath.map { .path($0, .poster) }, title: model.title, subtitle: model.subtitle,
                         progress: override == true ? nil : model.progress, isUnwatched: playable && !watched && !hasProgress, isWatched: playable && watched,
                         badgeText: model.unwatchedCount.map { String(localized: "\($0) unwatched") }, placeholderSymbol: Symbol(model.placeholderIcon))
+            .linked(to: item)
     }
 
     private func episodeCard(_ item: PlexMetadata) -> CardItem {
@@ -272,6 +273,7 @@ final class SearchScreen: ScreenView {
         let override = watchedOverrides[item.id]
         var card = CardItem(id: item.id, artwork: model.thumbPath.map { .path($0, .backdrop) }, title: model.title, subtitle: model.subtitle,
                             progress: override == true ? nil : model.progress, isWatched: override ?? item.isWatched, placeholderSymbol: "tv")
+            .linked(to: item)
         card.titleHighlights = Self.highlights(of: query, in: model.title)
         return card
     }
@@ -622,7 +624,7 @@ final class GenreScreen: ScreenView {
         grid.setItems(model.items.map { item in
             let poster = SearchPosterModel(item: item)
             return CardItem(id: item.id, artwork: poster.posterPath.map { .path($0, .poster) }, title: poster.title, subtitle: poster.subtitle,
-                            progress: poster.progress, isUnwatched: poster.isUnwatched, placeholderSymbol: Symbol(poster.placeholderIcon))
+                            progress: poster.progress, isUnwatched: poster.isUnwatched, placeholderSymbol: Symbol(poster.placeholderIcon)).linked(to: item)
         })
         heading.summary = countText
         page.setNeedsLayout()

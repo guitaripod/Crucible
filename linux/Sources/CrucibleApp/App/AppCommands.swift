@@ -59,4 +59,6 @@ enum AppCommandCopy {
     static let volumeUp = String(localized: "Volume Up", comment: "Linux shortcut list: the key that turns the player louder")
     static let volumeDown = String(localized: "Volume Down", comment: "Linux shortcut list: the key that turns the player quieter")
     static let quit = String(localized: "Quit Crucible", comment: "Linux app menu: close the app")
+    static let newWindow = String(localized: "New Window")
+    static let closeWindow = String(localized: "Close Window", comment: "Linux app menu: close this Crucible window")
 }

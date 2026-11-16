@@ -24,20 +24,29 @@ enum LinuxSession {
     }
 }
 
-/// Owns the window's root and the session behind it (`TVAppCoordinator`): the saved connection, the launch gate, the main
-/// app and onboarding. The main UI never shows with a broken connection: the gate holds until the route is validated and
-/// Home and the libraries are in hand.
+/// Owns the first window's root and the session behind it (`TVAppCoordinator`): the saved connection, the launch gate, the
+/// main app and onboarding, and the windows opened beside it on the same connection. The main UI never shows with a broken
+/// connection: the gate holds until the route is validated and Home and the libraries are in hand.
 @MainActor
 final class AppCoordinator: WindowDelegate {
-    let window: Window
+    /// The first window; another one takes its place when it closes while others are open.
+    private(set) var window: Window
     var onQuit: (() -> Void)?
     let router = Router()
     private var launchTask: Task<Void, Never>?
     private var finaleTask: Task<Void, Never>?
     private var root: RootView?
+    private var payload: LaunchPayload?
     private var onboarding: OnboardingView?
     private var notifications: DesktopNotifications?
     private var newsWatcher: LibraryNewsWatcher?
+    /// The windows beside the first, oldest first.
+    private var scenes: [SceneWindow] = []
+    private weak var activeWindow: Window?
+    private var focusedWindows: Set<ObjectIdentifier> = []
+
+    /// Every open window, the first one first.
+    var allWindows: [Window] { [window] + scenes.map(\.window) }
 
     private static let finaleSettleDelay: Duration = .milliseconds(1200)
     private static let finaleRetryInterval: Duration = .milliseconds(800)
@@ -122,21 +131,125 @@ final class AppCoordinator: WindowDelegate {
         window.useImages(diskDirectory: LinuxSession.imageCacheDirectory, fetch: PlexArtworkPipeline.fetcher(token: payload.connection.authToken))
         ArtworkShapes.shared.use(file: LinuxSession.artworkShapesFile(machineIdentifier: payload.connection.machineIdentifier))
         let main = RootView(payload: payload)
+        wire(main) { [weak self] in self?.closeFirstWindow() }
+        APIClient.onBaseURLChanged.withLock { handler in
+            handler = { url in Task { @MainActor in Artwork.pipeline = PlexArtworkPipeline(baseURL: url) } }
+        }
+        ServerRouteMonitor.shared.mainAppReady()
+        self.payload = payload
+        root = main
+        install(main)
+        router.activate(main)
+        let restored = WindowRestoration.restoreAll()
+        main.restoreWindow(restored.first)
+        for state in restored.dropFirst() { openWindow(restoring: state) }
+        newsWatcher?.start()
+        NewsTimer.sync()
+    }
+
+    /// What a main UI asks of the app, in any window: the session's changes go through the first window, `closing` closes
+    /// the window the UI is in.
+    private func wire(_ main: RootView, closing: @escaping () -> Void) {
         main.onSignOut = { [weak self] in self?.signOut() }
         main.onLeaveDemo = { [weak self] in self?.leaveDemo() }
         main.onSwitchServer = { [weak self] in self?.showOnboarding(.switchServer) }
         main.onReconnect = { [weak self] in self?.reconnect() }
         main.onQuit = { [weak self] in self?.onQuit?() }
-        APIClient.onBaseURLChanged.withLock { handler in
-            handler = { url in Task { @MainActor in Artwork.pipeline = PlexArtworkPipeline(baseURL: url) } }
+        main.onNewWindow = { [weak self] link in self?.openWindow(link: link) }
+        main.onCloseWindow = closing
+    }
+
+    // MARK: Windows
+
+    /// Opens another window on the connection the first one holds (Ctrl+N, Open in New Window, a middle click), on `link`
+    /// when there is one, or on the tab and title `state` kept from the last run; nothing until the main UI is up.
+    func openWindow(link: URL? = nil, restoring state: WindowRestoration.State? = nil) {
+        guard let payload, root != nil, let loop = window.loop else { return }
+        let opened: Window
+        do {
+            opened = try Window(title: "Crucible", appID: "org.guitaripod.Crucible", loop: loop,
+                                shaderCache: AppPlatform.cachesDirectory.appendingPathComponent("shaders.cache"))
+        } catch {
+            MidgarLog.error("Opening a new window failed: \(error)", category: .lifecycle)
+            return
         }
-        ServerRouteMonitor.shared.mainAppReady()
-        root = main
-        install(main)
-        router.activate(main)
-        main.restoreWindow()
-        newsWatcher?.start()
-        NewsTimer.sync()
+        opened.makeTooltip = { TooltipView(text: $0) }
+        DesktopAccessibility.apply(to: opened)
+        opened.useImages(diskDirectory: LinuxSession.imageCacheDirectory, fetch: PlexArtworkPipeline.fetcher(token: payload.connection.authToken))
+        let main = RootView(payload: payload)
+        let scene = SceneWindow(window: opened, root: main)
+        wire(main) { [weak self, weak scene] in
+            guard let self, let scene else { return }
+            self.close(scene)
+        }
+        scene.onClose = { [weak self] scene in self?.close(scene) }
+        scene.onQuit = { [weak self] in self?.onQuit?() }
+        scene.onFocusChange = { [weak self] scene, focused in self?.windowFocus(scene.window, focused: focused) }
+        scene.onOpenInNewWindow = { [weak self] link in self?.openWindow(link: link) }
+        scenes.append(scene)
+        main.restoreWindow(state)
+        if let link { scene.router.handle(link) }
+        MidgarLog.notice("Opened window \(scenes.count + 1)", category: .lifecycle)
+    }
+
+    /// A window beside the first closed on its own: what it played stops and it is not reopened next time.
+    private func close(_ scene: SceneWindow) {
+        scenes.removeAll { $0 === scene }
+        WindowRestoration.untrack(scene.root)
+        scene.close()
+    }
+
+    /// The session behind every window ended (sign-out, another server, the demo leaving): the windows beside the first
+    /// close with it.
+    private func closeScenes() {
+        let closing = scenes
+        scenes.removeAll()
+        WindowRestoration.untrackAll()
+        closing.forEach { $0.close() }
+    }
+
+    /// The first window's close button or Ctrl+W: Crucible quits with it unless other windows are open; then the oldest of
+    /// them becomes the first, keeping the connection, and this one closes.
+    private func closeFirstWindow() {
+        guard let next = scenes.first, let root else {
+            onQuit?()
+            return
+        }
+        scenes.removeFirst()
+        WindowRestoration.untrack(root)
+        root.closePlayer()
+        router.deactivate()
+        let closing = window
+        next.handOver()
+        window = next.window
+        self.root = next.root
+        wire(next.root) { [weak self] in self?.closeFirstWindow() }
+        window.delegate = self
+        router.activate(next.root)
+        closing.close()
+    }
+
+    /// Stops what plays in every window, before quitting.
+    func closeAllPlayers() {
+        root?.closePlayer()
+        for scene in scenes { scene.root.closePlayer() }
+    }
+
+    /// Crucible is active while any of its windows has the keyboard: coming back refreshes what is shared across screens,
+    /// as the Apple TV does on returning to the foreground, and leaving lets the route monitor rest.
+    private func windowFocus(_ window: Window, focused: Bool) {
+        let wasActive = !focusedWindows.isEmpty
+        if focused {
+            focusedWindows.insert(ObjectIdentifier(window))
+            activeWindow = window
+        } else {
+            focusedWindows.remove(ObjectIdentifier(window))
+        }
+        if focusedWindows.isEmpty, wasActive { ServerRouteMonitor.shared.appResignedActive() }
+        guard !focusedWindows.isEmpty, !wasActive else { return }
+        ServerRouteMonitor.shared.appBecameActive()
+        guard root != nil else { return }
+        Task { _ = await GuideStore.shared.refresh() }
     }
 
     /// The launch gate stays a moment over the app it hands to, fading out (`TVAppCoordinator`'s 0.4 s cross-dissolve).
@@ -146,13 +259,17 @@ final class AppCoordinator: WindowDelegate {
         gate.dissolveAway()
     }
 
-    /// Links a later launch handed over: the window comes to the front with the launcher's token and each link opens.
+    /// Links a later launch or a notification handed over: the window last used comes to the front with the token and
+    /// each link opens in it.
     func open(_ urls: [URL], activationToken: String?) {
-        if let activationToken { window.activate(token: activationToken) }
-        for url in urls { router.handle(url) }
+        let scene = scenes.first { $0.window === activeWindow }
+        if let activationToken { (scene?.window ?? window).activate(token: activationToken) }
+        for url in urls { _ = (scene?.router ?? router).handle(url) }
     }
 
     private func showOnboarding(_ mode: OnboardingView.Mode) {
+        closeScenes()
+        payload = nil
         newsWatcher?.stop()
         launchTask?.cancel()
         finaleTask?.cancel()
@@ -199,6 +316,8 @@ final class AppCoordinator: WindowDelegate {
     /// When it cannot start, the session it left behind points at a library that is gone, so it is forgotten and the
     /// welcome screen returns.
     private func resumeDemo() {
+        closeScenes()
+        payload = nil
         router.deactivate()
         root = nil
         let gate = makeGate()
@@ -229,6 +348,7 @@ final class AppCoordinator: WindowDelegate {
         MidgarLog.notice("Leaving the demo", category: .lifecycle)
         finaleTask?.cancel()
         launchTask?.cancel()
+        closeScenes()
         router.deactivate()
         root?.closePlayer()
         APIClient.onBaseURLChanged.withLock { $0 = nil }
@@ -290,22 +410,15 @@ final class AppCoordinator: WindowDelegate {
             onQuit?()
             return true
         }
-        if event.key == .f11 {
-            window.setFullscreen(!window.isFullscreen)
-            return true
+        if let onboarding {
+            if event.key == .f11 {
+                window.setFullscreen(!window.isFullscreen)
+                return true
+            }
+            let back = event.key == .escape || event.key == .back || (event.key == .left && event.modifiers == .alt)
+            return back && onboarding.handleBack()
         }
-        if event.key == Key.character("p") && event.modifiers == [.control, .shift] {
-            window.showsPerformanceHUD.toggle()
-            return true
-        }
-        if event.key == .escape || event.key == .back || (event.key == .left && event.modifiers == .alt) {
-            if let onboarding { return onboarding.handleBack() }
-            return root?.handleBack() ?? false
-        }
-        if event.key == .forward || (event.key == .right && event.modifiers == .alt) {
-            return onboarding == nil && root?.handleForward() == true
-        }
-        return root?.handleCommand(event) ?? false
+        return root?.handleWindowKey(event, in: window) ?? false
     }
 
     func window(_ window: Window, zoomScrolled event: ScrollEvent) -> Bool {
@@ -327,18 +440,18 @@ final class AppCoordinator: WindowDelegate {
     /// Coming back to the window refreshes what is shared across screens, as the Apple TV does on returning to the foreground,
     /// and the desktop's motion and contrast settings.
     func window(_ window: Window, keyboardFocusChanged focused: Bool) {
-        guard focused else {
-            ServerRouteMonitor.shared.appResignedActive()
-            return
+        if focused {
+            DesktopAccessibility.apply(to: window)
+            onboarding?.windowBecameActive()
         }
-        ServerRouteMonitor.shared.appBecameActive()
-        DesktopAccessibility.apply(to: window)
-        onboarding?.windowBecameActive()
-        guard root != nil else { return }
-        Task { _ = await GuideStore.shared.refresh() }
+        windowFocus(window, focused: focused)
+    }
+
+    func window(_ window: Window, openInNewWindow link: URL) {
+        openWindow(link: link)
     }
 
     func windowShouldClose(_ window: Window) {
-        onQuit?()
+        closeFirstWindow()
     }
 }

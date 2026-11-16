@@ -134,6 +134,7 @@
   "lock.fill": {"icon": "lock", "fill": true},
   "lock.open.fill": "lock-open",
   "lock.shield": "shield-lock",
+  "macwindow.badge.plus": "app-window",
   "magnifyingglass": "search",
   "mappin.and.ellipse": "map-pin",
   "mappin.slash": "map-pin-off",

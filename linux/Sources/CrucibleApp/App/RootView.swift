@@ -7,7 +7,7 @@ import MidgarCore
 /// The main UI: the floating glass tab bar over one navigation stack per tab, as on the Apple TV. Escape pops the current
 /// stack and, at its root, moves focus up to the tab bar; Ctrl with a number picks a tab.
 @MainActor
-final class RootView: View {
+final class RootView: View, WindowRestoration.Restorable {
     let payload: LaunchPayload
     var onSignOut: (() -> Void)?
     /// Leaves the demo (You's Leave the Demo, the tour).
@@ -17,6 +17,10 @@ final class RootView: View {
     var onReconnect: (() -> Void)?
     /// Quit Crucible from the app's menu.
     var onQuit: (() -> Void)?
+    /// Opens a new window (Ctrl+N), on a title's link when one is given (Open in New Window, a middle click).
+    var onNewWindow: ((URL?) -> Void)?
+    /// Closes this window (Ctrl+W).
+    var onCloseWindow: (() -> Void)?
 
     let tabBar = TabBarView()
     private var stacks: [String: NavigationView] = [:]
@@ -46,10 +50,14 @@ final class RootView: View {
         select("home")
     }
 
-    /// Opens the tab and title the window showed when Crucible last ran on this server.
-    func restoreWindow() {
-        defer { remembersWindow = true }
-        guard !DemoMode.shared.isActive, let state = WindowRestoration.restore(), tabBar.tabs.contains(where: { $0.id == state.tab }) else { return }
+    /// Opens the tab and title `state` kept (the window's when Crucible last ran on this server), then starts remembering
+    /// what this window shows; the demo keeps nothing.
+    func restoreWindow(_ state: WindowRestoration.State?) {
+        defer {
+            remembersWindow = true
+            if !DemoMode.shared.isActive { WindowRestoration.track(self) }
+        }
+        guard !DemoMode.shared.isActive, let state, tabBar.tabs.contains(where: { $0.id == state.tab }) else { return }
         select(state.tab)
         if let route = state.route { push(DetailScreen.make(api: payload.api, route: route)) }
     }
@@ -57,10 +65,30 @@ final class RootView: View {
     /// Off until the last launch's window is back, so opening on Home does not overwrite it first.
     private var remembersWindow = false
 
-    /// Remembers the tab and the title on top of it for the next launch.
+    /// The tab and the title on top of it.
+    var restorationState: WindowRestoration.State? {
+        WindowRestoration.State(tab: currentID, route: (current?.top as? DetailScreen)?.route)
+    }
+
+    /// Remembers what every window shows for the next launch.
     private func rememberWindow() {
         guard remembersWindow, !DemoMode.shared.isActive else { return }
-        WindowRestoration.save(.init(tab: currentID, route: (current?.top as? DetailScreen)?.route))
+        WindowRestoration.saveAll()
+    }
+
+    /// The keys a window's app leaves to its main UI: F11, the frame-time HUD, Back and Forward, then the app's commands.
+    func handleWindowKey(_ event: KeyEvent, in window: Window) -> Bool {
+        if event.key == .f11 {
+            window.setFullscreen(!window.isFullscreen)
+            return true
+        }
+        if event.key == Key.character("p") && event.modifiers == [.control, .shift] {
+            window.showsPerformanceHUD.toggle()
+            return true
+        }
+        if event.key == .escape || event.key == .back || (event.key == .left && event.modifiers == .alt) { return handleBack() }
+        if event.key == .forward || (event.key == .right && event.modifiers == .alt) { return handleForward() }
+        return handleCommand(event)
     }
 
     override var preferredFocusView: View? { current }
@@ -191,6 +219,14 @@ final class RootView: View {
         }
         if event.key == Key.character("r") && event.modifiers == .control, player == nil {
             (current?.top as? Reloadable)?.reload()
+            return true
+        }
+        if event.key == Key.character("n") && event.modifiers == .control {
+            onNewWindow?(nil)
+            return true
+        }
+        if event.key == Key.character("w") && event.modifiers == .control {
+            onCloseWindow?()
             return true
         }
         let digit = Int(event.key.rawValue) - 0x30

@@ -1,4 +1,5 @@
 import CrucibleCore
+import CrucibleStats
 import CrucibleUI
 import Foundation
 import Kiln
@@ -182,7 +183,28 @@ enum TitleCards {
     static func card(_ item: PlexMetadata) -> CardItem {
         let card = DetailRelatedCard(item: item)
         return CardItem(id: item.entryID, artwork: card.posterPath.map { .path($0, .poster) }, title: card.title, subtitle: card.subtitle,
-                        progress: card.progress, isUnwatched: card.isUnwatched, placeholderSymbol: card.isShow ? "tv" : "film")
+                        progress: card.progress, isUnwatched: card.isUnwatched, placeholderSymbol: card.isShow ? "tv" : "film").linked(to: item)
+    }
+}
+
+extension CardItem {
+    /// The card with `item`'s `crucible://` link, which a middle click opens in a new window.
+    func linked(to item: PlexMetadata) -> CardItem {
+        var card = self
+        card.link = DeepLink.item(ratingKey: item.id, mediaType: item.mediaType).url
+        return card
+    }
+
+    /// The card with the link of the title a statistic points at, when it is on the server.
+    func linked(to destination: StatsDestination) -> CardItem {
+        guard destination.isOnServer else { return self }
+        var card = self
+        switch destination {
+        case .movie(let key): card.link = DeepLink.item(ratingKey: key, mediaType: "movie").url
+        case .episode(let key, _): card.link = DeepLink.item(ratingKey: key, mediaType: "episode").url
+        case .show(let key): card.link = DeepLink.item(ratingKey: key, mediaType: "show").url
+        }
+        return card
     }
 }
 

@@ -44,6 +44,8 @@ extension RootView {
             AppCommand(String(localized: "Interface Size")) { [weak self] in LinuxDisplay.toggleDensity(in: self?.window) },
             AppCommand(String(localized: "Appearance")) { [weak self] in LinuxDisplay.toggleAppearance(in: self?.window) },
             AppCommand(AppCommandCopy.shortcuts, keys: [KeyName.chord(KeyName.ctrl, "?")]) { [weak self] in self?.presentShortcuts() },
+            AppCommand(AppCommandCopy.newWindow, keys: [KeyName.chord(KeyName.ctrl, "N")]) { [weak self] in self?.onNewWindow?(nil) },
+            AppCommand(AppCommandCopy.closeWindow, keys: [KeyName.chord(KeyName.ctrl, "W")]) { [weak self] in self?.onCloseWindow?() },
         ], inMenu: true)
     }
 

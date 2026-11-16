@@ -196,7 +196,7 @@ final class ShowDetailScreen: DetailScreen {
         return CardItem(id: "episode.\(episode.id)", artwork: shielded ? nil : episode.thumb.map { .path($0, .backdrop) },
                         title: shielded ? status.title : number + status.title, subtitle: status.metaText.isEmpty ? nil : status.metaText,
                         eyebrow: Self.eyebrow(for: status.marker), progress: status.progress, isWatched: status.isWatched,
-                        isDimmed: status.isWatched || status.isSkipped, placeholderSymbol: "tv")
+                        isDimmed: status.isWatched || status.isSkipped, placeholderSymbol: "tv").linked(to: episode)
     }
 
     /// An aired episode the server lacks, dimmed with "Not on your server" (`TVDetailMapping.missingEpisode`).
