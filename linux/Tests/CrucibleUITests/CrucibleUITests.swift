@@ -383,4 +383,92 @@ enum SharedGPU {
         #expect(chosen == "movies")
         #expect(bar.selectedID == "movies")
     }
+
+    /// A menu with an action, a stepper, a submenu with choices and a closing action, values held in `state`.
+    private final class MenuState {
+        var value = 0
+        var choice = "a"
+        var ran: [String] = []
+    }
+
+    private func contextMenu(_ state: MenuState) -> ContextMenuView {
+        ContextMenuView(at: Point(x: 100, y: 100)) {
+            [
+                .action(ContextMenuView.Action("Play") { state.ran.append("play") }),
+                .separator,
+                .stepper(ContextMenuView.Stepper("Sync", value: "\(state.value)", decrease: { state.value -= 1 }, increase: { state.value += 1 },
+                                                 reset: { state.value = 0 })),
+                .submenu("Shape", detail: state.choice) {
+                    ["a", "b", "c"].map { name in
+                        .action(ContextMenuView.Action(name, isChecked: state.choice == name) { state.choice = name })
+                    }
+                },
+                .action(ContextMenuView.Action("Close") { state.ran.append("close") }),
+            ]
+        }
+    }
+
+    @Test func aContextMenuStepsAValueInPlaceAndStaysOpen() {
+        let state = MenuState()
+        let menu = contextMenu(state)
+        menu.present(in: window)
+        window.settle()
+        #expect((window.focusedView as? ContextMenuRow)?.accessibilityLabel == "Play")
+        window.handleKey(KeyEvent(key: .down))
+        #expect((window.focusedView as? ContextMenuRow)?.accessibilityLabel == "Sync")
+        window.handleKey(KeyEvent(key: .right))
+        window.handleKey(KeyEvent(key: .right))
+        window.handleKey(KeyEvent(key: .left))
+        #expect(state.value == 1)
+        #expect(menu.superview != nil)
+        #expect((window.focusedView as? ContextMenuRow)?.accessibilityValue == "1")
+        window.handleKey(KeyEvent(key: .return))
+        #expect(state.value == 0)
+        menu.dismiss()
+    }
+
+    @Test func aContextMenuSubmenuOpensBesideItsRowAndKeepsItsPlaceWhenValuesChange() {
+        let state = MenuState()
+        let menu = contextMenu(state)
+        menu.present(in: window)
+        window.settle()
+        window.handleKey(KeyEvent(key: .down))
+        window.handleKey(KeyEvent(key: .right))
+        window.handleKey(KeyEvent(key: .down))
+        #expect((window.focusedView as? ContextMenuRow)?.accessibilityLabel == "Shape")
+        window.handleKey(KeyEvent(key: .right))
+        window.settle()
+        let panels = menu.subviews.compactMap { $0 as? ContextMenuPanel }
+        #expect(panels.count == 2)
+        #expect((window.focusedView as? ContextMenuRow)?.accessibilityLabel == "a")
+        let shapeRow = panels[0].rows.first { $0.accessibilityLabel == "Shape" }
+        #expect(panels[1].frame.minX >= (shapeRow?.frameInWindow.maxX ?? 0) - 20)
+        menu.reloadAll()
+        let rebuiltShape = menu.subviews.compactMap { $0 as? ContextMenuPanel }[0].rows.first { $0.accessibilityLabel == "Shape" }
+        #expect(panels[1].opener === rebuiltShape)
+        window.handleKey(KeyEvent(key: .down))
+        window.handleKey(KeyEvent(key: .return))
+        #expect(state.choice == "b")
+        #expect(menu.superview == nil)
+    }
+
+    @Test func leftAndEscapeCloseASubmenuBeforeTheMenu() {
+        let state = MenuState()
+        let menu = contextMenu(state)
+        menu.present(in: window)
+        window.settle()
+        window.handleKey(KeyEvent(key: .down))
+        window.handleKey(KeyEvent(key: .down))
+        window.handleKey(KeyEvent(key: .right))
+        #expect(menu.subviews.compactMap { $0 as? ContextMenuPanel }.count == 2)
+        window.handleKey(KeyEvent(key: .left))
+        #expect(menu.subviews.compactMap { $0 as? ContextMenuPanel }.count == 1)
+        #expect((window.focusedView as? ContextMenuRow)?.accessibilityLabel == "Shape")
+        window.handleKey(KeyEvent(key: .right))
+        window.handleKey(KeyEvent(key: .escape))
+        #expect(menu.subviews.compactMap { $0 as? ContextMenuPanel }.count == 1)
+        window.handleKey(KeyEvent(key: .escape))
+        #expect(menu.superview == nil)
+        #expect(state.ran.isEmpty)
+    }
 }

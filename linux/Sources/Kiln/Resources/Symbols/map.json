@@ -141,6 +141,7 @@
   "mappin.slash": "map-pin-off",
   "memorychip": "memory-stick",
   "mic": "mic",
+  "minus": "minus",
   "minus.circle": "circle-minus",
   "moon": "moon",
   "moon.stars.fill": {"icon": "moon-star", "fill": true},
