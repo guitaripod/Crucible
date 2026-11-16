@@ -333,8 +333,18 @@ kiln_tex *kiln_tex_create(kiln_gpu *g, int width, int height, enum kiln_format f
     return t;
 }
 
+/** Waits until the GPU is done with a texture that was handed to mpv: mpv's last frame into it (the semaphore's last value,
+ * which mpv signals) and every use of Kiln's after it, so its view and semaphore are not destroyed under work in flight. */
+static void wait_for_handed_texture(kiln_gpu *g, kiln_tex *t) {
+    PFN_vkWaitSemaphores wait = (PFN_vkWaitSemaphores) g->instance->get_proc_addr(g->instance->instance, "vkWaitSemaphores");
+    VkSemaphoreWaitInfo wait_info = { .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO, .semaphoreCount = 1, .pSemaphores = &t->semaphore, .pValues = &t->semaphore_value };
+    wait(g->vulkan->device, &wait_info, UINT64_MAX);
+    pl_gpu_finish(g->gpu);
+}
+
 void kiln_tex_destroy(kiln_gpu *g, kiln_tex *t) {
     if (!t) return;
+    if (t->semaphore) wait_for_handed_texture(g, t);
     if (t->view) {
         PFN_vkDestroyImageView destroy = (PFN_vkDestroyImageView) g->instance->get_proc_addr(g->instance->instance, "vkDestroyImageView");
         destroy(g->vulkan->device, t->view, NULL);

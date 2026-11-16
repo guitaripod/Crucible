@@ -12,6 +12,10 @@
 #include <mpv/render.h>
 #include <mpv/render_vk.h>
 
+#ifndef MPV_RENDER_VULKAN_SYNC_SIGNALS
+#error "this libmpv leaves the Vulkan sync semaphore unsignalled, which would stall the GPU: rebuild it with linux/scripts/build-mpv.sh"
+#endif
+
 struct kiln_video {
     mpv_handle *mpv;
     mpv_render_context *render;
@@ -215,6 +219,10 @@ uint32_t kiln_video_poll(kiln_video *v, kiln_video_state *state) {
     return happened;
 }
 
+/** Renders mpv's frame into `t` without waiting for the GPU: mpv starts once `t`'s timeline semaphore says Kiln's last use
+ * of it is done, signals the next value when its frame is drawn, and Kiln's own next use waits for that value on the GPU.
+ * The hold waits on the CPU for Kiln's previous use of `t`, which in turn waited for mpv's previous frame, so the GPU never
+ * runs more than a frame behind and mpv's last decoded surface is free before the next one is mapped. */
 bool kiln_video_render(kiln_video *v, kiln_gpu *g, kiln_tex *t) {
     void *image, *view;
     uint32_t format, layout;
@@ -225,19 +233,30 @@ bool kiln_video_render(kiln_video *v, kiln_gpu *g, kiln_tex *t) {
         .image = image, .image_view = view, .width = (uint32_t) t->tex->params.w, .height = (uint32_t) t->tex->params.h,
         .format = (VkFormat) format, .current_layout = (VkImageLayout) layout, .target_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
     };
+    uint64_t free_value = t->semaphore_value, drawn_value = free_value + 1;
+    mpv_vulkan_sync sync = {
+        .wait_semaphore = t->semaphore, .wait_value = free_value, .signal_semaphore = t->semaphore, .signal_value = drawn_value,
+    };
     int flip = 0;
     int block = 0;
     mpv_render_param params[] = {
         { MPV_RENDER_PARAM_VULKAN_FBO, &fbo },
+        { MPV_RENDER_PARAM_VULKAN_SYNC, &sync },
         { MPV_RENDER_PARAM_FLIP_Y, &flip },
         { MPV_RENDER_PARAM_BLOCK_FOR_TARGET_TIME, &block },
         { MPV_RENDER_PARAM_INVALID, NULL },
     };
     int rendered = mpv_render_context_render(v->render, params);
     TRACE("rendered %d", rendered);
+    if (rendered < 0) {
+        pl_vulkan_release_ex(g->gpu, pl_vulkan_release_params(.tex = t->tex, .layout = (VkImageLayout) layout, .qf = VK_QUEUE_FAMILY_IGNORED));
+        return false;
+    }
+    t->semaphore_value = drawn_value;
     pl_vulkan_release_ex(g->gpu, pl_vulkan_release_params(
-        .tex = t->tex, .layout = rendered >= 0 ? VK_IMAGE_LAYOUT_GENERAL : (VkImageLayout) layout, .qf = VK_QUEUE_FAMILY_IGNORED));
-    return rendered >= 0;
+        .tex = t->tex, .layout = fbo.target_layout, .qf = VK_QUEUE_FAMILY_IGNORED,
+        .semaphore = { .sem = t->semaphore, .value = drawn_value }));
+    return true;
 }
 
 void kiln_video_report_swap(kiln_video *v) { mpv_render_context_report_swap(v->render); }

@@ -1,0 +1,140 @@
+From 0b48a62baf9f9e2265824edb4577eeaf138f57af Mon Sep 17 00:00:00 2001
+From: Kiln <kiln@localhost>
+Date: Mon, 16 Nov 2026 21:43:09 +0200
+Subject: [PATCH] vo_libmpv/gpu-next: hand a Vulkan FBO back through
+ MPV_RENDER_PARAM_VULKAN_SYNC
+
+render_vk.h declares MPV_RENDER_PARAM_VULKAN_SYNC, but the Vulkan context never
+read it and ended every frame with pl_gpu_finish(), so the render thread waited
+for all of the frame's GPU work before mpv_render_context_render() returned. On
+a Steam Deck that is 6 to 10 ms of every frame of 4K video, which kept 60 fps
+titles to about 40 fps and stalled the host's interface each frame.
+
+Wait on the user's wait semaphore before rendering into the image, and when
+the user gives a semaphore to signal, hand the image back with
+pl_vulkan_hold_ex() in the FBO's target layout, signalling that semaphore, and
+only flush; the user waits for it on the GPU. Without a signal semaphore the
+context still waits for the GPU as before. done_frame now runs before the FBO
+wrapper is destroyed, since the hand-back goes through it.
+
+render_vk.h defines MPV_RENDER_VULKAN_SYNC_SIGNALS, so a user that waits on
+the signal semaphore can refuse to build against an mpv that never signals it.
+---
+ include/mpv/render_vk.h              |  6 +++++
+ video/out/gpu_next/context.c         | 35 ++++++++++++++++++++++++++--
+ video/out/gpu_next/libmpv_gpu_next.c |  6 ++---
+ 3 files changed, 42 insertions(+), 5 deletions(-)
+
+diff --git a/include/mpv/render_vk.h b/include/mpv/render_vk.h
+index 95f06b3..dbfc416 100644
+--- a/include/mpv/render_vk.h
++++ b/include/mpv/render_vk.h
+@@ -185,7 +185,13 @@ typedef struct mpv_vulkan_fbo {
+ /**
+  * For MPV_RENDER_PARAM_VULKAN_SYNC - synchronization primitives.
+  * All fields are optional. If not provided, mpv uses GPU finish for sync.
++ * With a signal semaphore, mpv_render_context_render() returns as soon as the
++ * frame's GPU work is submitted, and on success the image is in the FBO's
++ * target_layout once the semaphore is signalled; on failure it is not
++ * signalled. MPV_RENDER_VULKAN_SYNC_SIGNALS is defined where that holds.
+  */
++#define MPV_RENDER_VULKAN_SYNC_SIGNALS 1
++
+ typedef struct mpv_vulkan_sync {
+     /**
+      * Semaphore that mpv waits on before starting to render.
+diff --git a/video/out/gpu_next/context.c b/video/out/gpu_next/context.c
+index ade18d6..e1dd220 100644
+--- a/video/out/gpu_next/context.c
++++ b/video/out/gpu_next/context.c
+@@ -446,6 +446,12 @@ struct priv_vk {
+     pl_gpu gpu;
+     struct ra_next *ra;
+     pl_swapchain swapchain;  // Created when MPV_RENDER_PARAM_VULKAN_SURFACE is provided
++
++    /** The FBO of the frame being rendered, the layout to hand it back in,
++     *  and the user's MPV_RENDER_PARAM_VULKAN_SYNC for it (zeroed when none). */
++    pl_tex target;
++    VkImageLayout target_layout;
++    mpv_vulkan_sync sync;
+ };
+ 
+ /**
+@@ -635,27 +641,52 @@ static int libmpv_gpu_next_wrap_fbo_vk(struct libmpv_gpu_next_context *ctx,
+ 
+     // Release the texture to libplacebo - it starts out "held" by user
+     // We need to tell libplacebo it can now use the texture
++    mpv_vulkan_sync *sync =
++        get_mpv_render_param(params, MPV_RENDER_PARAM_VULKAN_SYNC, NULL);
++    p->sync = sync ? *sync : (mpv_vulkan_sync){0};
++
+     struct pl_vulkan_release_params release_params = {
+         .tex = tex,
+         .layout = fbo->current_layout,
+         .qf = VK_QUEUE_FAMILY_IGNORED,
++        .semaphore = { .sem = p->sync.wait_semaphore, .value = p->sync.wait_value },
+     };
+     pl_vulkan_release_ex(p->gpu, &release_params);
+ 
++    p->target = tex;
++    p->target_layout = fbo->target_layout;
+     *out_tex = tex;
+     return 0;
+ }
+ 
+ /**
+  * @brief Callback to mark the end of a frame rendering (Vulkan).
++ *
++ * With a semaphore to signal from MPV_RENDER_PARAM_VULKAN_SYNC, the FBO goes
++ * back to the user in its target layout, the semaphore signalled once the
++ * frame's GPU work is done, and that work is only submitted: the user waits
++ * for the semaphore on the GPU instead of the render thread waiting here.
++ * Without one, the user can only know the image is ready once the GPU is idle.
+  * @param ctx The libmpv_gpu_next_context.
+  */
+ static void libmpv_gpu_next_done_frame_vk(struct libmpv_gpu_next_context *ctx)
+ {
+     struct priv_vk *p = ctx->priv;
++    pl_tex target = p->target;
++    p->target = NULL;
++
++    if (!target || !p->sync.signal_semaphore) {
++        pl_gpu_finish(p->gpu);
++        return;
++    }
+ 
+-    // Ensure GPU work is complete
+-    pl_gpu_finish(p->gpu);
++    pl_vulkan_hold_ex(p->gpu, pl_vulkan_hold_params(
++        .tex = target,
++        .layout = p->target_layout,
++        .qf = VK_QUEUE_FAMILY_IGNORED,
++        .semaphore = { .sem = p->sync.signal_semaphore, .value = p->sync.signal_value },
++    ));
++    pl_gpu_flush(p->gpu);
+ }
+ 
+ /**
+diff --git a/video/out/gpu_next/libmpv_gpu_next.c b/video/out/gpu_next/libmpv_gpu_next.c
+index a34ad09..6f35783 100644
+--- a/video/out/gpu_next/libmpv_gpu_next.c
++++ b/video/out/gpu_next/libmpv_gpu_next.c
+@@ -181,12 +181,12 @@ static int render(struct render_backend *ctx, mpv_render_param *params,
+     // Render the video frame.
+     pl_video_render(p->video_engine, frame, target_tex);
+ 
+-    // Destroy the temporary wrapper texture via the RA.
+-    ra_next_tex_destroy(p->context->ra, &target_tex);
+-
+     if (p->context->fns->done_frame)
+         p->context->fns->done_frame(p->context);
+ 
++    // Destroy the temporary wrapper texture via the RA.
++    ra_next_tex_destroy(p->context->ra, &target_tex);
++
+     return 0;
+ }
+ 
+-- 
+2.56.1
+
