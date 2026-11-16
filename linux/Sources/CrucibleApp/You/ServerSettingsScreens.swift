@@ -194,13 +194,28 @@ final class AboutScreen: SettingsScaffold {
         Credit(name: "swift-crypto", license: "Apache-2.0", url: URL(string: "https://github.com/apple/swift-crypto")!),
     ]
 
+    private var updateObserver: UUID?
+
     init() {
         super.init(title: String(localized: "About Crucible"))
         let panel = ContextPanel(content: .init(symbol: "sparkles", title: "Crucible", subtitle: String(localized: "Version \(AppInfo.versionSummary)"),
                                                 body: AppInfo.licenseSummary))
         panel.wellView = CrystalGlyphView()
         installContext(panel)
+        updateObserver = SoftwareUpdate.shared.observe { [weak self] in self?.refreshRows() }
+        refreshRows()
+    }
+
+    deinit {
+        let observer = updateObserver
+        Task { @MainActor in observer.map(SoftwareUpdate.shared.stopObserving) }
+    }
+
+    /// Software Update first, saying when a newer release is out, then the facts and the credits.
+    private func refreshRows() {
         var items = [
+            RowItem(id: "about.update", title: String(localized: "Software Update"),
+                    value: SoftwareUpdate.shared.hasUpdate ? String(localized: "Update Available") : nil, symbol: "arrow.down.circle", accessory: .chevron),
             RowItem(id: "about.version", title: String(localized: "Version"), value: AppInfo.versionText, symbol: "info.circle"),
             RowItem(id: "about.build", title: String(localized: "Build", comment: "Build number of the app"), value: AppInfo.buildText, symbol: "hammer"),
             RowItem(id: "about.license", title: String(localized: "License"), value: AppInfo.licenseName, symbol: "doc.text"),
@@ -220,6 +235,7 @@ final class AboutScreen: SettingsScaffold {
 
     override func rowSelected(_ id: String) {
         switch id {
+        case "about.update": navigation?.push(SoftwareUpdateScreen())
         case "about.source": AppInfo.sourceURL.map(Browser.open)
         case "about.support": AppInfo.supportMailURL.map(Browser.open)
         default:

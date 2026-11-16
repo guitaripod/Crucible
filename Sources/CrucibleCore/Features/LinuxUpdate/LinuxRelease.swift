@@ -6,7 +6,7 @@ import Crypto
 import Foundation
 
 /// A Linux client's version, `X.Y.Z`, compared part by part; a release tag's `linux-` prefix is read past.
-package struct LinuxVersion: Comparable, Hashable, Sendable, CustomStringConvertible {
+package struct LinuxVersion: Comparable, Hashable, Codable, Sendable, CustomStringConvertible {
     package let major: Int
     package let minor: Int
     package let patch: Int
@@ -36,7 +36,7 @@ package struct LinuxVersion: Comparable, Hashable, Sendable, CustomStringConvert
 
 /// One Linux release on GitHub, tagged `linux-X.Y.Z` beside the server's own releases: its page and notes, and the
 /// tarball for one architecture with the checksum published next to it.
-package struct LinuxRelease: Equatable, Sendable {
+package struct LinuxRelease: Equatable, Codable, Sendable {
     package let version: LinuxVersion
     package let tag: String
     package let page: URL

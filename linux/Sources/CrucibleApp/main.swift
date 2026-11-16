@@ -65,6 +65,7 @@ func runCrucible() -> Int32 {
     var running = true
     coordinator.onQuit = { running = false }
     MediaControls.onQuit = { coordinator.onQuit?() }
+    SoftwareUpdate.shared.onQuit = { coordinator.onQuit?() }
     instance?.onOpen = { urls, token in coordinator.open(urls, activationToken: token) }
     let signals = quitOnSignals(coordinator)
     if let file = ProcessInfo.processInfo.environment["CRUCIBLE_PLAY_FILE"] {
@@ -87,6 +88,7 @@ func runCrucible() -> Int32 {
         for url in links { coordinator.router.handle(url) }
         if let link = ProcessInfo.processInfo.environment["CRUCIBLE_OPEN_LINK"].flatMap(URL.init(string:)) { coordinator.router.handle(link) }
     }
+    if !arguments.contains("--capture") || ProcessInfo.processInfo.environment["CRUCIBLE_RELEASES_URL"] != nil { SoftwareUpdate.shared.checkIfDue() }
     scheduleCaptures(arguments, window: window, coordinator: coordinator) { running = false }
     loop.run { !running }
     signals.forEach { $0.cancel() }

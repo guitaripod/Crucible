@@ -52,6 +52,7 @@ final class YouScreen: SettingsScaffold {
     private var tourObserver: UUID?
     private var traktObserver: UUID?
     private var seerrObserver: UUID?
+    private var updateObserver: UUID?
 
     init(payload: LaunchPayload) {
         self.payload = payload
@@ -65,13 +66,14 @@ final class YouScreen: SettingsScaffold {
     }
 
     deinit {
-        let (library, releases, tour, trakt, seerr) = (libraryObserver, releasesObserver, tourObserver, traktObserver, seerrObserver)
+        let (library, releases, tour, trakt, seerr, update) = (libraryObserver, releasesObserver, tourObserver, traktObserver, seerrObserver, updateObserver)
         Task { @MainActor in
             library.map(LibraryVisibility.removeObserver)
             releases.map(WatchlistReleases.shared.removeObserver)
             tour.map(DemoTour.shared.stopObserving)
             trakt.map(TraktAccount.shared.stopObserving)
             seerr.map(SeerrAccount.shared.stopObserving)
+            update.map(SoftwareUpdate.shared.stopObserving)
         }
     }
 
@@ -83,6 +85,7 @@ final class YouScreen: SettingsScaffold {
         tourObserver = DemoTour.shared.observe { [weak self] in self?.refreshRows() }
         traktObserver = TraktAccount.shared.observe { [weak self] in self?.refreshRows() }
         seerrObserver = SeerrAccount.shared.observe { [weak self] in self?.refreshRows() }
+        updateObserver = SoftwareUpdate.shared.observe { [weak self] in self?.refreshRows() }
     }
 
     /// How many shows on the watchlist have something new out, when any do.
@@ -181,7 +184,9 @@ final class YouScreen: SettingsScaffold {
             RowItem(id: RowID.appearance, title: String(localized: "Appearance"),
                     value: theme.palette.appearance == .dark ? String(localized: "Dark") : String(localized: "Light"), symbol: "circle.lefthalf.filled"),
             RowItem(id: RowID.diagnostics, title: String(localized: "Diagnostics"), symbol: "doc.text.magnifyingglass", accessory: .chevron),
-            RowItem(id: RowID.about, title: String(localized: "About Crucible"), value: AppInfo.versionSummary, symbol: "info.circle", accessory: .chevron),
+            RowItem(id: RowID.about, title: String(localized: "About Crucible"),
+                    value: SoftwareUpdate.shared.hasUpdate ? String(localized: "Update Available") : AppInfo.versionSummary, symbol: "info.circle",
+                    accessory: .chevron),
             RowItem(id: RowID.signOut, title: String(localized: "Sign Out"), symbol: "rectangle.portrait.and.arrow.right", isDestructive: true),
         ]
         if HomeProfiles.knownCount > 1 {
