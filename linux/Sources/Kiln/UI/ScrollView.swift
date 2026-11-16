@@ -28,6 +28,13 @@ open class ScrollView: View {
     /// Whether the overlay indicator shows.
     public var showsIndicator = true
 
+    /// Desktop scrollbars for every vertical scroll view (the app's Desktop layout): a slim thumb that stays while there is
+    /// more to scroll, widens under the pointer, drags, and pages on a click beside it; Page Up, Page Down, Home and End
+    /// scroll too. Off, the indicator only shows while scrolling, as tvOS's does.
+    public static var desktopScrollbars = false
+    /// The indicator's colour: light over the dark appearance, dark over the light one.
+    public static var indicatorColor = Color.white
+
     /// Called whenever the offset changes (the tab bar hides as content scrolls).
     public var onScroll: ((Float) -> Void)?
     /// When set, a touchpad flick settles on a multiple of this distance (a shelf's card and gutter), so a card's leading
@@ -40,6 +47,10 @@ open class ScrollView: View {
     private var recent: [(time: UInt32, delta: Float)] = []
     private var indicator = Animated(0)
     private var indicatorIdle: Float = 0
+    /// How far the desktop scrollbar has widened under the pointer, 0 to 1.
+    private var widen = Animated(0)
+    /// Where on the thumb a drag took hold, in points from its start, while the thumb is being dragged.
+    private var thumbGrab: Float?
 
     public init(axis: Axis, frame: Rect = .zero) {
         self.axis = axis
@@ -211,8 +222,9 @@ open class ScrollView: View {
             if indicatorIdle > 0.8 { indicator.set(0, animation: .timed(duration: 0.3, curve: .easeInOut)) }
         }
         let fading = indicator.advance(dt)
-        if fading { setNeedsDisplay() }
-        return moving || dragging || fading || (indicator.target > 0 && !isHovered)
+        let widening = widen.advance(dt)
+        if fading || widening { setNeedsDisplay() }
+        return moving || dragging || fading || widening || (indicator.target > 0 && !isHovered)
     }
 
     open override func pointerEntered() {
@@ -221,6 +233,7 @@ open class ScrollView: View {
 
     /// The pointer left: the indicator's idle fade starts counting.
     open override func pointerExited() {
+        setWidened(thumbGrab != nil)
         guard indicator.target > 0 else { return }
         indicatorIdle = 0
         startAnimating()
@@ -229,19 +242,89 @@ open class ScrollView: View {
     open override var isPointerInteractive: Bool { true }
     open override var cursor: Cursor { .default }
 
+    // MARK: Desktop scrollbar
+
+    private var hasScrollbar: Bool { Self.desktopScrollbars && axis == .vertical && showsIndicator && maximumOffset > 0 }
+
+    /// The strip along the trailing edge the scrollbar takes, in this view's points (its content scrolls; the strip does not).
+    private var scrollbarStrip: Rect { Rect(x: frame.width - 16, y: 0, width: 16, height: frame.height) }
+
+    /// The scrollbar's strip takes the pointer even over content that would, so the thumb can be grabbed anywhere.
+    open override func hitTest(_ point: Point) -> View? {
+        if hasScrollbar, !isHidden, alpha > 0.01, scrollbarStrip.contains(point) { return self }
+        return super.hitTest(point)
+    }
+
+    open override func pointerMoved(to point: Point) {
+        guard hasScrollbar else { return }
+        setWidened(thumbGrab != nil || scrollbarStrip.contains(point))
+        wake()
+    }
+
+    open override func pointerPressed(_ button: MouseButton, at point: Point) -> Bool {
+        guard hasScrollbar, button == .primary, scrollbarStrip.contains(point) else { return false }
+        let thumb = thumbSpan
+        if point.y >= thumb.start && point.y <= thumb.start + thumb.length {
+            thumbGrab = point.y - thumb.start
+        } else {
+            let page = viewportLength * 0.9
+            setOffset(position.target + (point.y < thumb.start ? -page : page), animated: true)
+        }
+        setWidened(true)
+        return true
+    }
+
+    open override func pointerDragged(to point: Point) {
+        guard let grab = thumbGrab else { return }
+        let thumb = thumbSpan
+        let travel = max(viewportLength - thumb.length - 8, 1)
+        setOffset((point.y - grab - 4) / travel * maximumOffset, animated: false)
+    }
+
+    open override func pointerReleased(_ button: MouseButton, at point: Point, inside: Bool) {
+        thumbGrab = nil
+        setWidened(scrollbarStrip.contains(point))
+    }
+
+    private func setWidened(_ on: Bool) {
+        guard widen.target != (on ? 1 : 0) else { return }
+        widen.set(on ? 1 : 0, animation: .timed(duration: 0.12, curve: .easeOut))
+        startAnimating()
+    }
+
+    /// Page Up and Page Down scroll a viewport less a tenth, Home and End to the ends, when nothing inside took the key.
+    open override func keyPressed(_ event: KeyEvent) -> Bool {
+        guard hasScrollbar, event.modifiers.isEmpty else { return false }
+        let page = viewportLength * 0.9
+        switch event.key {
+        case .pageDown: setOffset(position.target + page, animated: true)
+        case .pageUp: setOffset(position.target - page, animated: true)
+        case .home: setOffset(0, animated: true)
+        case .end: setOffset(maximumOffset, animated: true)
+        default: return false
+        }
+        return true
+    }
+
     // MARK: Indicator
 
-    open override func drawOverlay(_ context: inout DrawContext) {
-        guard showsIndicator, indicator.value > 0.01, maximumOffset > 0 else { return }
+    /// Where the thumb starts along the axis and how long it is.
+    private var thumbSpan: (start: Float, length: Float) {
         let length = viewportLength
         let thumb = max(length * length / max(contentLength, 1), 36)
-        let progress = position.value / maximumOffset
+        let progress = maximumOffset > 0 ? position.value / maximumOffset : 0
         let travel = length - thumb - 8
-        let start = 4 + travel * min(max(progress, 0), 1)
-        let thickness: Float = 5
+        return (4 + travel * min(max(progress, 0), 1), thumb)
+    }
+
+    open override func drawOverlay(_ context: inout DrawContext) {
+        let shown = hasScrollbar ? max(indicator.value, 0.55) : indicator.value
+        guard showsIndicator, shown > 0.01, maximumOffset > 0 else { return }
+        let thumb = thumbSpan
+        let thickness: Float = hasScrollbar ? 5 + 4 * widen.value : 5
         let rect = axis == .vertical
-            ? Rect(x: frame.width - thickness - 3, y: start, width: thickness, height: thumb)
-            : Rect(x: start, y: frame.height - thickness - 3, width: thumb, height: thickness)
-        context.fill(rect, radius: thickness / 2, color: Color.white.withAlpha(0.42 * indicator.value))
+            ? Rect(x: frame.width - thickness - 3, y: thumb.start, width: thickness, height: thumb.length)
+            : Rect(x: thumb.start, y: frame.height - thickness - 3, width: thumb.length, height: thickness)
+        context.fill(rect, radius: thickness / 2, color: Self.indicatorColor.withAlpha((0.42 + 0.2 * widen.value) * shown))
     }
 }

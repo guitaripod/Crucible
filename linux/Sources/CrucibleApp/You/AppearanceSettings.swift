@@ -30,6 +30,13 @@ enum LinuxDisplay {
         theme.density = density(arguments: arguments, environment: environment, saved: defaults.string(forKey: densityKey))
         theme.palette = arguments.contains("--light") || savedLight ? .light : .dark
         theme.cardZoom = CardZoom.saved
+        applyScrolling()
+    }
+
+    /// Desktop scrollbars in the Desktop layout, in the appearance's colour.
+    static func applyScrolling() {
+        ScrollView.desktopScrollbars = !isCouch
+        ScrollView.indicatorColor = isLight ? Color(hex: 0x1A1816) : .white
     }
 
     /// The layout for this launch: a command-line flag, then `CRUCIBLE_LAYOUT`, then what the viewer picked, then Steam
@@ -89,6 +96,7 @@ enum LinuxDisplay {
         let theme = Theme.current
         theme.palette = isLight ? .dark : .light
         UserDefaults.standard.set(isLight ? "light" : "dark", forKey: appearanceKey)
+        applyScrolling()
         for each in everyWindow(window) {
             each.background = theme.palette.canvas
             each.relayoutEverything()
@@ -100,6 +108,7 @@ enum LinuxDisplay {
         let theme = Theme.current
         theme.density = isCouch ? .desk : .couch
         UserDefaults.standard.set(isCouch ? "couch" : "desk", forKey: densityKey)
+        applyScrolling()
         for each in everyWindow(window) {
             applyCanvas(to: each)
             each.relayoutEverything()

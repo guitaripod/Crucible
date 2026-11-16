@@ -215,6 +215,39 @@ enum SharedGPU {
         field.removeFromSuperview()
     }
 
+    private func type(_ text: String) {
+        for character in text { window.handleKey(KeyEvent(key: Key.character(character), text: String(character))) }
+    }
+
+    private func click(_ point: Point, count: Int = 1) {
+        window.handlePointerMoved(to: point)
+        for _ in 0..<count {
+            window.handlePointerButton(.primary, pressed: true)
+            window.handlePointerButton(.primary, pressed: false)
+        }
+    }
+
+    @Test func aDesktopScrollbarPagesOnAClickAndDragsItsThumb() {
+        ScrollView.desktopScrollbars = true
+        defer { ScrollView.desktopScrollbars = false }
+        let scroller = ScrollView(axis: .vertical)
+        scroller.frame = Rect(x: 0, y: 0, width: 400, height: 300)
+        scroller.contentLength = 1200
+        window.contentView.addSubview(scroller)
+        window.render()
+        click(Point(x: 392, y: 280))
+        window.settle()
+        #expect(scroller.offset > 200, "a click below the thumb pages down")
+        let before = scroller.offset
+        let thumbStart = 4 + 217 * before / 900
+        window.handlePointerMoved(to: Point(x: 392, y: thumbStart + 10))
+        window.handlePointerButton(.primary, pressed: true)
+        window.handlePointerMoved(to: Point(x: 392, y: thumbStart + 60))
+        window.handlePointerButton(.primary, pressed: false)
+        #expect(scroller.offset > before + 150, "dragging the thumb scrolls")
+        scroller.removeFromSuperview()
+    }
+
     @Test func aTextEditorPastesLinesAsTheyAre() {
         let editor = TextEditorView(placeholder: "Comment")
         editor.frame = Rect(x: 0, y: 0, width: 600, height: 200)
