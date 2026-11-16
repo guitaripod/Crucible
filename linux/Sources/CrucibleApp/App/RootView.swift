@@ -216,7 +216,7 @@ final class RootView: View, WindowRestoration.Restorable {
         currentID = id
         current = stack
         insertSubview(stack, below: tabBar)
-        stack.isHidden = player != nil
+        stack.isHidden = playerCovers
         stack.frame = contentFrame
         tabBar.setHidden(false, animated: true)
         window?.focus.focus(stack, animated: false)
