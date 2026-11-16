@@ -68,6 +68,21 @@ enum PlaylistScreens {
             let extras = entryActions(for: entry, in: loaded.entries, playlist: playlist, api: api, grid: grid)
             ItemActions.present(for: entry, api: api, at: point, in: grid, extras: extras) { [weak grid] in grid?.reload() }
         }
+        grid.onKey = { [weak grid] entry, event in
+            guard let grid, !playlist.isSmart, let itemID = entry.playlistItemID,
+                  let index = loaded.entries.firstIndex(where: { $0.playlistItemID == itemID }) else { return false }
+            switch (event.key, event.modifiers) {
+            case (.delete, []):
+                update(grid) { try await PlaylistService.remove(playlistItemID: itemID, fromPlaylist: playlist.id, api: api) }
+            case (.up, .alt) where index > 0, (.left, .alt) where index > 0:
+                move(itemID, from: index, to: index - 1, in: loaded.entries, playlist: playlist, api: api, grid: grid)
+            case (.down, .alt) where index < loaded.entries.count - 1, (.right, .alt) where index < loaded.entries.count - 1:
+                move(itemID, from: index, to: index + 1, in: loaded.entries, playlist: playlist, api: api, grid: grid)
+            default:
+                return false
+            }
+            return true
+        }
         return grid
     }
 
@@ -89,16 +104,23 @@ enum PlaylistScreens {
         }
         if !playlist.isSmart, let itemID = entry.playlistItemID, let index = entries.firstIndex(where: { $0.playlistItemID == itemID }) {
             if index > 0 {
+                actions.append((MenuView.Item(id: "moveUp", title: String(localized: "Move Up"), symbol: "arrow.up", shortcut: "Alt+↑"), { [weak grid] in
+                    if let grid { move(itemID, from: index, to: index - 1, in: entries, playlist: playlist, api: api, grid: grid) }
+                }))
                 actions.append((MenuView.Item(id: "moveTop", title: String(localized: "Move to Top"), symbol: "arrow.up.to.line"), { [weak grid] in
                     if let grid { move(itemID, from: index, to: 0, in: entries, playlist: playlist, api: api, grid: grid) }
                 }))
             }
             if index < entries.count - 1 {
+                actions.append((MenuView.Item(id: "moveDown", title: String(localized: "Move Down"), symbol: "arrow.down", shortcut: "Alt+↓"), { [weak grid] in
+                    if let grid { move(itemID, from: index, to: index + 1, in: entries, playlist: playlist, api: api, grid: grid) }
+                }))
                 actions.append((MenuView.Item(id: "moveEnd", title: String(localized: "Move to End"), symbol: "arrow.down.to.line"), { [weak grid] in
                     if let grid { move(itemID, from: index, to: entries.count - 1, in: entries, playlist: playlist, api: api, grid: grid) }
                 }))
             }
-            actions.append((MenuView.Item(id: "removeEntry", title: String(localized: "Remove from Playlist"), symbol: "minus.circle", isDestructive: true), { [weak grid] in
+            actions.append((MenuView.Item(id: "removeEntry", title: String(localized: "Remove from Playlist"), symbol: "minus.circle", isDestructive: true,
+                                          shortcut: String(localized: "Delete")), { [weak grid] in
                 if let grid { update(grid) { try await PlaylistService.remove(playlistItemID: itemID, fromPlaylist: playlist.id, api: api) } }
             }))
         }

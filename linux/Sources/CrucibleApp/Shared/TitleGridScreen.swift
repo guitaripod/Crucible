@@ -27,6 +27,8 @@ final class TitleGridScreen: ScreenView {
     var onMenu: ((PlexMetadata, Point?) -> Void)?
     /// The Play/Pause key on a card; returns whether it played.
     var onPlay: ((PlexMetadata) -> Bool)?
+    /// A key on the focused card that the screen acts on (Delete, Alt with Up or Down); returns whether it took it.
+    var onKey: ((PlexMetadata, KeyEvent) -> Bool)?
     /// Every load's titles in their order, for actions that need the whole list (a playlist's queue).
     var onLoaded: (([PlexMetadata]) -> Void)?
     /// Loads again this often while the screen is up (Server Activity's live list).
@@ -91,6 +93,11 @@ final class TitleGridScreen: ScreenView {
     }
 
     override var preferredFocusView: View? { state.isHidden ? grid : state }
+
+    override func keyPressed(_ event: KeyEvent) -> Bool {
+        guard let onKey, let card = window?.focusedView as? CardView, card.isDescendant(of: grid), let item = items[card.item.id] else { return false }
+        return onKey(item, event)
+    }
 
     override func screenDidAppear() {
         reload()

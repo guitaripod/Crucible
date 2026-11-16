@@ -125,6 +125,17 @@ final class ServerDashboardScreen: SettingsScaffold {
         }
     }
 
+    /// A right click on a task the server lets stop offers Cancel Task.
+    override func rowMenu(_ id: String, at anchor: Rect) -> Bool {
+        guard id.hasPrefix(RowID.activityPrefix), let window,
+              let activity = activities.first(where: { RowID.activityPrefix + $0.uuid == id }), activity.cancellable == true else { return false }
+        ContextMenuView(at: Point(x: anchor.minX, y: anchor.maxY), highlightingFirstRow: false) {
+            [.action(ContextMenuView.Action(String(localized: "Cancel Task", comment: "Button that cancels a server task"), symbol: "xmark.circle",
+                                            isDestructive: true) { [weak self] in self?.cancel(activity) })]
+        }.present(in: window)
+        return true
+    }
+
     private func refresh() async {
         let api = api
         async let sample = try? LibraryManagement.load(api: api)

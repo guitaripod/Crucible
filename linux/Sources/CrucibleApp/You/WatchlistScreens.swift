@@ -36,22 +36,36 @@ enum WatchlistScreens {
         grid.onMenu = { [weak grid] entry, point in
             guard let grid, let window = grid.window, let guid = entry.guid else { return }
             let frame = window.focusedView?.frameInWindow ?? grid.frameInWindow
-            let menu = MenuView(title: entry.title, items: [MenuView.Item(id: "remove", title: WatchlistService.remove, symbol: "bookmark.slash", isDestructive: true)],
+            let menu = MenuView(title: entry.title, items: [MenuView.Item(id: "remove", title: WatchlistService.remove, symbol: "bookmark.slash", isDestructive: true,
+                                                                          shortcut: String(localized: "Delete"))],
                                 anchor: Rect(x: point?.x ?? frame.minX, y: point?.y ?? frame.maxY, width: 1, height: 1))
             menu.onSelect = { [weak grid] _ in
-                Task { @MainActor [weak grid] in
-                    do {
-                        try await WatchlistService.remove(guid: guid, token: token)
-                        grid?.reload()
-                    } catch {
-                        guard let window = grid?.window else { return }
-                        AlertView.notice(title: String(localized: "Couldn’t Update"), message: error.localizedDescription, in: window)
-                    }
-                }
+                if let grid { remove(guid: guid, token: token, from: grid) }
             }
             menu.present(in: window)
         }
+        grid.onKey = { [weak grid] entry, event in
+            guard let grid, let window = grid.window, event.key == .delete, event.modifiers.isEmpty, let guid = entry.guid else { return false }
+            AlertView.confirm(title: WatchlistService.remove, message: entry.title, confirm: String(localized: "Remove", comment: "Button that confirms removing something"),
+                              in: window) { [weak grid] in
+                if let grid { remove(guid: guid, token: token, from: grid) }
+            }
+            return true
+        }
         return grid
+    }
+
+    /// Takes a title off the watchlist and loads the grid again, or says what went wrong.
+    private static func remove(guid: String, token: String, from grid: TitleGridScreen) {
+        Task { @MainActor [weak grid] in
+            do {
+                try await WatchlistService.remove(guid: guid, token: token)
+                grid?.reload()
+            } catch {
+                guard let window = grid?.window else { return }
+                AlertView.notice(title: String(localized: "Couldn’t Update"), message: error.localizedDescription, in: window)
+            }
+        }
     }
 
     /// Opens the server's copy of a watchlist title, or the request sheet when the server has none.
