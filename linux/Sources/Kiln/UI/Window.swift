@@ -726,6 +726,9 @@ public final class Window {
         lastClick = (now, point, button)
     }
 
+    /// Where the pointer is over the window, in window points; nil once it has left.
+    public var pointerLocation: Point? { pointer }
+
     public func handlePointerLeft() {
         hideTooltip()
         shownCursor = nil

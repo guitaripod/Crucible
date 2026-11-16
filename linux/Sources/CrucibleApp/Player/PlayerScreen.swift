@@ -181,7 +181,16 @@ final class PlayerScreen: View {
             window.setFullscreen(!window.isFullscreen)
         }
         transport.skipSeconds = (Preferences.skipBackSeconds, Preferences.skipForwardSeconds)
-        transport.onPointerActivity = { [weak self] inside in self?.showChrome(autoHide: !inside) }
+        transport.onPointerActivity = { [weak self] inside in
+            guard let self else { return }
+            if inside {
+                self.showChrome(autoHide: false)
+            } else if self.window?.pointerLocation == nil {
+                self.holdChrome()
+            } else {
+                self.showChrome(autoHide: true)
+            }
+        }
         transport.chapterTitle = { [weak self] time in
             guard let chapters = self?.stream?.chapters, let chapter = ChapterList.current(ChapterList.playable(chapters), at: time) else { return nil }
             return chapter.title
@@ -899,7 +908,9 @@ final class PlayerScreen: View {
         guard autoHide, player?.state.isPaused == false, infoPanel == nil else { return }
         hideTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: 3_000_000_000)
-            guard let self, !Task.isCancelled, self.player?.state.isPaused == false, self.infoPanel == nil, !self.transport.holdsChrome else { return }
+            guard let self, !Task.isCancelled, self.player?.state.isPaused == false, self.infoPanel == nil, !self.transport.holdsChrome,
+                  self.contextMenu == nil else { return }
+            self.restingPointer = self.lastPointer
             self.chrome.set(0, animation: .timed(duration: 0.4, curve: .easeInOut))
             self.placeSubtitles()
             self.window?.setCursor(.hidden)
@@ -987,12 +998,18 @@ final class PlayerScreen: View {
             stepSpeed(by: 1)
         case .backspace:
             setSpeed(1)
-        case .up:
-            player.setVolume(player.state.volume + 5)
-        case .down:
-            player.setVolume(player.state.volume - 5)
+        case .up, .down:
+            let volume = min(max(player.state.volume + (event.key == .up ? 5 : -5), 0), player.maximumVolume)
+            if player.state.isMuted { player.setMuted(false) }
+            player.setVolume(volume)
+            say(String(localized: "Volume \(Int(volume))%", comment: "Player message with the volume, as in \"Volume 55%\""), symbol: volume <= 0 ? "speaker.slash" : "speaker.wave.2")
+            return true
         case Key.character("m"):
-            player.setMuted(!player.state.isMuted)
+            let muting = !player.state.isMuted
+            player.setMuted(muting)
+            say(muting ? String(localized: "Mute") : String(localized: "Unmute", comment: "Player button: turn the sound back on"),
+                symbol: muting ? "speaker.slash" : "speaker.wave.2")
+            return true
         case Key.character("s"), .return:
             if !skip.isHidden { skipSegment() } else { togglePause() }
         case Key.character("i"):
@@ -1072,8 +1089,24 @@ final class PlayerScreen: View {
         }
     }
 
+    /// Where the pointer was last over the player, and where it rested when the chrome hid.
+    private var lastPointer: Point?
+    private var restingPointer: Point?
+
+    /// The pointer brings the chrome back, except for a nudge of a few points from where it rested when the chrome hid (a
+    /// bumped desk or a settling mouse), and keeps it while over the transport.
     override func pointerMoved(to point: Point) {
+        lastPointer = point
+        if chrome.target < 0.5, let rest = restingPointer, abs(point.x - rest.x) + abs(point.y - rest.y) < Theme.current.metrics.tv(24) { return }
+        restingPointer = nil
         showChrome(autoHide: !transport.frame.contains(point))
+    }
+
+    /// The pointer leaving the window (onto its border, another window or screen) leaves the chrome as it is: shown chrome
+    /// stays until the pointer comes back and rests again.
+    override func pointerExited() {
+        guard window?.pointerLocation == nil, chrome.target > 0 else { return }
+        holdChrome()
     }
 
     /// The gamepad's triggers scrub: the right one forward and the left one back, faster the further they are pulled, up to
