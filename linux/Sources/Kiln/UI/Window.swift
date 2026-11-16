@@ -245,6 +245,26 @@ public final class Window {
         surface?.updateTextInput(state, caret: view.transformToWindow.apply(state.caret))
     }
 
+    /// A gamepad's right stick: the focused view and its ancestors in turn (the content view when nothing has the focus),
+    /// until one takes it.
+    public func gamepadTilt(x: Float, y: Float) {
+        var responder: View? = focus.focusedView ?? contentView
+        while let view = responder {
+            if view.gamepadTilted(x: x, y: y) { return }
+            responder = view.superview
+        }
+    }
+
+    /// A gamepad's triggers: the focused view and its ancestors in turn (the content view when nothing has the focus),
+    /// until one takes them.
+    public func gamepadTriggers(left: Float, right: Float) {
+        var responder: View? = focus.focusedView ?? contentView
+        while let view = responder {
+            if view.gamepadTriggered(left: left, right: right) { return }
+            responder = view.superview
+        }
+    }
+
     /// Hands `link` to the app to open in a new window.
     public func openInNewWindow(_ link: URL) {
         delegate?.window(self, openInNewWindow: link)

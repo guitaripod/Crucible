@@ -88,6 +88,10 @@ public struct Key: Hashable, Sendable {
     public static let mediaPlay = Key(0x1008FF14)
     public static let mediaPause = Key(0x1008FF31)
     public static let forward = Key(0x1008FF27)
+    /// The tab before and after the current one: a gamepad's shoulder buttons, Ctrl with Page Up and Page Down. Outside the
+    /// keysym range, so no keyboard sends them by itself.
+    public static let tabPrevious = Key(0x2000_0001)
+    public static let tabNext = Key(0x2000_0002)
 
     /// A letter or digit key by its lowercase character (`Key.character("f")`).
     public static func character(_ character: Character) -> Key {

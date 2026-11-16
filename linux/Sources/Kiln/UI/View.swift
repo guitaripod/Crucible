@@ -317,6 +317,13 @@ open class View {
     /// The context menu: right click, the Menu key, Y on a gamepad.
     open func showContextMenu(at point: Point?) -> Bool { false }
 
+    /// A gamepad's right stick, -1 to 1 each way with y down: the tilt a pointer gives (parallax). Returning false passes it
+    /// to the superview.
+    open func gamepadTilted(x: Float, y: Float) -> Bool { false }
+
+    /// A gamepad's triggers, 0 to 1 each (the player scrubs with them). Returning false passes them to the superview.
+    open func gamepadTriggered(left: Float, right: Float) -> Bool { false }
+
     /// A short label for accessibility and tooltips.
     open var accessibilityLabel: String? { nil }
 
