@@ -140,10 +140,11 @@ struct LiveTranslationTests {
         guard #available(macOS 26.4, *) else { return }
         let translator = SystemTextTranslator()
         guard await translator.readiness(from: "es", to: "en") == .ready else { return }
-        let markup = "Me encantó la película. **La actuación** es increíble. [spoiler]Al final el padre muere.[/spoiler] Más en https://trakt.tv/movies/x\n> Una cita aquí."
+        let markup = "Me encantó la película. [spoiler]Al final el padre muere.[/spoiler]\n**La actuación** es increíble. Más en https://trakt.tv/movies/x\n> Una cita aquí."
         let english = TraktCommentText(try await translator.translate(markup: markup, from: "es", to: "en"))
         #expect(LanguageDetector.language(of: english.plainText) == "en")
         #expect(english.runs.contains { $0.isSpoiler && $0.text.lowercased().contains("father") })
+        #expect(!english.runs.contains { !$0.isSpoiler && $0.text.lowercased().contains("father") })
         #expect(english.runs.contains { $0.styles.contains(.bold) })
         #expect(english.runs.contains { $0.link?.absoluteString == "https://trakt.tv/movies/x" })
         #expect(english.runs.contains { $0.styles.contains(.quote) })

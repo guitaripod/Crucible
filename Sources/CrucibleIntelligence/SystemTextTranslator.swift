@@ -49,12 +49,22 @@ package struct SystemTextTranslator: TextTranslating {
         return TranslationSession(installedSource: from, target: to)
     }
 
-    /// Each line with words translated on its own as styled text, so a sentence keeps its sense across a spoiler or a bold
-    /// word. Batches lose the styles, so the lines go one by one.
+    /// Each line with words translated on its own as styled text, so a sentence keeps its sense across a bold word or a
+    /// link; batches lose the styles, so the lines go one by one. A line with a hidden spoiler is translated a piece at a
+    /// time instead, each spoiler on its own, because a style is kept only as far as Translation can and a spoiler that
+    /// slipped its cover would give the story away.
     @available(iOS 26.4, macOS 26.4, *)
     private func translateStyled(_ lines: [TraktCommentText.Line], session: TranslationSession) async throws(TranslationFailure) -> [TraktCommentText.Line] {
         var result = lines
         for index in lines.indices where lines[index].hasWords {
+            if lines[index].runs.contains(where: \.isSpoiler) {
+                let translated = try await PlainSegments([lines[index]]).translated { texts throws(TranslationFailure) in
+                    let requests = texts.enumerated().map { TranslationSession.Request(sourceText: $0.element, clientIdentifier: String($0.offset)) }
+                    return try await Self.responses(to: requests, in: session).map(\.targetText)
+                }
+                result[index].runs = translated[0].runs
+                continue
+            }
             let response: TranslationSession.Response
             do {
                 response = try await session.translate(StyledLine.attributed(lines[index]))
