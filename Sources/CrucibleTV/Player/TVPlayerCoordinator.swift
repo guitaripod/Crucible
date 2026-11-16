@@ -118,6 +118,7 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         playerVC.speeds = AVPlaybackSpeed.systemDefaultSpeeds
         playerVC.view.accessibilityIdentifier = "player.view"
         hideSystemSubtitleMenu()
+        configureSkipping()
         installHoldGestures()
     }
 

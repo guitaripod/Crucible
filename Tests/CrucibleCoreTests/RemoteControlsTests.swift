@@ -4,13 +4,6 @@ import Testing
 
 @MainActor
 struct RemoteControlsTests {
-    @Test func onlyTheSystemsTenSecondSkipCountsAsAClick() {
-        #expect(SkipRule.click(from: 106, to: 96) == .back)
-        #expect(SkipRule.click(from: 31, to: 41.2) == .forward)
-        #expect(SkipRule.click(from: 100, to: 70) == nil)
-        #expect(SkipRule.click(from: 100, to: 103) == nil)
-    }
-
     @Test func aClickLandsTheChosenDistanceAwayInsideTheItem() {
         #expect(SkipRule.target(from: 106, direction: .back, seconds: 30, duration: 2_700) == 76)
         #expect(SkipRule.target(from: 12, direction: .back, seconds: 30, duration: 2_700) == 0)

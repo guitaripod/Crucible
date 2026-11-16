@@ -12,17 +12,6 @@ package enum SkipRule {
     package static let choices = [5, 10, 15, 30, 45, 60]
     package static let defaultSeconds = 10
 
-    /// The skip the system player makes for one click.
-    package static let systemSkip = 10.0
-
-    /// The click a user navigation was, when it moved exactly the system's skip; nil for a scrub, a scan or
-    /// anything else, which Crucible leaves alone.
-    package static func click(from old: Double, to target: Double) -> Direction? {
-        let delta = target - old
-        guard abs(abs(delta) - systemSkip) < 0.75 else { return nil }
-        return delta < 0 ? .back : .forward
-    }
-
     /// Where a click lands on the item's timeline: `seconds` from `absolute`, never before the start and,
     /// when the duration is known, never past the end.
     package static func target(from absolute: Double, direction: Direction, seconds: Int, duration: Double) -> Double {

@@ -14,10 +14,41 @@ extension PlaybackSession {
     /// Moves the playhead `seconds` along the item's timeline (back when negative), keeping the player playing
     /// or paused as it was.
     package func move(by seconds: Double, reason: String) {
-        guard let player else { return }
-        let plays = player.rate > 0 || player.timeControlStatus == .waitingToPlayAtSpecifiedRate
+        guard player != nil else { return }
         let upper = request.durationSecs > 0 ? max(0, request.durationSecs - 1) : Double.infinity
-        move(toAbsolute: min(max(0, bestKnownPosition + seconds), upper), plays: plays, reason: reason)
+        move(toAbsolute: min(max(0, bestKnownPosition + seconds), upper), plays: intendsToPlay, reason: reason)
+    }
+
+    /// A click on the left or right of the remote: the playhead moves the distance the viewer chose for that side, from where
+    /// the viewer really is, playing or paused as it was. Clicks made in quick succession add up, and so do clicks made while a
+    /// transcode is still being rebuilt for the one before.
+    package func skip(_ direction: SkipRule.Direction) {
+        guard stream != nil, player != nil else { return }
+        let seconds = direction == .back ? Preferences.skipBackSeconds : Preferences.skipForwardSeconds
+        let from = bestKnownPosition
+        let target = SkipRule.target(from: from, direction: direction, seconds: seconds, duration: request.durationSecs)
+        MidgarLog.notice("Click \(direction) \(seconds) s ratingKey=\(request.ratingKey) from=\(Int(from)) to=\(Int(target))", category: .playback)
+        viewerNavigated()
+        move(toAbsolute: target, plays: intendsToPlay, reason: "click \(direction)")
+    }
+
+    /// The viewer moved the playhead themselves (a click, a scrub or a scan): they are at the remote, an automatic skip they
+    /// moved away from can no longer be taken back, and a rebuilt item's settling window no longer applies, so a scrub made
+    /// right after a rebuild is honoured instead of being taken for the system putting the old item's time back.
+    package func viewerNavigated() {
+        noteViewerAction()
+        settlingUntil = nil
+        guard isUndoVisible else { return }
+        endUndoWindow()
+        emit(.autoSkipUndoExpired)
+    }
+
+    /// Whether playback should go on after the session moves the player: what the player is doing now, or, while a transcode
+    /// is rebuilt, what the rebuild was asked to do, since the session pauses the player itself while it waits.
+    var intendsToPlay: Bool {
+        if isRestarting { return pendingRestart?.resumesPlayback ?? restartResumesPlayback }
+        guard let player else { return false }
+        return player.rate > 0 || player.timeControlStatus == .waitingToPlayAtSpecifiedRate
     }
 
     /// Goes back to the very start of the item, playing or paused as the player was.
@@ -25,28 +56,6 @@ extension PlaybackSession {
         guard let player else { return }
         noteViewerAction()
         move(toAbsolute: 0, plays: player.rate > 0 || player.timeControlStatus == .waitingToPlayAtSpecifiedRate, reason: "start over")
-    }
-
-    /// The viewer clicked left or right on the remote, which the system player turned into its ten-second skip
-    /// from `playerTime`. Returns the player time to seek to instead, for the distance the viewer chose; a skip
-    /// back past the start of a transcode's stream returns `playerTime` and restarts the transcode there.
-    package func click(_ direction: SkipRule.Direction, fromPlayerTime playerTime: Double) -> Double {
-        guard let stream, let player else { return playerTime }
-        let seconds = direction == .back ? Preferences.skipBackSeconds : Preferences.skipForwardSeconds
-        let offset = stream.isDirectPlay ? 0 : streamOffset
-        let target = SkipRule.target(from: offset + playerTime, direction: direction, seconds: seconds, duration: request.durationSecs)
-        MidgarLog.notice("Click \(direction) \(seconds) s ratingKey=\(request.ratingKey) from=\(Int(offset + playerTime)) to=\(Int(target))", category: .playback)
-        noteViewerAction()
-        staleClock = nil
-        settlingUntil = nil
-        tracker.moved(to: target)
-        guard !stream.isDirectPlay, TranscodeSeekPolicy.isBeforeStream(target, streamStart: streamStart) || target - offset < 0 else {
-            if !stream.isDirectPlay { lastPlayhead = target - offset }
-            return target - offset
-        }
-        let plays = player.rate > 0 || player.timeControlStatus == .waitingToPlayAtSpecifiedRate
-        restartTranscode(atAbsolute: target, resumesPlayback: plays, reason: "click back past the stream's start")
-        return playerTime
     }
 
     func move(toAbsolute target: Double, plays: Bool, reason: String) {

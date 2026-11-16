@@ -110,6 +110,22 @@ final class PlayerTests: PlayerTestCase {
         TVTest.capture("01-held-right-jumped", in: self)
     }
 
+    /// Clicks in quick succession each move the chosen distance from where the one before landed: three clicks at 5 s land
+    /// about 15 s ahead.
+    func testQuickClicksAddUp() {
+        setProgress(Self.movie, seconds: 20)
+        let app = launch(playing: Self.movie, arguments: ["-skipForwardSeconds", "<integer>5</integer>"])
+        XCTAssertTrue(waitForPlayback(in: app))
+        TVTest.settle(6)
+        let before = currentPositionMs()
+        let mark = timelineMark()
+        for _ in 0..<3 { TVTest.remote.press(.right) }
+        TVTest.settle(5)
+        let reports = timeline(since: mark).map(\.timeMs)
+        XCTAssertTrue(reports.contains { (before + 13_000...before + 26_000).contains($0) }, "three clicks land about 15 s ahead of \(before): \(reports)")
+        XCTAssertFalse(reports.contains { $0 >= before + 30_000 }, "not three of the system's ten-second skips: \(reports)")
+    }
+
     /// A click back inside a transcode's own stream seeks in place: the server is not asked for a new transcode, so nothing the
     /// viewer chose on the item (such as subtitles off) is reset. It starts past the mock's intro marker (12 to 58 s), where a
     /// Skip Intro action on screen would take the click as focus movement.
