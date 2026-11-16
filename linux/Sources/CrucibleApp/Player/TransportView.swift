@@ -3,9 +3,12 @@ import CrucibleUI
 import Foundation
 import Kiln
 
-/// The floating glass transport: the title, the player's menu buttons at the end of its row (Info, Speed, Sleep Timer,
-/// Audio, Subtitles), a scrubber with what is buffered and a tick at each chapter, the time played and left, and
-/// play/pause. Hovering the scrubber shows the time there and the chapter it falls in.
+/// The floating glass transport. On a couch, the tvOS layout: the title, the menu buttons at the end of its row, a slim
+/// scrubber with play/pause before it and the times beneath. On a desk, a control bar made for the pointer: the title, a
+/// tall scrubbing band whose track thickens under the pointer with the times at either end, and a row of large buttons
+/// (skip back, play/pause, skip ahead, mute with a volume slider; Audio, Subtitles, Speed, Sleep Timer, Info and Full
+/// Screen at the far end), each lit under the pointer and named with its shortcut in a tooltip. Either way the scrubber
+/// shows what is buffered and a tick at each chapter, and hovering it shows the time there, the chapter and a still.
 @MainActor
 final class TransportView: View {
     enum Control: String, CaseIterable {
@@ -30,6 +33,23 @@ final class TransportView: View {
             case .subtitles: "captions.bubble"
             }
         }
+
+        /// The key that does the same, for the button's tooltip.
+        var shortcut: String {
+            switch self {
+            case .info: "I"
+            case .speed: "[ ]"
+            case .sleep: "T"
+            case .audio: "A"
+            case .subtitles: "C"
+            }
+        }
+    }
+
+    /// A button of the desk's control row.
+    enum Button: Hashable {
+        case play, back, ahead, mute, fullscreen
+        case control(Control)
     }
 
     var title = "" { didSet { setNeedsDisplay() } }
@@ -43,6 +63,10 @@ final class TransportView: View {
     var isSleepTimerSet = false { didSet { setNeedsDisplay() } }
     /// Playback runs at another speed than normal, so its button is lit.
     var isSpeedChanged = false { didSet { setNeedsDisplay() } }
+    /// The window fills the screen, so the desk's Full Screen button offers to leave it.
+    var isFullscreen = false { didSet { setNeedsDisplay() } }
+    /// How far the desk's skip buttons go, for their tooltips.
+    var skipSeconds = (back: 10, ahead: 10) { didSet { setNeedsDisplay() } }
     /// Where a drag along the scrubber is: begun, moving, or let go, with the fraction of the title it points at.
     enum ScrubPhase {
         case began, moved, ended
@@ -52,26 +76,48 @@ final class TransportView: View {
     var onTogglePause: (() -> Void)?
     /// A menu button was pressed, with where it sits in the window.
     var onControl: ((Control, Rect) -> Void)?
+    /// The desk's skip buttons: false back, true ahead.
+    var onSkip: ((Bool) -> Void)?
+    var onToggleMute: (() -> Void)?
+    /// The desk's volume slider or the wheel over it asks for this volume.
+    var onVolume: ((Double) -> Void)?
+    var onToggleFullscreen: (() -> Void)?
+    /// The pointer moved over the transport, which keeps it showing, or left it (false), which lets it hide again.
+    var onPointerActivity: ((Bool) -> Void)?
+
+    /// Whether the pointer rests on the transport or drags its scrubber or volume, so it must not hide.
+    var holdsChrome: Bool { pointer != nil || scrubbing || draggingVolume }
 
     private var position: Double = 0
     private var duration: Double = 0
     private var buffered: Double = 0
     private var paused = true
     private var buffering = false
+    private var volume: Double = 100
+    private var muted = false
+    private var maximumVolume: Double = 100
     private var hoverFraction: Float?
     private var scrubbing = false
+    private var draggingVolume = false
     /// The fraction a drag points at, which the knob, the time and the still follow rather than the player, whose picture
     /// trails a drag by a seek.
     private var scrubFraction: Float = 0
     private var lastScrubX: Float = 0
+    private var pointer: Point?
+    private var hovered: Button?
+    private var pressed: Button?
+    /// How far the desk's track has thickened under the pointer, 0 to 1.
+    private var thicken = Animated(0)
     private var tone = GlassTone()
     /// Each label's own tone over the picture right under it: dark over glare there while the glass as a whole reads dark.
     private var labelTones: [Label: GlassTone] = [:]
 
     private enum Label: Hashable {
         case title, play, elapsed, remaining, buffering, preview
-        case control(Control)
+        case button(Button)
     }
+
+    private var isDesk: Bool { Theme.current.density == .desk }
 
     func update(position: Double, duration: Double, buffered: Double, paused: Bool, buffering: Bool) {
         self.position = position
@@ -82,8 +128,18 @@ final class TransportView: View {
         setNeedsDisplay()
     }
 
-    /// Where a control's button sits, in this view's points: right to left from the end of the title row.
+    /// The sound's state, for the desk's mute button and volume slider.
+    func updateSound(volume: Double, muted: Bool, maximum: Double) {
+        guard volume != self.volume || muted != self.muted || maximum != maximumVolume else { return }
+        if !draggingVolume { self.volume = volume }
+        self.muted = muted
+        maximumVolume = max(maximum, 1)
+        setNeedsDisplay()
+    }
+
+    /// Where a control's button sits, in this view's points.
     func frame(of control: Control) -> Rect {
+        if isDesk { return deskFrame(of: .control(control)) }
         let metrics = Theme.current.metrics
         let side = metrics.tv(56)
         let order: [Control] = Control.allCases.reversed()
@@ -94,18 +150,31 @@ final class TransportView: View {
     override var isPointerInteractive: Bool { true }
     override var cursor: Cursor { .default }
 
-    /// The name of the icon under the pointer: play or pause, or one of the menu buttons.
+    /// The name of the button under the pointer, with its key on a desk.
     override func tooltip(at point: Point) -> String? {
+        if isDesk {
+            guard let button = deskButton(at: point) else { return nil }
+            return "\(name(of: button)) (\(shortcut(of: button)))"
+        }
         if playButton.insetBy(-8, -8).contains(point) { return paused ? String(localized: "Play") : String(localized: "Pause") }
         return Control.allCases.first { frame(of: $0).insetBy(-6, -6).contains(point) }?.title
     }
 
     override func sizeThatFits(_ size: Size) -> Size {
-        Size(width: size.width, height: Theme.current.metrics.tv(150))
+        Size(width: size.width, height: Theme.current.metrics.tv(isDesk ? 372 : 150))
     }
 
+    // MARK: Geometry
+
+    /// The track the scrubber draws: on a desk, between the two times, thickening under the pointer.
     private var bar: Rect {
         let metrics = Theme.current.metrics
+        if isDesk {
+            let clock = clockWidth
+            let x = deskInset + clock + metrics.tv(32)
+            let height = metrics.tv(12) + metrics.tv(14) * thicken.value
+            return Rect(x: x, y: (deskBarMidY - height / 2), width: frame.width - x * 2, height: height)
+        }
         let inset = metrics.tv(48)
         let playSize = metrics.tv(64)
         return Rect(x: inset + playSize + metrics.tv(32), y: frame.height - metrics.tv(52), width: frame.width - inset * 2 - playSize - metrics.tv(32),
@@ -113,23 +182,136 @@ final class TransportView: View {
     }
 
     private var playButton: Rect {
+        if isDesk { return deskFrame(of: .play) }
         let metrics = Theme.current.metrics
         let side = metrics.tv(64)
         return Rect(x: metrics.tv(48), y: bar.midY - side / 2, width: side, height: side)
+    }
+
+    private var deskInset: Float { Theme.current.metrics.tv(56) }
+    private var deskBarMidY: Float { Theme.current.metrics.tv(146) }
+
+    /// The band a press or hover scrubs in: the track's row from end to end, tall enough to hit without aiming.
+    private var scrubBand: Rect {
+        let metrics = Theme.current.metrics
+        let track = bar
+        return Rect(x: track.minX - metrics.tv(16), y: deskBarMidY - metrics.tv(46), width: track.width + metrics.tv(32), height: metrics.tv(92))
+    }
+
+    /// Room for the longest time either end of the desk's track shows, so the track does not shift as the digits change.
+    private var clockWidth: Float {
+        let sample = duration >= 3600 ? "-00:00:00" : "-00:00"
+        return (TextLayout(sample, font: Theme.current.type.control, scale: window?.scale ?? 1).size.width + 2).rounded(.up)
+    }
+
+    private var deskButtonSide: Float { Theme.current.metrics.tv(116) }
+    private var deskRowMidY: Float { frame.height - Theme.current.metrics.tv(34) - Theme.current.metrics.tv(66) }
+
+    /// Where each button of the desk's row sits: back, play, ahead and mute from the start, the menus and Full Screen from
+    /// the end.
+    private func deskFrame(of button: Button) -> Rect {
+        let metrics = Theme.current.metrics
+        let side = deskButtonSide
+        let gap = metrics.tv(12)
+        func at(_ x: Float, _ size: Float = side) -> Rect { Rect(x: x, y: deskRowMidY - size / 2, width: size, height: size) }
+        let start = deskInset - metrics.tv(22)
+        let playSide = metrics.tv(132)
+        switch button {
+        case .back: return at(start)
+        case .play: return at(start + side + gap, playSide)
+        case .ahead: return at(start + side + gap * 2 + playSide)
+        case .mute: return at(start + side * 2 + gap * 2 + playSide + metrics.tv(44))
+        case .fullscreen: return at(frame.width - start - side)
+        case .control(let control):
+            let order: [Control] = [.info, .sleep, .speed, .subtitles, .audio]
+            let index = Float(order.firstIndex(of: control) ?? 0)
+            return at(frame.width - start - side * (index + 2) - gap * (index + 1) - metrics.tv(40))
+        }
+    }
+
+    private var deskButtons: [Button] { [.back, .play, .ahead, .mute, .fullscreen] + Control.allCases.map { .control($0) } }
+
+    /// The volume slider beside the mute button: its track, and the wider band that takes presses and the wheel.
+    private var volumeTrack: Rect {
+        let metrics = Theme.current.metrics
+        let mute = deskFrame(of: .mute)
+        return Rect(x: mute.maxX + metrics.tv(14), y: deskRowMidY - metrics.tv(6), width: metrics.tv(300), height: metrics.tv(12))
+    }
+
+    private var volumeBand: Rect { volumeTrack.insetBy(-Theme.current.metrics.tv(18), -Theme.current.metrics.tv(44)) }
+
+    private func deskButton(at point: Point) -> Button? {
+        deskButtons.first { deskFrame(of: $0).contains(point) }
+    }
+
+    private func name(of button: Button) -> String {
+        switch button {
+        case .play: paused ? String(localized: "Play") : String(localized: "Pause")
+        case .back: String(localized: "Skip Back \(skipSeconds.back) s", comment: "Player menu, with the skip distance")
+        case .ahead: String(localized: "Skip Ahead \(skipSeconds.ahead) s", comment: "Player menu, with the skip distance")
+        case .mute: muted ? String(localized: "Unmute", comment: "Player button") : String(localized: "Mute", comment: "Player button")
+        case .fullscreen: isFullscreen ? String(localized: "Exit Full Screen", comment: "Player button") : String(localized: "Full Screen", comment: "Player menu")
+        case .control(let control): control.title
+        }
+    }
+
+    private func shortcut(of button: Button) -> String {
+        switch button {
+        case .play: KeyName.space
+        case .back: KeyName.left
+        case .ahead: KeyName.right
+        case .mute: "M"
+        case .fullscreen: "F"
+        case .control(let control): control.shortcut
+        }
+    }
+
+    private func symbol(of button: Button) -> Symbol {
+        switch button {
+        case .play: paused ? "play.fill" : "pause.fill"
+        case .back: "gobackward.10"
+        case .ahead: "goforward.10"
+        case .mute: muted || volume <= 0 ? "speaker.slash" : (volume < 50 ? "speaker.wave.2" : "speaker.wave.3")
+        case .fullscreen: isFullscreen ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right"
+        case .control(let control): control == .sleep && isSleepTimerSet ? "moon.zzz.fill" : control.symbol
+        }
     }
 
     private func fraction(at point: Point) -> Float {
         min(max((point.x - bar.x) / max(bar.width, 1), 0), 1)
     }
 
+    // MARK: Pointer
+
     override func pointerMoved(to point: Point) {
-        guard !scrubbing else { return }
-        hoverFraction = point.y > bar.y - Theme.current.metrics.tv(40) && point.x >= bar.x ? fraction(at: point) : nil
+        pointer = point
+        onPointerActivity?(true)
+        guard !scrubbing, !draggingVolume else { return }
+        if isDesk {
+            let inBand = scrubBand.contains(point)
+            hoverFraction = inBand ? fraction(at: point) : nil
+            setHovered(deskButton(at: point))
+            thicken.set(inBand ? 1 : 0, animation: .timed(duration: 0.12, curve: .easeOut))
+            startAnimating()
+        } else {
+            hoverFraction = point.y > bar.y - Theme.current.metrics.tv(40) && point.x >= bar.x ? fraction(at: point) : nil
+        }
         setNeedsDisplay()
     }
 
-    /// A drag keeps scrubbing wherever the pointer goes once it pressed the bar, off the transport included.
+    private func setHovered(_ button: Button?) {
+        guard button != hovered else { return }
+        hovered = button
+        setNeedsDisplay()
+    }
+
+    /// A drag keeps scrubbing (or setting the volume) wherever the pointer goes once it pressed the bar, off the transport
+    /// included.
     override func pointerDragged(to point: Point) {
+        if draggingVolume {
+            setVolume(at: point)
+            return
+        }
         guard scrubbing else { return }
         scrubFraction = scrubTarget(at: point)
         lastScrubX = point.x
@@ -153,11 +335,32 @@ final class TransportView: View {
 
     override func pointerExited() {
         hoverFraction = nil
+        pointer = nil
+        onPointerActivity?(false)
+        setHovered(nil)
+        if !scrubbing {
+            thicken.set(0, animation: .timed(duration: 0.18, curve: .easeOut))
+            startAnimating()
+        }
         setNeedsDisplay()
     }
 
     override func pointerPressed(_ button: MouseButton, at point: Point) -> Bool {
         guard button == .primary else { return false }
+        if isDesk {
+            if volumeBand.contains(point) {
+                draggingVolume = true
+                setVolume(at: point)
+                return true
+            }
+            if let hit = deskButton(at: point) {
+                pressed = hit
+                setNeedsDisplay()
+                return true
+            }
+            if scrubBand.contains(point) { beginScrub(at: point) }
+            return true
+        }
         if playButton.insetBy(-8, -8).contains(point) {
             onTogglePause?()
             return true
@@ -166,22 +369,69 @@ final class TransportView: View {
             onControl?(control, transformToWindow.apply(frame(of: control)))
             return true
         }
-        if point.x >= bar.x - 8 {
-            scrubbing = true
-            scrubFraction = fraction(at: point)
-            lastScrubX = point.x
-            hoverFraction = scrubFraction
-            onScrub?(scrubFraction, .began)
-            setNeedsDisplay()
-        }
+        if point.x >= bar.x - 8 { beginScrub(at: point) }
         return true
     }
 
+    private func beginScrub(at point: Point) {
+        scrubbing = true
+        scrubFraction = fraction(at: point)
+        lastScrubX = point.x
+        hoverFraction = scrubFraction
+        onScrub?(scrubFraction, .began)
+        setNeedsDisplay()
+    }
+
     override func pointerReleased(_ button: MouseButton, at point: Point, inside: Bool) {
+        if draggingVolume {
+            draggingVolume = false
+            return
+        }
+        if let hit = pressed {
+            pressed = nil
+            setNeedsDisplay()
+            if deskButton(at: point) == hit { run(hit) }
+            return
+        }
         guard scrubbing else { return }
         scrubbing = false
         onScrub?(scrubFraction, .ended)
+        if !scrubBand.contains(point) {
+            thicken.set(0, animation: .timed(duration: 0.18, curve: .easeOut))
+            startAnimating()
+        }
         setNeedsDisplay()
+    }
+
+    private func run(_ button: Button) {
+        switch button {
+        case .play: onTogglePause?()
+        case .back: onSkip?(false)
+        case .ahead: onSkip?(true)
+        case .mute: onToggleMute?()
+        case .fullscreen: onToggleFullscreen?()
+        case .control(let control): onControl?(control, transformToWindow.apply(deskFrame(of: button)))
+        }
+    }
+
+    private func setVolume(at point: Point) {
+        let track = volumeTrack
+        let fraction = Double(min(max((point.x - track.x) / max(track.width, 1), 0), 1))
+        volume = (fraction * maximumVolume).rounded()
+        onVolume?(volume)
+        setNeedsDisplay()
+    }
+
+    /// The wheel over the mute button or the volume slider turns the volume (5% a notch); anywhere else it goes on to the
+    /// player, which seeks.
+    override func scrolled(_ event: ScrollEvent) -> Bool {
+        guard isDesk, let pointer, volumeBand.contains(pointer) || deskFrame(of: .mute).contains(pointer) else { return false }
+        let step = event.isDiscrete ? Double(-event.notchesY + event.notchesX) * 5 : Double(-event.dy + event.dx) * 0.2
+        guard step != 0 else { return true }
+        volume = min(max(volume + step, 0), maximumVolume).rounded()
+        onVolume?(volume)
+        setNeedsDisplay()
+        return true
     }
 
     static func clock(_ seconds: Double) -> String {
@@ -192,10 +442,17 @@ final class TransportView: View {
         return hours > 0 ? String(format: "%d:%02d:%02d", hours, minutes, secs) : String(format: "%d:%02d", minutes, secs)
     }
 
+    // MARK: Drawing
+
     override func draw(_ context: inout DrawContext) {
         let theme = Theme.current
         let metrics = theme.metrics
         guard let scale = window?.scale else { return }
+        if isDesk {
+            GlassStyle.frostedSheet(in: bounds, radius: metrics.radiusL, scale: scale, dark: true, veil: 0.62, context: &context)
+            drawDesk(label: GlassStyle.label(tone: 0), scale: scale, context: &context)
+            return
+        }
         if tone.update(context, rect: bounds) { startAnimating() }
         GlassStyle.capsule(in: bounds, radius: metrics.radiusL, light: Point(x: bounds.midX, y: bounds.minY - bounds.height), floating: true,
                            tone: tone.value, context: &context)
@@ -212,6 +469,44 @@ final class TransportView: View {
         drawBar(label: label, scale: scale, context: &context)
     }
 
+    /// The desk's layout: the title, the band with its times, and the row of buttons with the volume slider.
+    private func drawDesk(label: Color, scale: Float, context: inout DrawContext) {
+        let theme = Theme.current
+        let metrics = theme.metrics
+        let titleWidth = frame.width - deskInset * 2
+        let titleLayout = TextLayout(title, font: theme.type.headline, maxWidth: titleWidth, maxLines: 1, scale: scale)
+        let titleOrigin = Point(x: deskInset, y: metrics.tv(40))
+        context.text(titleLayout, at: titleOrigin, color: label)
+        let accent = theme.palette.accent
+        for button in deskButtons {
+            let rect = deskFrame(of: button)
+            if hovered == button || pressed == button {
+                context.fill(rect, radius: rect.height / 2, color: label.withAlpha(pressed == button ? 0.24 : 0.14))
+            }
+            let lit = (button == .control(.sleep) && isSleepTimerSet) || (button == .control(.speed) && isSpeedChanged)
+            let inset = button == .play ? rect.width * 0.28 : rect.width * 0.29
+            context.symbol(symbol(of: button), in: rect.insetBy(inset, inset), color: lit ? accent : label)
+        }
+        drawVolume(label: label, context: &context)
+        drawBar(label: label, scale: scale, context: &context)
+    }
+
+    private func drawVolume(label: Color, context: inout DrawContext) {
+        let theme = Theme.current
+        let track = volumeTrack
+        let level = Float(min(max(volume / maximumVolume, 0), 1))
+        context.fill(track, radius: track.height / 2, color: label.withAlpha(0.22))
+        if maximumVolume > 100 {
+            let x = track.x + track.width * Float(100 / maximumVolume)
+            context.fill(Rect(x: x - 0.5, y: track.y - theme.metrics.tv(4), width: 1, height: track.height + theme.metrics.tv(8)), color: label.withAlpha(0.4))
+        }
+        let fill = muted ? label.withAlpha(0.35) : label
+        context.fill(Rect(x: track.x, y: track.y, width: max(track.width * level, track.height), height: track.height), radius: track.height / 2, color: fill)
+        let knob = theme.metrics.tv(draggingVolume ? 28 : 24)
+        context.fill(Rect(x: track.x + track.width * level - knob / 2, y: track.midY - knob / 2, width: knob, height: knob), radius: knob / 2,
+                     color: muted ? Color.white.withAlpha(0.6) : .white)
+    }
+
     /// The tone of `label` at `rect`, read from the picture under it, beside the glass's own.
     private func labelTone(_ label: Label, over rect: Rect, _ context: DrawContext) -> Float {
         var each = labelTones[label] ?? GlassTone()
@@ -220,14 +515,14 @@ final class TransportView: View {
         return each.value
     }
 
-    /// The menu buttons; a set sleep timer or a changed speed lights its button in the accent.
+    /// The couch's menu buttons; a set sleep timer or a changed speed lights its button in the accent.
     private func drawControls(context: inout DrawContext) {
         let accent = Theme.current.palette.accent
         for control in Control.allCases {
             let button = frame(of: control)
             let lit = (control == .sleep && isSleepTimerSet) || (control == .speed && isSpeedChanged)
             let symbol: Symbol = control == .sleep && isSleepTimerSet ? "moon.zzz.fill" : control.symbol
-            let label = GlassStyle.label(tone: labelTone(.control(control), over: button, context))
+            let label = GlassStyle.label(tone: labelTone(.button(.control(control)), over: button, context))
             context.symbol(symbol, in: button.insetBy(button.width * 0.22, button.height * 0.22), color: lit ? accent : label)
         }
     }
@@ -236,6 +531,7 @@ final class TransportView: View {
         let theme = Theme.current
         let metrics = theme.metrics
         let track = bar
+        let timeFont = isDesk ? theme.type.control : theme.type.caption1
         context.fill(track, radius: track.height / 2, color: label.withAlpha(0.22))
         if duration > 0 {
             let bufferedEnd = min((position + buffered) / duration, 1)
@@ -248,13 +544,13 @@ final class TransportView: View {
                 let x = track.x + track.width * Float(mark / duration)
                 context.fill(Rect(x: x - metrics.tv(2), y: track.y, width: metrics.tv(4), height: track.height), color: Color.shade(0.55))
             }
-            let knob = metrics.tv(22)
+            let knob = isDesk ? metrics.tv(26) + metrics.tv(14) * thicken.value : metrics.tv(22)
             context.fill(Rect(x: track.x + track.width * played - knob / 2, y: track.midY - knob / 2, width: knob, height: knob), radius: knob / 2,
                          color: .white)
             if let hoverFraction {
                 let time = Double(hoverFraction) * duration
                 let text = [chapterTitle?(time), Self.clock(time)].compactMap { $0 }.joined(separator: " · ")
-                let preview = TextLayout(text, font: theme.type.caption1, scale: scale)
+                let preview = TextLayout(text, font: isDesk ? theme.type.callout : theme.type.caption1, scale: scale)
                 let anchor = track.x + track.width * hoverFraction
                 let tick = metrics.tv(4)
                 context.fill(Rect(x: (anchor - tick / 2).rounded(), y: track.y - metrics.tv(6), width: tick, height: track.height + metrics.tv(12)),
@@ -264,22 +560,30 @@ final class TransportView: View {
                 } else {
                     let origin = Point(x: min(max(anchor - preview.size.width / 2, track.x), track.maxX - preview.size.width),
                                        y: track.y - preview.size.height - metrics.tv(14))
-                    context.text(preview, at: origin, color: GlassStyle.label(tone: labelTone(.preview, over: Rect(origin: origin, size: preview.size), context)))
+                    context.text(preview, at: origin, color: isDesk ? label : GlassStyle.label(tone: labelTone(.preview, over: Rect(origin: origin, size: preview.size), context)))
                 }
             }
         }
         let shown = scrubbing ? Double(scrubFraction) * duration : position
-        let elapsed = TextLayout(Self.clock(shown), font: theme.type.caption1, scale: scale)
-        let remaining = TextLayout("-" + Self.clock(max(duration - shown, 0)), font: theme.type.caption1, scale: scale)
-        let elapsedOrigin = Point(x: track.x, y: track.maxY + metrics.tv(8))
-        let remainingOrigin = Point(x: track.maxX - remaining.size.width, y: track.maxY + metrics.tv(8))
-        context.text(elapsed, at: elapsedOrigin,
-                     color: GlassStyle.secondaryLabel(tone: labelTone(.elapsed, over: Rect(origin: elapsedOrigin, size: elapsed.size), context)))
-        context.text(remaining, at: remainingOrigin,
-                     color: GlassStyle.secondaryLabel(tone: labelTone(.remaining, over: Rect(origin: remainingOrigin, size: remaining.size), context)))
+        let elapsed = TextLayout(Self.clock(shown), font: timeFont, scale: scale)
+        let remaining = TextLayout("-" + Self.clock(max(duration - shown, 0)), font: timeFont, scale: scale)
+        let elapsedOrigin: Point
+        let remainingOrigin: Point
+        if isDesk {
+            elapsedOrigin = Point(x: deskInset, y: (track.midY - elapsed.size.height / 2).rounded())
+            remainingOrigin = Point(x: frame.width - deskInset - remaining.size.width, y: (track.midY - remaining.size.height / 2).rounded())
+        } else {
+            elapsedOrigin = Point(x: track.x, y: track.maxY + metrics.tv(8))
+            remainingOrigin = Point(x: track.maxX - remaining.size.width, y: track.maxY + metrics.tv(8))
+        }
+        let timeColor = { (tone: Float) in self.isDesk ? label : GlassStyle.secondaryLabel(tone: tone) }
+        context.text(elapsed, at: elapsedOrigin, color: timeColor(labelTone(.elapsed, over: Rect(origin: elapsedOrigin, size: elapsed.size), context)))
+        context.text(remaining, at: remainingOrigin, color: timeColor(labelTone(.remaining, over: Rect(origin: remainingOrigin, size: remaining.size), context)))
         if buffering {
             let note = TextLayout(String(localized: "Buffering…"), font: theme.type.caption1, scale: scale)
-            let origin = Point(x: track.midX - note.size.width / 2, y: track.maxY + metrics.tv(8))
+            let origin = isDesk
+                ? Point(x: track.midX - note.size.width / 2, y: track.maxY + metrics.tv(12))
+                : Point(x: track.midX - note.size.width / 2, y: track.maxY + metrics.tv(8))
             context.text(note, at: origin, color: GlassStyle.secondaryLabel(tone: labelTone(.buffering, over: Rect(origin: origin, size: note.size), context)))
         }
     }
@@ -305,6 +609,7 @@ final class TransportView: View {
 
     override func advanceAnimations(_ dt: Float) -> Bool {
         var moving = tone.advance(dt)
+        moving = thicken.advance(dt) || moving
         for (label, var each) in labelTones {
             moving = each.advance(dt) || moving
             labelTones[label] = each

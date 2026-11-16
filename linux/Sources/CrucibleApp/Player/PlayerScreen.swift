@@ -160,6 +160,28 @@ final class PlayerScreen: View {
             self?.viewerActed()
             self?.present(control, anchor: anchor)
         }
+        transport.onSkip = { [weak self] forward in
+            self?.viewerActed()
+            self?.press(forward: forward, isRepeat: false)
+        }
+        transport.onToggleMute = { [weak self] in
+            guard let self, let player = self.player else { return }
+            self.viewerActed()
+            player.setMuted(!player.state.isMuted)
+        }
+        transport.onVolume = { [weak self] volume in
+            guard let self, let player = self.player else { return }
+            self.viewerActed()
+            if player.state.isMuted { player.setMuted(false) }
+            player.setVolume(volume)
+        }
+        transport.onToggleFullscreen = { [weak self] in
+            guard let window = self?.window else { return }
+            self?.viewerActed()
+            window.setFullscreen(!window.isFullscreen)
+        }
+        transport.skipSeconds = (Preferences.skipBackSeconds, Preferences.skipForwardSeconds)
+        transport.onPointerActivity = { [weak self] inside in self?.showChrome(autoHide: !inside) }
         transport.chapterTitle = { [weak self] time in
             guard let chapters = self?.stream?.chapters, let chapter = ChapterList.current(ChapterList.playable(chapters), at: time) else { return nil }
             return chapter.title
@@ -341,6 +363,7 @@ final class PlayerScreen: View {
         if let preroll, !preroll.isRevealed, playerState.videoWidth > 0 { revealPicture() }
         transport.update(position: position, duration: duration, buffered: playerState.cachedSeconds, paused: playerState.isPaused,
                          buffering: playerState.isBuffering)
+        transport.updateSound(volume: playerState.volume, muted: playerState.isMuted, maximum: player?.maximumVolume ?? 100)
         updateSkip()
         if var resolver = upNext, card == nil, postPlay == nil, resolver.creditsReached(at: position) {
             upNext = resolver
@@ -876,7 +899,7 @@ final class PlayerScreen: View {
         guard autoHide, player?.state.isPaused == false, infoPanel == nil else { return }
         hideTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: 3_000_000_000)
-            guard let self, !Task.isCancelled, self.player?.state.isPaused == false, self.infoPanel == nil else { return }
+            guard let self, !Task.isCancelled, self.player?.state.isPaused == false, self.infoPanel == nil, !self.transport.holdsChrome else { return }
             self.chrome.set(0, animation: .timed(duration: 0.4, curve: .easeInOut))
             self.placeSubtitles()
             self.window?.setCursor(.hidden)
@@ -1125,9 +1148,11 @@ final class PlayerScreen: View {
         calibration?.frame = bounds
         preroll?.frame = bounds
         postPlay?.frame = bounds
-        let width = min(frame.width - metrics.sideMargin * 2, metrics.tv(1600))
+        let desk = Theme.current.density == .desk
+        let width = desk ? frame.width - metrics.tv(64) : min(frame.width - metrics.sideMargin * 2, metrics.tv(1600))
         let height = transport.sizeThatFits(Size(width: width, height: 0)).height
-        transport.frame = Rect(x: ((frame.width - width) / 2).rounded(), y: frame.height - height - metrics.tv(48), width: width, height: height)
+        transport.frame = Rect(x: ((frame.width - width) / 2).rounded(), y: frame.height - height - metrics.tv(desk ? 32 : 48), width: width, height: height)
+        transport.isFullscreen = window?.isFullscreen ?? false
         if let infoPanel {
             let panelHeight = infoPanel.sizeThatFits(Size(width: width, height: 0)).height
             infoPanel.frame = Rect(x: transport.frame.x, y: transport.frame.y - panelHeight - metrics.tv(24), width: width, height: panelHeight)
