@@ -120,12 +120,17 @@ final class TraktSettingsScreen: SettingsScaffold {
 
 /// Connects Trakt (`TVTraktLinkViewController`): the eight-character code in tiles, a QR code that opens Trakt's
 /// activation page on a phone, a status line while it waits, and the screen goes back by itself the moment the viewer
-/// approves; after an expired, denied or failed code, New Code starts again.
+/// approves; after an expired, denied or failed code, New Code starts again. In the Desktop layout, where a browser is at
+/// hand, Open in Browser goes to the activation page and Copy Code takes the code along.
 @MainActor
 final class TraktLinkScreen: ScreenView {
     private let qr = QRCodeView()
     private let status = StatusLineView()
     private let retry = ButtonView(style: .primary, title: TraktCopy.newCode, symbol: "arrow.clockwise")
+    private let openPage = ButtonView(style: .primary, title: String(localized: "Open in Browser", comment: "Opens a web page in the desktop's browser"),
+                                      symbol: "arrow.up.right.square")
+    private let copyCode = ButtonView(style: .glass, title: String(localized: "Copy Code"), symbol: "doc.on.doc")
+    private var verificationURL: URL?
     private let anchor = FocusAnchorView()
     private var session: Task<Void, Never>?
     private var code: String?
@@ -136,7 +141,21 @@ final class TraktLinkScreen: ScreenView {
         super.init(frame: frame)
         retry.onPress = { [weak self] in self?.start() }
         retry.isHidden = true
-        [qr, status, retry, anchor].forEach(addSubview)
+        openPage.onPress = { [weak self] in self?.verificationURL.map(Browser.open) }
+        copyCode.onPress = { [weak self] in
+            guard let self, let code = self.code else { return }
+            self.window?.copy(code)
+            self.status.show(String(localized: "Copied"), busy: false)
+        }
+        [qr, status, retry, openPage, copyCode, anchor].forEach(addSubview)
+        updateDeskButtons()
+    }
+
+    /// Open in Browser and Copy Code show on a desk while a code waits for approval.
+    private func updateDeskButtons() {
+        let shown = Theme.current.density == .desk && code != nil && !failed
+        openPage.isHidden = !shown
+        copyCode.isHidden = !shown
     }
 
     override var preferredFocusView: View? { failed ? retry : anchor }
@@ -174,6 +193,7 @@ final class TraktLinkScreen: ScreenView {
             status.show(TraktCopy.requestingCode, busy: true)
         case .waiting(let linkCode):
             code = linkCode.userCode
+            verificationURL = linkCode.verificationURL
             address = Self.displayAddress(linkCode.verificationURL)
             qr.text = linkCode.verificationURL.absoluteString
             status.show(TraktCopy.waiting, busy: true)
@@ -189,6 +209,7 @@ final class TraktLinkScreen: ScreenView {
             guard !message.isEmpty else { return }
             fail(message)
         }
+        updateDeskButtons()
         setNeedsLayout()
         setNeedsDisplay()
     }
@@ -237,6 +258,10 @@ final class TraktLinkScreen: ScreenView {
         status.frame = Rect(x: leftX, y: (frame.height * 0.62).rounded(), width: column, height: statusHeight)
         let size = retry.sizeThatFits(Size(width: 600, height: 200))
         retry.frame = Rect(x: leftX, y: status.frame.maxY + metrics.tv(32), width: size.width, height: size.height)
+        let open = openPage.sizeThatFits(Size(width: 900, height: 200))
+        openPage.frame = Rect(x: leftX, y: retry.frame.y, width: open.width, height: open.height)
+        let copy = copyCode.sizeThatFits(Size(width: 900, height: 200))
+        copyCode.frame = Rect(x: openPage.frame.maxX + metrics.tv(24), y: retry.frame.y, width: copy.width, height: copy.height)
         anchor.frame = Rect(x: frame.midX, y: frame.midY, width: 1, height: 1)
     }
 

@@ -307,6 +307,10 @@ public final class TextEditorView: View, TextInputClient {
     }
 
     public override func pointerPressed(_ button: MouseButton, at point: Point) -> Bool {
+        if button == .secondary {
+            window?.focus.focus(self, animated: true, reveal: false)
+            return showContextMenu(at: transformToWindow.apply(point))
+        }
         guard button == .primary else { return false }
         window?.focus.focus(self, animated: true, reveal: false)
         if !text.isEmpty {
@@ -314,6 +318,27 @@ public final class TextEditorView: View, TextInputClient {
             caret = characterOffset(ofUTF8: laidOut.utf8Index(at: Point(x: point.x - inset, y: point.y - inset + scrollY)))
         }
         settle()
+        return true
+    }
+
+    /// Cut, Copy, Paste and Select All for the right click or the Menu key.
+    public override func showContextMenu(at point: Point?) -> Bool {
+        guard let window else { return false }
+        let selected = selectAll && !text.isEmpty
+        let canPaste = window.pasteboardText()?.isEmpty == false
+        let entries: [ContextMenuView.Entry] = [
+            .action(ContextMenuView.Action(Strings.text("Cut"), shortcut: "Ctrl+X", isEnabled: selected) { [weak self] in _ = self?.perform(.cut) }),
+            .action(ContextMenuView.Action(Strings.text("Copy"), shortcut: "Ctrl+C", isEnabled: selected) { [weak self] in _ = self?.perform(.copy) }),
+            .action(ContextMenuView.Action(Strings.text("Paste"), shortcut: "Ctrl+V", isEnabled: canPaste) { [weak self] in _ = self?.perform(.paste) }),
+            .separator,
+            .action(ContextMenuView.Action(Strings.text("Select All"), shortcut: "Ctrl+A", isEnabled: !text.isEmpty) { [weak self] in
+                guard let self else { return }
+                self.selectAll = true
+                self.setNeedsDisplay()
+            }),
+        ]
+        let menu = point.map { ContextMenuView(at: $0, highlightingFirstRow: false) { entries } } ?? ContextMenuView(anchor: frameInWindow) { entries }
+        menu.present(in: window)
         return true
     }
 

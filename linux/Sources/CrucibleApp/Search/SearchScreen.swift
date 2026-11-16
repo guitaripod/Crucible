@@ -55,7 +55,11 @@ final class SearchScreen: ScreenView {
             guard let self else { return }
             self.session.update(query: text, scope: self.scope)
         }
-        field.onSubmit = { [weak self] _ in self?.session.rememberCurrentQuery() }
+        field.onSubmit = { [weak self] _ in
+            guard let self else { return }
+            self.session.rememberCurrentQuery()
+            if Theme.current.density == .desk { _ = self.window?.focus.move(.down) }
+        }
         recents.onContextMenu = { [weak self] chip, point in self?.presentRecentMenu(chip, at: point) }
         recents.onSelect = { [weak self] chip in self?.recentChosen(chip) }
         scopes.onSelect = { [weak self] chip in
