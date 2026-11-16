@@ -145,7 +145,7 @@ final class NavigationView: View {
     }
 
     private func begin(from previous: ScreenView?, forward: Bool, animated: Bool) {
-        if let outgoing, outgoing !== previous, !screens.contains(where: { $0 === outgoing }) { outgoing.removeFromSuperview() }
+        settleOutgoing(before: previous)
         outgoing = previous
         direction = forward ? 1 : -1
         if animated && previous != nil {
@@ -157,6 +157,22 @@ final class NavigationView: View {
             finish()
         }
         apply()
+    }
+
+    /// A transition starting while another runs: the screen the running one was leaving is hidden (or dropped once it is no
+    /// longer in the stack), so two pushes in quick succession (Ctrl+comma, then Return) leave nothing of the first screen
+    /// on show for the focus to wander into. A screen coming back to the top keeps showing.
+    private func settleOutgoing(before next: ScreenView?) {
+        guard let outgoing, outgoing !== next else { return }
+        if outgoing !== screens.last {
+            if screens.contains(where: { $0 === outgoing }) {
+                outgoing.isHidden = true
+            } else {
+                outgoing.removeFromSuperview()
+            }
+        }
+        outgoing.alpha = 1
+        outgoing.translation = .zero
     }
 
     private func finish() {
