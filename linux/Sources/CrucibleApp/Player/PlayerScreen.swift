@@ -238,7 +238,7 @@ final class PlayerScreen: View {
         guard case .plex(let api, let item, let resumePosition) = source else { return }
         stream = resolved
         segments = resolved.segments
-        let start = ResumeStrategy.streamStart(resumePosition: requested ?? resumePosition, isDirectPlay: resolved.isDirectPlay)
+        let start = Self.streamStart(of: resolved, at: requested ?? resumePosition)
         streamOffset = resolved.isDirectPlay ? 0 : start
         upNext = UpNextResolver(ratingKey: item.id, isEpisode: item.mediaType == "episode", seasonRatingKey: item.parentRatingKey,
                                 showRatingKey: item.grandparentRatingKey, queue: run.queue, markers: resolved.markers)
@@ -346,6 +346,13 @@ final class PlayerScreen: View {
             MidgarLog.error("Playback failed: \(message)", category: .playback)
             recover(from: message)
         }
+    }
+
+    /// Where on the title's timeline `resolved` starts for a position of `at`: a file playing directly opens right there, since
+    /// mpv seeks it before the first frame; a converted stream starts where the server can begin it.
+    static func streamStart(of resolved: ResolvedStream, at position: Double) -> Double {
+        guard resolved.isDirectPlay else { return ResumeStrategy.streamStart(resumePosition: position, isDirectPlay: false) }
+        return position.isFinite && position > 0 ? position : 0
     }
 
     /// Checks the tracks a file playing directly opened on against what it carries, since the server can list streams the file
