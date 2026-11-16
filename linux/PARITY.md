@@ -6,16 +6,16 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 
 | Area | Done | Partial | Missing | n/a |
 | --- | --- | --- | --- | --- |
-| Sign in, launch, tabs and navigation | 55 | 1 | 0 | 1 |
+| Sign in, launch, tabs and navigation | 56 | 0 | 0 | 1 |
 | Home and libraries | 78 | 0 | 0 | 0 |
 | Title pages, collections, playlists and server activity | 78 | 0 | 0 | 1 |
 | Player and What to Watch | 67 | 0 | 1 | 1 |
-| Search, Pro features (free on Linux) and demo | 53 | 0 | 2 | 8 |
+| Search, Pro features (free on Linux) and demo | 54 | 0 | 1 | 8 |
 | You, profiles, history, statistics and manage | 84 | 0 | 0 | 3 |
 | Settings and integrations | 66 | 0 | 1 | 2 |
 | Design system | 96 | 1 | 0 | 0 |
-| Linux-only requirements (docs/LINUX.md) | 93 | 4 | 6 | 0 |
-| **All** | 670 | 6 | 10 | 16 |
+| Linux-only requirements (docs/LINUX.md) | 97 | 2 | 4 | 0 |
+| **All** | 676 | 3 | 7 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -75,7 +75,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `shell-server-connect-failure-keeps-list` (S) A connection that fails for a chosen server keeps the server list on screen with the error line above it, and an unreachable address leads to Add by Address with the message. _Apple TV: Sources/CrucibleTV/Onboarding/TVChooseServerViewController.swift:236-247 (connect outcomes: failed shows inline error, needsAddress opens Add by Address)_
 - [x] `shell-forward-navigation` (M) Forward works from Alt+Right and the mouse forward button, re-pushing the screen that Back popped (docs/LINUX.md section 6). Linux-only requirement; the Apple TV has no forward history.
 - [x] `shell-gdm-discovery` (M) Server discovery on Linux also finds Plex servers on the local network with GDM over UDP (multicast 239.0.0.250 and broadcast on UDP 32414), beside plex.tv resources and the tailnet routes (docs/LINUX.md section 9). Linux-only requirement.
-- [ ] `shell-couch-launch-flag` (S) **partial** crucible --couch starts the app in the couch density and fullscreen, for use as a non-Steam shortcut in Big Picture with a Steam Input template (docs/LINUX.md section 9). Gap: The flag works, but the Steam Input template is not in the repo: no Steam Input template exists under linux/ or docs/ beyond the design line.
+- [x] `shell-couch-launch-flag` (S) crucible --couch starts the app in the couch density and fullscreen, for use as a non-Steam shortcut in Big Picture with a Steam Input template (docs/LINUX.md section 9).
 
 ## Home and libraries
 
@@ -320,7 +320,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `search-type-to-open` (S) Typing a character anywhere outside a text field opens Search with that character in the field.
 - [x] `search-open-shortcuts` (S) Ctrl+F and the slash key select the Search tab (Linux command set).
 - [x] `search-ime` (M) The desk field accepts IME composition (text-input-v3) so CJK and dead-key input works as on a phone.
-- [ ] `search-couch-letter-grid` (M) In Couch density, Search shows a tvOS-style letter grid so a gamepad can type a query. Gap: No letter grid or on-screen keyboard anywhere in linux/ (rg for Couch in Search and CrucibleUI controls is empty). Couch only changes theme density (YouScreen.swift:36-51). Apple uses the system keyboard, which has no Linux equivalent yet. _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleTV/Navigation/Screens+Search.swift:7_
+- [x] `search-couch-letter-grid` (M) In Couch density, Search shows a tvOS-style letter grid so a gamepad can type a query. _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleTV/Navigation/Screens+Search.swift:7_
 - [x] `search-query-rules` (S) Query is trimmed; under two characters returns to the idle page; a new query waits 300 ms of quiet; re-typing a shown query re-renders without a request. _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleCore/Features/Search/SearchSession.swift:6,63-83_
 - [x] `search-resume-on-return` (S) Leaving Search and coming back keeps the query and its results, or refreshes the idle page when the field is empty. _Apple TV: /mnt/nvme8tb/dev/crucible-linux/Sources/CrucibleTV/Search/TVSearchResultsViewController.swift:46-55_
 - [x] `search-escape-clears` (S) Escape clears the query first and only a second Escape leaves the screen.
@@ -683,16 +683,16 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `density-desk-default` (S) Desk density is the default for every window _Apple TV: docs/LINUX.md §5.5 Two densities_
 - [x] `density-couch-flag` (S) crucible --couch starts in Couch density and fullscreen _Apple TV: docs/LINUX.md §5.5 Two densities_
 - [x] `density-couch-desktop-action` (S) Desktop entry action Open on the TV (Couch) runs crucible --couch _Apple TV: docs/LINUX.md §9 Couch_
-- [ ] `density-couch-tokens-canvas` (M) **partial** Couch draws the tvOS tokens one to one on a 1920 by 1080 canvas scaled to the output Gap: Couch sets the density factor to 1 (Tokens.swift:9-13) and draws in the output's points. No code scales a fixed 1920 by 1080 canvas to the output, so the design matches only where the output's points are 1920 by 1080 (the C5 at 4K with scale 2). _Apple TV: docs/LINUX.md §5.5 Two densities_
+- [x] `density-couch-tokens-canvas` (M) Couch draws the tvOS tokens one to one on a 1920 by 1080 canvas scaled to the output _Apple TV: docs/LINUX.md §5.5 Two densities_
 - [x] `density-view-menu-couch` (S) Couch density is chosen from the View menu _Apple TV: docs/LINUX.md §5.5 Two densities_
 - [x] `density-settings-entry` (S) Density is a Linux-only Settings entry (Interface Size) _Apple TV: docs/LINUX.md §6 Settings_
-- [ ] `density-couch-offer-gamepad-40in` (M) Couch is offered once when a gamepad is used fullscreen on an output 40 inches or larger (EDID) Gap: No gamepad input and no output-size or EDID read: kiln_wayland.c has no wl_output geometry handling (wl_output appears only as a callback parameter, :527). _Apple TV: docs/LINUX.md §5.5 Two densities_
+- [x] `density-couch-offer-gamepad-40in` (M) Couch is offered once when a gamepad is used fullscreen on an output 40 inches or larger (EDID) _Apple TV: docs/LINUX.md §5.5 Two densities_
 - [x] `windowed-ssd-fullscreen-hide` (S) Windowed mode uses the desktop's server-side decorations; fullscreen and Couch hide them _Apple TV: docs/LINUX.md §5.5 Two densities_
-- [ ] `couch-letter-grid-search` (M) Couch Search shows a tvOS-style letter grid so a gamepad can type Gap: SearchScreen has only the desk text field (linux/Sources/CrucibleApp/Search/SearchScreen.swift); no letter grid and no couch-specific Search layout. _Apple TV: docs/LINUX.md §6 Search_
+- [x] `couch-letter-grid-search` (M) Couch Search shows a tvOS-style letter grid so a gamepad can type _Apple TV: docs/LINUX.md §6 Search_
 - [x] `couch-gamepad-focus` (L) Gamepad d-pad and left stick move focus with tvOS-like repeat acceleration; A selects, B goes back _Apple TV: docs/LINUX.md §5.4 Gamepad and couch_
 - [x] `couch-gamepad-start-tabs-menu` (M) Gamepad Start plays and pauses, Y opens the context menu, and LB and RB change tabs _Apple TV: docs/LINUX.md §5.4 Gamepad and couch_
 - [x] `couch-gamepad-right-stick-parallax` (S) Gamepad right stick drives the card parallax a pointer would _Apple TV: docs/LINUX.md §5.4 Gamepad and couch_
-- [ ] `couch-steam-shortcut-template` (S) **partial** crucible --couch as a non-Steam Big Picture shortcut with a Steam Input template Gap: The desktop Couch action exists (packaging/org.guitaripod.Crucible.desktop:9-16). No Steam Input template and no documented non-Steam shortcut setup exists in linux/. _Apple TV: docs/LINUX.md §9 Couch_
+- [x] `couch-steam-shortcut-template` (S) crucible --couch as a non-Steam Big Picture shortcut with a Steam Input template _Apple TV: docs/LINUX.md §9 Couch_
 - [x] `exit-quit-path-stops-player` (S) Ctrl+Q and closing the window stop the player and send the stopped timeline before the process exits _Apple TV: docs/LINUX.md §9 Clean exit_
 - [x] `exit-sigterm-sigint` (S) SIGTERM and SIGINT save resume positions and send the stopped timeline before exiting _Apple TV: docs/LINUX.md §9 Clean exit_
 - [x] `exit-sighup` (S) SIGHUP saves resume positions and sends the stopped timeline before exiting _Apple TV: docs/LINUX.md §9 Clean exit_
