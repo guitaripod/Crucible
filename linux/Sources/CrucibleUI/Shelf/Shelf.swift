@@ -135,7 +135,8 @@ public final class ShelfView: View {
         }
         if seeAll.superview != nil {
             let size = seeAll.sizeThatFits(Size(width: 400, height: 100))
-            seeAll.frame = Rect(x: x - metrics.plainControlInset, y: headerLabel.frame.midY - size.height / 2, width: size.width, height: size.height)
+            seeAll.frame = Rect(x: x - min(metrics.plainControlInset, metrics.tv(16)), y: headerLabel.frame.midY - size.height / 2, width: size.width,
+                                height: size.height)
         }
         let cardsTop = headerHeight
         let rowHeight = metrics.shelfTopInset + style.itemSize.height + metrics.shelfBottomInset
