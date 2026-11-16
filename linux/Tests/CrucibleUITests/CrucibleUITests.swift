@@ -120,6 +120,22 @@ enum SharedGPU {
         alert.dismiss()
     }
 
+    @Test func aShelfGivesItsCardsANewShapeWhenItsStyleChanges() {
+        let shelf = ShelfView(header: SectionHeader(title: "Recently Watched"), style: .poster)
+        shelf.setItems((0..<4).map { CardItem(id: "\($0)", title: "Title \($0)") })
+        window.contentView.addSubview(shelf)
+        shelf.frame = Rect(x: 0, y: 0, width: 1280, height: shelf.preferredHeight)
+        window.render()
+        let wide = CardStyle.grid(aspect: 9.0 / 16.0, width: 1200)
+        shelf.style = wide
+        shelf.frame = Rect(x: 0, y: 0, width: 1280, height: shelf.preferredHeight)
+        window.render()
+        let card = shelf.card(for: "0")
+        #expect(card?.style == wide, "a card laid out at a new width takes the new shape, artwork and caption alike")
+        #expect(card.map { $0.frame.height == wide.itemSize.height } == true)
+        shelf.removeFromSuperview()
+    }
+
     @Test func replacingItemsKeepsTheViewsOfItemsThatStay() {
         let shelf = ShelfView(header: nil, style: .poster)
         shelf.setItems([CardItem(id: "a", title: "A"), CardItem(id: "b", title: "B")])

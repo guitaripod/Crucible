@@ -161,6 +161,7 @@ public final class ShelfView: View {
         var cardX = margin
         for id in order {
             guard let card = cards[id] else { continue }
+            card.style = style
             card.frame = Rect(x: cardX, y: metrics.shelfTopInset, width: style.itemWidth, height: style.itemSize.height)
             cardX += style.itemWidth + metrics.gutter
         }
