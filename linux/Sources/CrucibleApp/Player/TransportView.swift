@@ -84,11 +84,17 @@ final class TransportView: View {
     var onToggleFullscreen: (() -> Void)?
     /// The desk's Mini Player button.
     var onMini: (() -> Void)?
-    /// The pointer moved over the transport, which keeps it showing, or left it (false), which lets it hide again.
+    /// The pointer moved over the transport (true), which keeps it up for another rest, or left it (false).
     var onPointerActivity: ((Bool) -> Void)?
+    /// A press began on the transport, which must show while it is used, even when it was fading out.
+    var onInteractionBegan: (() -> Void)?
+    /// A press, scrub or volume drag ended, with whether the pointer is still over the transport, for the rest to start
+    /// over from the release.
+    var onInteractionEnded: ((Bool) -> Void)?
 
-    /// Whether the pointer rests on the transport or drags its scrubber or volume, so it must not hide.
-    var holdsChrome: Bool { pointer != nil || scrubbing || draggingVolume }
+    /// Whether a button is held down or the scrubber or volume is being dragged, so the transport must not hide; a pointer
+    /// merely resting on it only lengthens the rest.
+    var holdsChrome: Bool { pressed != nil || scrubbing || draggingVolume }
 
     private var position: Double = 0
     private var duration: Double = 0
@@ -159,7 +165,10 @@ final class TransportView: View {
     }
 
     override var isPointerInteractive: Bool { true }
-    override var cursor: Cursor { .default }
+    /// While the chrome fades out the pointer hides with it, even over the fading transport.
+    var hidesPointer = false
+
+    override var cursor: Cursor { hidesPointer ? .hidden : .default }
 
     /// The name of the button under the pointer, with its key on a desk.
     override func tooltip(at point: Point) -> String? {
@@ -391,6 +400,7 @@ final class TransportView: View {
 
     override func pointerPressed(_ button: MouseButton, at point: Point) -> Bool {
         guard button == .primary else { return false }
+        onInteractionBegan?()
         if isDesk {
             if let hit = deskButton(at: point) {
                 pressed = hit
@@ -431,19 +441,23 @@ final class TransportView: View {
         if draggingVolume {
             draggingVolume = false
             setVolumeHovered(volumeBand.contains(point))
-            onPointerActivity?(bounds.contains(point))
+            onInteractionEnded?(bounds.contains(point))
             return
         }
         if let hit = pressed {
             pressed = nil
             setNeedsDisplay()
+            onInteractionEnded?(bounds.contains(point))
             if deskButton(at: point) == hit { run(hit) }
             return
         }
-        guard scrubbing else { return }
+        guard scrubbing else {
+            onInteractionEnded?(bounds.contains(point))
+            return
+        }
         scrubbing = false
         onScrub?(scrubFraction, .ended)
-        onPointerActivity?(bounds.contains(point))
+        onInteractionEnded?(bounds.contains(point))
         if !scrubBand.contains(point) {
             thicken.set(0, animation: .timed(duration: 0.18, curve: .easeOut))
             startAnimating()

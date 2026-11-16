@@ -35,8 +35,12 @@ extension PlayerScreen {
             self?.viewerActed()
             choose(item)
         }
-        menu.onDismiss = { [weak self] in self?.showChrome(autoHide: true) }
+        menu.onDismiss = { [weak self] in
+            self?.menuHoldsChrome = false
+            self?.showChrome(autoHide: true)
+        }
         menu.present(in: window)
+        menuHoldsChrome = true
         showChrome(autoHide: false)
         holdChrome()
     }

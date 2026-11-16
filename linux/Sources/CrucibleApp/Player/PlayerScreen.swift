@@ -132,6 +132,8 @@ final class PlayerScreen: View {
     var appliedDisplayPeak: Double?
     var calibration: DisplayCalibrationView?
     weak var contextMenu: ContextMenuView?
+    /// Whether a menu of the player's (`presentMenu`) is open, which keeps the chrome up like the right-click menu does.
+    var menuHoldsChrome = false
     var holdOrigin: Double?
     /// Whether the window filled the screen when Match Content last looked.
     private var matchedFullscreen = false
@@ -217,12 +219,15 @@ final class PlayerScreen: View {
         transport.onPointerActivity = { [weak self] inside in
             guard let self else { return }
             if inside {
-                self.showChrome(autoHide: false)
+                self.pointerActivity(overBar: true)
             } else if self.window?.pointerLocation == nil {
                 self.pointerLeftWindow()
-            } else {
-                self.showChrome(autoHide: true)
             }
+        }
+        transport.onInteractionBegan = { [weak self] in self?.showChrome(autoHide: true, rest: PlayerScreen.chromeRestOnBar) }
+        transport.onInteractionEnded = { [weak self] inside in
+            guard let self, self.chromeShown else { return }
+            self.showChrome(autoHide: true, rest: inside ? Self.chromeRestOnBar : Self.chromeRest)
         }
         transport.chapterTitle = { [weak self] time in
             guard let chapters = self?.stream?.chapters, let chapter = ChapterList.current(ChapterList.playable(chapters), at: time) else { return nil }
@@ -936,24 +941,52 @@ final class PlayerScreen: View {
     /// Whether the transport is showing or on its way in.
     var chromeShown: Bool { chrome.target > 0.5 }
 
-    func showChrome(autoHide: Bool) {
+    /// How long the chrome stays after the last sign of the viewer (the pointer moving over the picture, a key, a seek):
+    /// brief on a desk, a little longer on the couch, read from across the room.
+    static var chromeRest: Duration { Theme.current.density == .desk ? .milliseconds(1500) : .milliseconds(2500) }
+    /// The longer rest of a pointer stopped on the transport, aiming at a button or reading the scrubber's preview.
+    static var chromeRestOnBar: Duration { Theme.current.density == .desk ? .milliseconds(2500) : .milliseconds(3000) }
+
+    /// The rest for the pointer where it is now: the longer one while it is on the transport.
+    private var restWherePointerIs: Duration {
+        guard let pointer = window?.pointerLocation, transport.frameInWindow.contains(pointer) else { return Self.chromeRest }
+        return Self.chromeRestOnBar
+    }
+
+    /// Brings the chrome up and, with `autoHide`, hides it again after `rest` (by default the one for where the pointer
+    /// is) without the viewer, once nothing holds it (a held button, a scrub or volume drag, an open menu); paused
+    /// playback and the info panel keep it up.
+    func showChrome(autoHide: Bool, rest: Duration? = nil) {
         guard preroll == nil, !isMini else { return }
         chrome.set(1, animation: .fade)
+        transport.hidesPointer = false
         placeSubtitles()
         window?.setCursor(.default)
         startAnimating()
         hideTask?.cancel()
         guard autoHide, player?.state.isPaused == false, infoPanel == nil else { return }
+        let rest = rest ?? restWherePointerIs
         hideTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 3_000_000_000)
-            guard let self, !Task.isCancelled, self.player?.state.isPaused == false, self.infoPanel == nil, !self.transport.holdsChrome,
-                  self.contextMenu == nil else { return }
-            self.restingPointer = self.lastPointer
-            self.chrome.set(0, animation: .timed(duration: 0.4, curve: .easeInOut))
-            self.placeSubtitles()
-            self.window?.setCursor(.hidden)
-            self.startAnimating()
+            while true {
+                try? await Task.sleep(for: rest)
+                guard let self, !Task.isCancelled, !self.isMini, self.postPlay == nil, self.player?.state.isPaused == false, self.infoPanel == nil
+                else { return }
+                if self.transport.holdsChrome || self.contextMenu != nil || self.menuHoldsChrome { continue }
+                self.hideChrome()
+                return
+            }
         }
+    }
+
+    /// Fades the chrome and the pointer out, remembering where the pointer rests so a nudge from there does not bring
+    /// them back.
+    private func hideChrome() {
+        restingPointer = window?.pointerLocation
+        chrome.set(0, animation: .timed(duration: 0.25, curve: .easeInOut))
+        transport.hidesPointer = true
+        placeSubtitles()
+        window?.setCursor(.hidden)
+        startAnimating()
     }
 
     func holdChrome() {
@@ -1129,21 +1162,35 @@ final class PlayerScreen: View {
         }
     }
 
-    /// Where the pointer was last over the player, and where it rested when the chrome hid.
+    /// Where the pointer last moved over the player, and where it rested when the chrome hid, in window points.
     private var lastPointer: Point?
     private var restingPointer: Point?
 
-    /// The pointer brings the chrome back, except for a nudge of a few points from where it rested when the chrome hid (a
-    /// bumped desk or a settling mouse), and keeps it while over the transport.
     override func pointerMoved(to point: Point) {
         if isMini {
             miniPointerMoved(to: point)
             return
         }
-        lastPointer = point
-        if chrome.target < 0.5, let rest = restingPointer, abs(point.x - rest.x) + abs(point.y - rest.y) < Theme.current.metrics.tv(24) { return }
+        pointerActivity(overBar: transport.frame.contains(point))
+    }
+
+    /// The pointer moved over the player, on the transport when `overBar`. Shown chrome stays for another rest, longer
+    /// over the transport; hidden chrome comes back, except for a nudge of a few points from where the pointer rested when
+    /// it hid (a bumped desk or a settling mouse). A report of the spot the pointer already was at is no movement at all.
+    func pointerActivity(overBar: Bool) {
+        guard let location = window?.pointerLocation else { return }
+        let previous = lastPointer
+        lastPointer = location
+        if location == previous { return }
+        if chrome.target < 0.5, let rest = restingPointer, abs(location.x - rest.x) + abs(location.y - rest.y) < Theme.current.metrics.tv(24) { return }
         restingPointer = nil
-        showChrome(autoHide: !transport.frame.contains(point))
+        showChrome(autoHide: true, rest: overBar ? Self.chromeRestOnBar : Self.chromeRest)
+    }
+
+    /// The pointer stays hidden with the chrome over the playing picture, so a nudge too small to bring the chrome back
+    /// does not show it either; over the pre-roll, the post-play suggestions and the mini player it always shows.
+    override func cursor(at point: Point) -> Cursor {
+        !isMini && chrome.target < 0.5 && preroll == nil && postPlay == nil ? .hidden : .default
     }
 
     override func pointerDragged(to point: Point) {
@@ -1174,6 +1221,7 @@ final class PlayerScreen: View {
     /// The pointer left the window (onto its border, another window or screen): shown chrome goes after the usual rest,
     /// not at once, and hidden chrome stays hidden.
     private func pointerLeftWindow() {
+        lastPointer = nil
         guard chrome.target > 0 else { return }
         showChrome(autoHide: true)
     }
@@ -1209,11 +1257,17 @@ final class PlayerScreen: View {
         return true
     }
 
+    /// A click on the picture pauses or plays (twice, also full screen), except where the hidden transport sits: the
+    /// viewer is aiming at a button they cannot see, so that click brings the transport back instead.
     override func pointerPressed(_ button: MouseButton, at point: Point) -> Bool {
         viewerActed()
         if isMini { return miniPressed(button, at: point) }
         switch button {
         case .primary:
+            if chrome.target < 0.5, transport.frame.contains(point) {
+                showChrome(autoHide: true, rest: Self.chromeRestOnBar)
+                return true
+            }
             let now = Date()
             if let lastClick, now.timeIntervalSince(lastClick) < 0.35, let window {
                 window.setFullscreen(!window.isFullscreen)
