@@ -27,6 +27,7 @@ extension RootView {
             return AppCommand(tab.title, keys: [KeyName.chord(KeyName.ctrl, "\(index + 1)")] + extra) { [weak self] in self?.select(tab.id) }
         }
         return AppCommandGroup(title: String(localized: "Go"), commands: tabs + [
+            AppCommand(WebCopy.openLink, keys: [KeyName.chord(KeyName.ctrl, "L")]) { [weak self] in self?.presentOpenLink() },
             AppCommand(String(localized: "Back"), keys: [KeyName.chord(KeyName.alt, KeyName.left), KeyName.esc]) { [weak self] in _ = self?.handleBack() },
             AppCommand(AppCommandCopy.forward, keys: [KeyName.chord(KeyName.alt, KeyName.right)]) { [weak self] in _ = self?.handleForward() },
         ], inMenu: true)

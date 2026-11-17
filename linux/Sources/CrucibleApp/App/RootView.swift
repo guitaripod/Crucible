@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleUI
+import CrucibleWeb
 import Foundation
 import Kiln
 import MidgarCore
@@ -44,6 +45,7 @@ final class RootView: View, WindowRestoration.Restorable {
         if libraryLayout.hasMore {
             tabs.append(.init(id: "more", title: String(localized: "More", comment: "Tab bar title"), symbol: "ellipsis"))
         }
+        if Self.showsWeb { tabs.append(.init(id: Self.webID, title: WebCopy.destination, symbol: "play.rectangle")) }
         tabs.append(.init(id: "search", title: String(localized: "Search"), symbol: "magnifyingglass"))
         tabs.append(.init(id: "you", title: String(localized: "You"), symbol: "person.crop.circle"))
         tabBar.tabs = tabs
@@ -54,6 +56,13 @@ final class RootView: View, WindowRestoration.Restorable {
         installSidebar()
         select("home")
     }
+
+    /// The YouTube destination's name among the tabs.
+    static let webID = "web"
+
+    /// Whether the YouTube destination is listed: the viewer kept it, and this is not the demo, whose library is its own
+    /// fiction.
+    static var showsWeb: Bool { WebSettings.showsDestination && !DemoMode.shared.isActive }
 
     /// Whether the Desktop layout's sidebar stands in for the tab bar.
     var usesSidebar: Bool { Theme.current.density == .desk }
@@ -80,6 +89,10 @@ final class RootView: View, WindowRestoration.Restorable {
         ]
         var sections = [SidebarView.Section(items: top)]
         if !libraries.isEmpty { sections.append(.init(title: String(localized: "Libraries"), items: libraries)) }
+        if Self.showsWeb {
+            sections.append(.init(title: String(localized: "Web", comment: "Sidebar section holding video from the web"),
+                                  items: [.init(id: Self.webID, title: WebCopy.destination, symbol: "play.rectangle")]))
+        }
         sections.append(.init(items: [.init(id: "you", title: String(localized: "You"), symbol: "person.crop.circle")]))
         var numbered = 0
         sidebar.sections = sections.map { section in
@@ -189,6 +202,8 @@ final class RootView: View, WindowRestoration.Restorable {
             screen = LibraryScreen(api: payload.api, directory: directory)
         } else if id == "more" {
             screen = MoreScreen(api: payload.api, libraries: libraryLayout.overflow)
+        } else if id == Self.webID {
+            screen = WebHomeScreen()
         } else if id == "search" {
             screen = SearchScreen(api: payload.api)
         } else if id == "you" {
@@ -334,6 +349,14 @@ final class RootView: View, WindowRestoration.Restorable {
             onNewWindow?(nil)
             return true
         }
+        if event.key == Key.character("l") && event.modifiers == .control {
+            presentOpenLink()
+            return true
+        }
+        if event.key == Key.character("v") && event.modifiers == .control, let link = window?.pasteboardText().flatMap(WebLink.init) {
+            open(link)
+            return true
+        }
         if event.key == Key.character("w") && event.modifiers == .control {
             onCloseWindow?()
             return true
@@ -359,10 +382,49 @@ final class RootView: View, WindowRestoration.Restorable {
               run: PlayerRun = PlayerRun()) {
         if let mini = player, mini.isMini { mini.close() }
         guard player == nil else { return }
-        let returnFocus = window?.focusedView
         let screen = PlayerScreen(source: .plex(api, item, resume: position ?? item.resumeSecs))
         screen.chosenTracks = tracks
         screen.run = run
+        screen.onPlayNext = { [weak self, weak screen] episode, run in
+            let wasMini = screen?.isMini == true
+            screen?.removeFromSuperview()
+            self?.player = nil
+            self?.play(item: episode, api: api, from: 0, run: run)
+            if wasMini { self?.minimizePlayer() }
+        }
+        screen.onPlayTitle = { [weak self, weak screen] title, run in
+            let wasMini = screen?.isMini == true
+            screen?.removeFromSuperview()
+            self?.player = nil
+            self?.play(item: title, api: api, run: run)
+            if wasMini { self?.minimizePlayer() }
+        }
+        screen.onOpenTitle = { [weak self] title in
+            self?.push(DetailScreen.make(api: api, item: title))
+        }
+        present(screen)
+    }
+
+    /// Plays a web video over everything, as `play(item:api:)` plays a title of the server; a queue plays on in the
+    /// same place.
+    func playWeb(_ playback: WebPlayback, run: PlayerRun = PlayerRun()) {
+        if let mini = player, mini.isMini { mini.close() }
+        guard player == nil else { return }
+        let screen = PlayerScreen(source: .web(playback))
+        screen.run = run
+        screen.onPlayWeb = { [weak self, weak screen] next, run in
+            let wasMini = screen?.isMini == true
+            screen?.removeFromSuperview()
+            self?.player = nil
+            self?.playWeb(next, run: run)
+            if wasMini { self?.minimizePlayer() }
+        }
+        present(screen)
+    }
+
+    /// Puts a player over everything; focus returns where it was when it closes.
+    private func present(_ screen: PlayerScreen) {
+        let returnFocus = window?.focusedView
         screen.onClose = { [weak self, weak screen] in
             let wasMini = screen?.isMini == true
             self?.showUnderPlayer(true)
@@ -380,26 +442,9 @@ final class RootView: View, WindowRestoration.Restorable {
             self?.player = nil
             self?.current?.top?.screenDidAppear()
         }
-        screen.onPlayNext = { [weak self, weak screen] episode, run in
-            let wasMini = screen?.isMini == true
-            screen?.removeFromSuperview()
-            self?.player = nil
-            self?.play(item: episode, api: api, from: 0, run: run)
-            if wasMini { self?.minimizePlayer() }
-        }
-        screen.onPlayTitle = { [weak self, weak screen] title, run in
-            let wasMini = screen?.isMini == true
-            screen?.removeFromSuperview()
-            self?.player = nil
-            self?.play(item: title, api: api, run: run)
-            if wasMini { self?.minimizePlayer() }
-        }
         screen.onMinimize = { [weak self] in self?.minimizePlayer() }
         screen.onExpand = { [weak self] in self?.expandPlayer() }
         screen.onMiniDrag = { [weak self] delta in self?.dragMiniPlayer(by: delta) }
-        screen.onOpenTitle = { [weak self] title in
-            self?.push(DetailScreen.make(api: api, item: title))
-        }
         player = screen
         addSubview(screen)
         screen.frame = bounds

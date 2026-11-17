@@ -1,4 +1,5 @@
 import CrucibleCore
+import CrucibleWeb
 import Foundation
 import MidgarCore
 
@@ -8,11 +9,16 @@ import MidgarCore
 final class Router {
     private weak var root: RootView?
     private var pending: DeepLink?
+    private var pendingWeb: WebLink?
     private var resolveTask: Task<Void, Never>?
 
     /// Called once the main UI is on screen; runs a link that arrived earlier.
     func activate(_ root: RootView) {
         self.root = root
+        if let web = pendingWeb {
+            pendingWeb = nil
+            root.open(web)
+        }
         guard let link = pending else { return }
         pending = nil
         handle(link)
@@ -24,11 +30,17 @@ final class Router {
         resolveTask = nil
         root = nil
         pending = nil
+        pendingWeb = nil
     }
 
-    /// Routes a `crucible://` URL; false when it is not one of ours.
+    /// Routes a `crucible://` URL, or a web address, which plays through yt-dlp; false when it is neither.
     @discardableResult
     func handle(_ url: URL) -> Bool {
+        if let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https", let web = WebLink(url.absoluteString) {
+            MidgarLog.notice("Web link from \(url.host ?? "?"), main UI \(root == nil ? "not ready" : "ready")", category: .lifecycle)
+            if let root { root.open(web) } else { pendingWeb = web }
+            return true
+        }
         guard let link = DeepLink(url: url) else {
             MidgarLog.notice("Ignored unrecognised URL \(url.scheme ?? "?")://\(url.host ?? "")", category: .lifecycle)
             return false

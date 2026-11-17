@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleUI
+import CrucibleWeb
 import Foundation
 import Kiln
 import MidgarCore
@@ -26,6 +27,8 @@ final class SearchScreen: ScreenView {
     private let genresTitle = SectionTitleView(title: SearchSection.browse.title ?? "")
     private let genres = GradientTileGridView()
     private let scopes = ChipRowView()
+    /// Offers the same search on YouTube under the server's results; nothing is sent there until it is chosen.
+    private let webOffer = ChipRowView()
     private let top = TopResultView()
     private let state = StateView()
     private var shelves: [String: ShelfView] = [:]
@@ -55,8 +58,13 @@ final class SearchScreen: ScreenView {
             guard let self else { return }
             self.session.update(query: text, scope: self.scope)
         }
-        field.onSubmit = { [weak self] _ in
+        field.onSubmit = { [weak self] text in
             guard let self else { return }
+            if let link = WebLink(text) {
+                self.field.setText("")
+                self.rootView?.open(link)
+                return
+            }
             self.session.rememberCurrentQuery()
             if Theme.current.density == .desk { _ = self.window?.focus.move(.down) }
         }
@@ -78,6 +86,7 @@ final class SearchScreen: ScreenView {
             self?.session.rememberCurrentQuery()
             self?.open(item)
         }
+        webOffer.onSelect = { [weak self] _ in self?.searchWeb() }
         session.onChange = { [weak self] state in self?.render(state) }
         page.onScroll = { [weak self] offset in self?.rootView?.contentScrolled(offset: offset) }
         session.start()
@@ -135,7 +144,8 @@ final class SearchScreen: ScreenView {
         case .empty(let emptyQuery, let emptyScope):
             discardOverrides(for: emptyQuery)
             query = emptyQuery
-            let action = emptyScope == .all ? nil : StateView.Action(title: String(localized: "Search All")) { [weak self] in self?.select(scope: .all) }
+            var action = emptyScope == .all ? nil : StateView.Action(title: String(localized: "Search All")) { [weak self] in self?.select(scope: .all) }
+            if action == nil, offersWeb { action = StateView.Action(title: Self.webOfferTitle(emptyQuery)) { [weak self] in self?.searchWeb() } }
             showState(.empty(title: SearchCopy.noResultsTitle(query: emptyQuery), message: SearchCopy.noResultsHint(scope: emptyScope),
                              symbol: "magnifyingglass", action: action), keepsScopes: emptyScope != .all)
         case .failed(let failedQuery, let message):
@@ -228,7 +238,26 @@ final class SearchScreen: ScreenView {
             sections += group("elsewhere", title: SearchSection.elsewhere.title ?? "", cards: parts.elsewhere.map { hitCard($0) }, filtered: filtered,
                               landscape: false)
         }
+        if !filtered, offersWeb, let query {
+            webOffer.setChips([ChipRowView.Chip(id: "web.search", title: Self.webOfferTitle(query), symbol: "play.rectangle")])
+            sections.append(webOffer)
+        }
         showSections(sections)
+    }
+
+    /// Whether a search can be carried over to YouTube: yt-dlp is installed and the viewer kept the destination.
+    private var offersWeb: Bool { RootView.showsWeb && WebService.shared.isAvailable }
+
+    private static func webOfferTitle(_ query: String) -> String {
+        String(localized: "Search YouTube for “\(query)”", comment: "Search: carries the typed words over to a YouTube search")
+    }
+
+    /// Opens YouTube's results for the words in the field.
+    private func searchWeb() {
+        let words = (query ?? field.text).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !words.isEmpty else { return }
+        session.rememberCurrentQuery()
+        rootView?.push(WebScreens.search(words))
     }
 
     /// A kind of result: a shelf for All, a grid of six posters or four episodes for one kind.

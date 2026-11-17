@@ -91,6 +91,80 @@ final class WebService {
         }
     }
 
+    // MARK: The subscriptions feed
+
+    private var feed: (entries: [WebEntry], at: Date, channels: Set<String>)?
+    private var feedTask: Task<(entries: [WebEntry], names: [String: String]), Never>?
+    private static let feedLife: TimeInterval = 15 * 60
+    private static var feedFile: URL { AppPlatform.cachesDirectory.appendingPathComponent("web/feed.json") }
+
+    /// The feed as it was last read, at once: this launch's, else the one kept from the launch before.
+    var subscriptionsFeedAtHand: [WebEntry] {
+        if let feed { return visible(feed.entries) }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        guard let data = try? Data(contentsOf: Self.feedFile), let kept = try? decoder.decode([WebEntry].self, from: data) else { return [] }
+        let followed = Set(library.subscriptions.map(\.id))
+        return visible(kept.filter { $0.channelID.map(followed.contains) ?? false })
+    }
+
+    /// The newest videos of every followed channel, newest first, read from each channel's public feed: a hundred
+    /// channels are a hundred small requests, eight at a time, and none of them is a yt-dlp run. A feed read in the last
+    /// quarter of an hour for the same channels is kept unless `fresh`.
+    func subscriptionsFeed(fresh: Bool = false) async -> [WebEntry] {
+        let channels = library.subscriptions
+        let followed = Set(channels.map(\.id))
+        if !fresh, let feed, feed.channels == followed, Date().timeIntervalSince(feed.at) < Self.feedLife { return visible(feed.entries) }
+        if let running = feedTask { return visible(await running.value.entries) }
+        let task = Task.detached(priority: .userInitiated) { await Self.readFeeds(of: channels) }
+        feedTask = task
+        let (entries, names) = await task.value
+        feedTask = nil
+        feed = (entries, Date(), followed)
+        for (id, name) in names { library.refresh(id, title: name, handle: nil, avatar: nil) }
+        let file = Self.feedFile
+        Task.detached(priority: .utility) {
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .iso8601
+            guard let data = try? encoder.encode(entries) else { return }
+            try? FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try? data.write(to: file, options: .atomic)
+        }
+        return visible(entries)
+    }
+
+    /// The feed without Shorts while the viewer hides them.
+    private func visible(_ entries: [WebEntry]) -> [WebEntry] {
+        WebSettings.hidesShorts ? entries.filter { !$0.isShort } : entries
+    }
+
+    /// Reads every channel's feed and merges them, newest first, with each channel's name as its feed gives it now.
+    private nonisolated static func readFeeds(of channels: [WebChannel]) async -> (entries: [WebEntry], names: [String: String]) {
+        var entries: [WebEntry] = []
+        var names: [String: String] = [:]
+        var rest = channels[...]
+        while !rest.isEmpty {
+            let batch = rest.prefix(8)
+            rest = rest.dropFirst(8)
+            await withTaskGroup(of: (String, WebFeed?).self) { group in
+                for channel in batch {
+                    group.addTask {
+                        guard let address = WebFeed.address(channelID: channel.id), let data = try? await WebArtwork.data(from: address, timeout: 10)
+                        else { return (channel.id, nil) }
+                        return (channel.id, WebFeed(atom: data))
+                    }
+                }
+                for await (id, feed) in group {
+                    guard let feed else { continue }
+                    entries += feed.entries
+                    if let name = feed.channel { names[id] = name }
+                }
+            }
+        }
+        let newestFirst = entries.sorted { ($0.published ?? .distantPast) > ($1.published ?? .distantPast) }
+        return (Array(newestFirst.prefix(400)), names)
+    }
+
     // MARK: Beside yt-dlp
 
     /// The stretches of a YouTube video SponsorBlock's contributors marked; none for other sites or with it off.

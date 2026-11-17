@@ -44,10 +44,11 @@ final class AppInstance {
         return forwarded ? .forwarded : .unavailable
     }
 
-    /// The `crucible://` links among the command line's arguments (the desktop entry passes `%U`).
+    /// The links among the command line's arguments: `crucible://` ones (the desktop entry passes `%U`) and web
+    /// addresses, which play through yt-dlp (`crucible https://…`).
     static func links(in arguments: [String]) -> [URL] {
         arguments.dropFirst().compactMap { argument in
-            guard let url = URL(string: argument), url.scheme?.lowercased() == "crucible" else { return nil }
+            guard let url = URL(string: argument), let scheme = url.scheme?.lowercased(), ["crucible", "http", "https"].contains(scheme) else { return nil }
             return url
         }
     }

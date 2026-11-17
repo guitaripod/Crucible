@@ -44,6 +44,7 @@ final class SettingsScreen: ScreenView {
     /// The page of the category or setting `id`.
     private func screen(for id: String) -> ScreenView? {
         if id == Self.ownModelID { return OwnModelSettingsScreen() }
+        if id == Self.webVideoID { return WebSettingsScreen() }
         if id == Self.crucibleServerID { return CrucibleServerScreen() }
         guard let category = SettingsCategory(rawValue: id) else { return nil }
         return category == .appearance ? AppearanceSettingsScreen() : SettingsCategoryScreen(category: category, api: api)
@@ -65,6 +66,7 @@ final class SettingsScreen: ScreenView {
     }
 
     private static let ownModelID = "linux.ownModel"
+    private static let webVideoID = "linux.webVideo"
     private static let crucibleServerID = "linux.crucibleServer"
 
     override func screenDidAppear() {
@@ -96,6 +98,9 @@ final class SettingsScreen: ScreenView {
                                value: OwnModel.model ?? OwnModelCopy.notSet, symbol: "sparkles", accessory: .chevron)
         let after = items.firstIndex { $0.id == SettingsCategory.integrations.rawValue }.map { $0 + 1 } ?? items.count
         items.insert(ownModel, at: after)
+        let webVideo = RowItem(id: Self.webVideoID, title: WebSettingsCopy.title, subtitle: WebSettingsCopy.pitch, value: WebSettings.quality.title,
+                               symbol: "play.rectangle", accessory: .chevron)
+        items.insert(webVideo, at: min(after + 1, items.count))
         if !DemoMode.shared.isActive {
             let server = RowItem(id: Self.crucibleServerID, title: CompanionCopy.title, subtitle: CompanionCopy.pitch, value: CrucibleServerCopy.rowValue,
                                  symbol: Symbol(SettingsCatalog.symbol(.crucibleServer)), accessory: .chevron)

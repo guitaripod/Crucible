@@ -105,6 +105,7 @@ func runCrucible() -> Int32 {
     withExtendedLifetime(gamepads) {}
     PlayerScreen.active?.close()
     coordinator.closeAllPlayers()
+    WebService.shared.library.flush()
     UserDefaults.standard.synchronize()
     window.close()
     coordinator.allWindows.forEach { $0.close() }
