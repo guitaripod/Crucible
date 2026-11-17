@@ -27,6 +27,7 @@ class TVDetailViewController: TVScreenViewController {
         case communityPulse
         case communityAspects
         case communityComments
+        case traktInvite
         case related
         case information
     }
@@ -48,6 +49,7 @@ class TVDetailViewController: TVScreenViewController {
         case communityAspect(String)
         case communityComment(Int)
         case communityAction(String)
+        case traktInvite
     }
 
     static let heroHeight: CGFloat = 400
@@ -68,6 +70,11 @@ class TVDetailViewController: TVScreenViewController {
     private var serverState: ServerStateFollower?
     nonisolated(unsafe) private var communityObserver: (any NSObjectProtocol)?
     nonisolated(unsafe) private var communityProObserver: UUID?
+    nonisolated(unsafe) private var traktAccountObserver: UUID?
+    /// The Trakt status the page last laid itself out for, so only a real change reads it again.
+    var shownTraktStatus: TraktAccount.Status?
+    /// Where the focus goes once, after the Trakt invitation it was on is put away.
+    var focusAfterTraktInvite: Item?
     /// Removed in deinit, which runs off the main actor; NotificationCenter takes removals from any thread.
     nonisolated(unsafe) private var aspectTranslationObserver: (any NSObjectProtocol)?
 
@@ -111,6 +118,8 @@ class TVDetailViewController: TVScreenViewController {
             MainActor.assumeIsolated { self?.communityChanged(change) }
         }
         communityProObserver = ProAccess.shared.observe { [weak self] _ in self?.refreshCommunity() }
+        shownTraktStatus = TraktAccount.shared.status
+        traktAccountObserver = TraktAccount.shared.observe { [weak self] in self?.traktAccountChanged() }
         aspectTranslationObserver = NotificationCenter.default.addObserver(forName: .translationChanged, object: nil, queue: .main) { [weak self] note in
             let key = note.object as? String
             MainActor.assumeIsolated {
@@ -124,6 +133,7 @@ class TVDetailViewController: TVScreenViewController {
         if let communityObserver { NotificationCenter.default.removeObserver(communityObserver) }
         if let aspectTranslationObserver { NotificationCenter.default.removeObserver(aspectTranslationObserver) }
         if let communityProObserver { Task { @MainActor in ProAccess.shared.stopObserving(communityProObserver) } }
+        if let traktAccountObserver { Task { @MainActor in TraktAccount.shared.stopObserving(traktAccountObserver) } }
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -258,6 +268,10 @@ class TVDetailViewController: TVScreenViewController {
     }
 
     override func initialFocusIndexPath() -> IndexPath? {
+        if let item = focusAfterTraktInvite {
+            focusAfterTraktInvite = nil
+            if let path = dataSource.indexPath(for: item) { return path }
+        }
         let snapshot = dataSource.snapshot()
         let enabled = snapshot.itemIdentifiers(inSection: .actions).first { item in
             guard case .action(let kind) = item else { return false }
@@ -293,9 +307,14 @@ class TVDetailViewController: TVScreenViewController {
             snapshot.appendSections([.cast])
             snapshot.appendItems(Self.unique(content.cast.map { .person($0.id) }), toSection: .cast)
         }
-        for (section, items) in communitySections() {
+        let community = communitySections()
+        for (section, items) in community {
             snapshot.appendSections([section])
             snapshot.appendItems(items, toSection: section)
+        }
+        if community.isEmpty, traktInvite != nil {
+            snapshot.appendSections([.traktInvite])
+            snapshot.appendItems([.traktInvite], toSection: .traktInvite)
         }
         if !content.related.isEmpty {
             snapshot.appendSections([.related])
@@ -345,6 +364,7 @@ class TVDetailViewController: TVScreenViewController {
             case .communityPulse: return Self.communityPulseSection(header: self?.communityHeadedSection == .communityPulse)
             case .communityAspects: return TVShelf.chips(header: self?.communityHeadedSection == .communityAspects)
             case .communityComments: return Self.communityCommentsSection(header: self?.communityHeadedSection == .communityComments)
+            case .traktInvite: return Self.traktInviteSection()
             case .related: return TVShelf.poster()
             case .information: return Self.informationSection()
             }
@@ -417,6 +437,9 @@ class TVDetailViewController: TVScreenViewController {
             self?.configureCommunity(cell, item: item)
         }
         let aspect = TVChipCell.registration { [weak self] chip in self?.selectAspect(chip.id) }
+        let invite = UICollectionView.CellRegistration<TVHostCell, Item> { [weak self] cell, _, _ in
+            self?.configureTraktInvite(cell)
+        }
         let empty = UICollectionView.CellRegistration<UICollectionViewListCell, Int> { cell, _, _ in
             var configuration = UIListContentConfiguration.cell()
             configuration.text = String(localized: "No episodes in this season")
@@ -462,6 +485,8 @@ class TVDetailViewController: TVScreenViewController {
                 return collectionView.dequeueConfiguredReusableCell(using: communityHost, for: indexPath, item: item)
             case .communityAspect(let id):
                 return collectionView.dequeueConfiguredReusableCell(using: aspect, for: indexPath, item: self?.aspectChip(id) ?? TVChipItem(id: id, title: ""))
+            case .traktInvite:
+                return collectionView.dequeueConfiguredReusableCell(using: invite, for: indexPath, item: item)
             }
         }
 
@@ -488,6 +513,8 @@ class TVDetailViewController: TVScreenViewController {
         case .information: return TVSectionHeader(title: String(localized: "Information"))
         case .communityPulse, .communityAspects, .communityComments:
             return section == communityHeadedSection ? TVSectionHeader(title: TraktCommunityCopy.title) : nil
+        case .traktInvite:
+            return TVSectionHeader(title: TraktCommunityCopy.title)
         default: return nil
         }
     }
@@ -559,7 +586,7 @@ class TVDetailViewController: TVScreenViewController {
         }
     }
 
-    private func refreshCommunity() {
+    func refreshCommunity() {
         guard let content else { return }
         easeIn { self.applySnapshot(for: content) }
     }
