@@ -2341,102 +2341,6 @@
         }
       }
     },
-    "Enter the path of the file." : {
-      "comment" : "Import Subscriptions panel",
-      "extractionState" : "manual",
-      "localizations" : {
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Skriv stien til filen."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gib den Pfad der Datei ein."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Introduce la ruta del archivo."
-          }
-        },
-        "fi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Anna tiedoston sijainti."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Saisissez le chemin du fichier."
-          }
-        },
-        "is" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sláðu inn slóð skráarinnar."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Inserisci il percorso del file."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ファイルのパスを入力してください。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "파일 경로를 입력하세요."
-          }
-        },
-        "nb" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Skriv inn stien til filen."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wpisz ścieżkę do pliku."
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Digite o caminho do arquivo."
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ange sökvägen till filen."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "请输入文件路径。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "請輸入檔案的路徑。"
-          }
-        }
-      }
-    },
     "Export Subscriptions" : {
       "comment" : "Web video setting: write the followed channels to an OPML file",
       "extractionState" : "manual",
@@ -3009,6 +2913,102 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "會清除你看過的每部網路影片以及觀看進度。稍後觀看與你追蹤的頻道會保留。"
+          }
+        }
+      }
+    },
+    "Get the file from Google Takeout:\n1. Go to takeout.google.com and sign in.\n2. Click Deselect all, then tick YouTube and YouTube Music.\n3. Click All YouTube data included and keep only subscriptions.\n4. Create the export and download the zip when Google emails it.\n5. Unzip it, then type the path of subscriptions.csv below, such as ~/Downloads/Takeout/YouTube and YouTube Music/subscriptions/subscriptions.csv." : {
+      "comment" : "Import Subscriptions panel: how to get the subscriptions file from Google Takeout, then where to type its path",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lade die Datei über Google Takeout herunter:\n1. Rufe takeout.google.com auf und melde dich an.\n2. Klicke auf Alle abwählen und aktiviere dann YouTube und YouTube Music.\n3. Klicke auf Alle YouTube-Daten enthalten und behalte nur Abos.\n4. Erstelle den Export und lade die ZIP-Datei herunter, sobald Google dir eine E-Mail schickt.\n5. Entpacke sie und gib unten den Pfad von subscriptions.csv ein, zum Beispiel ~/Downloads/Takeout/YouTube and YouTube Music/subscriptions/subscriptions.csv."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obtén el archivo de Google Takeout:\n1. Ve a takeout.google.com e inicia sesión.\n2. Haz clic en Anular la selección de todo y luego marca YouTube y YouTube Music.\n3. Haz clic en Todos los datos de YouTube incluidos y deja solo las suscripciones.\n4. Crea la exportación y descarga el archivo ZIP cuando Google te envíe el correo.\n5. Descomprímelo y escribe abajo la ruta de subscriptions.csv, por ejemplo ~/Downloads/Takeout/YouTube and YouTube Music/subscriptions/subscriptions.csv."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Récupérez le fichier depuis Google Takeout :\n1. Accédez à takeout.google.com et connectez-vous.\n2. Cliquez sur Tout désélectionner, puis cochez YouTube et YouTube Music.\n3. Cliquez sur Toutes les données YouTube incluses et ne conservez que les abonnements.\n4. Créez l'export et téléchargez le fichier ZIP lorsque Google vous envoie l'e-mail.\n5. Décompressez-le, puis saisissez ci-dessous le chemin de subscriptions.csv, par exemple ~/Downloads/Takeout/YouTube and YouTube Music/subscriptions/subscriptions.csv."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scarica il file da Google Takeout:\n1. Vai su takeout.google.com e accedi.\n2. Fai clic su Deseleziona tutto, poi spunta YouTube e YouTube Music.\n3. Fai clic su Tutti i dati di YouTube inclusi e tieni solo gli abbonamenti.\n4. Crea l'esportazione e scarica lo ZIP quando Google te lo invia via e-mail.\n5. Decomprimilo, poi scrivi qui sotto il percorso di subscriptions.csv, ad esempio ~/Downloads/Takeout/YouTube and YouTube Music/subscriptions/subscriptions.csv."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Google Takeout からファイルを取得します:\n1. takeout.google.com にアクセスしてサインインします。\n2. 「すべて選択解除」をクリックしてから、YouTube と YouTube Music にチェックを入れます。\n3. 「YouTube のすべてのデータが含まれています」をクリックし、「登録チャンネル」だけを残します。\n4. エクスポートを作成し、Google からメールが届いたら ZIP ファイルをダウンロードします。\n5. ZIP を展開し、下に subscriptions.csv のパスを入力します。例: ~/Downloads/Takeout/YouTube and YouTube Music/subscriptions/subscriptions.csv"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Google Takeout에서 파일을 받으세요:\n1. takeout.google.com에 접속해 로그인하세요.\n2. 모두 선택 해제를 클릭한 다음 YouTube와 YouTube Music을 선택하세요.\n3. YouTube 데이터 전체 포함을 클릭하고 구독 정보만 남기세요.\n4. 내보내기를 만들고 Google이 이메일을 보내면 zip 파일을 다운로드하세요.\n5. 압축을 푼 다음, 아래에 subscriptions.csv의 경로를 입력하세요(예: ~/Downloads/Takeout/YouTube and YouTube Music/subscriptions/subscriptions.csv)."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pobierz plik z Google Takeout:\n1. Wejdź na takeout.google.com i zaloguj się.\n2. Kliknij Odznacz wszystko, a potem zaznacz YouTube i YouTube Music.\n3. Kliknij Uwzględniono wszystkie dane YouTube i zostaw tylko subskrypcje.\n4. Utwórz eksport i pobierz plik ZIP, gdy Google wyśle wiadomość e-mail.\n5. Rozpakuj go, a następnie wpisz poniżej ścieżkę do pliku subscriptions.csv, np. ~/Downloads/Takeout/YouTube and YouTube Music/subscriptions/subscriptions.csv."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obtenha o arquivo no Google Takeout:\n1. Acesse takeout.google.com e faça login.\n2. Clique em Desmarcar tudo e marque YouTube e YouTube Music.\n3. Clique em Todos os dados do YouTube incluídos e mantenha apenas as inscrições.\n4. Crie a exportação e baixe o ZIP quando o Google enviar o e-mail.\n5. Descompacte o arquivo e digite abaixo o caminho de subscriptions.csv, por exemplo ~/Downloads/Takeout/YouTube and YouTube Music/subscriptions/subscriptions.csv."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "从 Google Takeout 获取文件：\n1. 访问 takeout.google.com 并登录。\n2. 点击“取消全选”，然后勾选 YouTube 和 YouTube Music。\n3. 点击“包含所有 YouTube 数据”，只保留订阅内容。\n4. 创建导出，并在 Google 发来邮件后下载 zip 文件。\n5. 解压后，在下方输入 subscriptions.csv 的路径，例如 ~/Downloads/Takeout/YouTube and YouTube Music/subscriptions/subscriptions.csv。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "從 Google Takeout 取得檔案：\n1. 前往 takeout.google.com 並登入。\n2. 點選「取消全選」，然後勾選 YouTube 和 YouTube Music。\n3. 點選「包含所有 YouTube 資料」，只保留訂閱內容。\n4. 建立匯出，並在 Google 寄來郵件後下載 zip 檔案。\n5. 解壓縮後，在下方輸入 subscriptions.csv 的路徑，例如 ~/Downloads/Takeout/YouTube and YouTube Music/subscriptions/subscriptions.csv。"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hämta filen från Google Takeout:\n1. Gå till takeout.google.com och logga in.\n2. Klicka på Avmarkera alla och markera sedan YouTube och YouTube Music.\n3. Klicka på Alla YouTube-data inkluderade och behåll bara prenumerationer.\n4. Skapa exporten och ladda ner zip-filen när Google skickar e-postmeddelandet.\n5. Packa upp den och skriv sedan sökvägen till subscriptions.csv nedan, till exempel ~/Downloads/Takeout/YouTube and YouTube Music/subscriptions/subscriptions.csv."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hent filen fra Google Takeout:\n1. Gå til takeout.google.com, og log ind.\n2. Klik på Fravælg alle, og markér derefter YouTube og YouTube Music.\n3. Klik på Alle YouTube-data inkluderet, og behold kun abonnementer.\n4. Opret eksporten, og download zip-filen, når Google sender en e-mail.\n5. Pak den ud, og skriv derefter stien til subscriptions.csv nedenfor, f.eks. ~/Downloads/Takeout/YouTube and YouTube Music/subscriptions/subscriptions.csv."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hent filen fra Google Takeout:\n1. Gå til takeout.google.com og logg inn.\n2. Klikk på Fjern alle, og kryss deretter av for YouTube og YouTube Music.\n3. Klikk på Alle YouTube-data inkludert, og behold bare abonnementer.\n4. Opprett eksporten, og last ned zip-filen når Google sender e-posten.\n5. Pakk ut filen, og skriv deretter inn banen til subscriptions.csv nedenfor, for eksempel ~/Downloads/Takeout/YouTube and YouTube Music/subscriptions/subscriptions.csv."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hae tiedosto Google Takeoutista:\n1. Siirry osoitteeseen takeout.google.com ja kirjaudu sisään.\n2. Valitse Poista kaikkien valinta ja rastita sitten YouTube ja YouTube Music.\n3. Valitse Kaikki YouTube-tiedot sisältyvät ja säilytä vain tilaukset.\n4. Luo vienti ja lataa zip-tiedosto, kun Google lähettää sähköpostin.\n5. Pura tiedosto ja kirjoita sen jälkeen alle subscriptions.csv-tiedoston polku, esimerkiksi ~/Downloads/Takeout/YouTube and YouTube Music/subscriptions/subscriptions.csv."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sæktu skrána úr Google Takeout:\n1. Farðu á takeout.google.com og skráðu þig inn.\n2. Smelltu á Afvelja allt og veldu síðan YouTube og YouTube Music.\n3. Smelltu á Öll YouTube-gögn innifalin og hafðu aðeins áskriftir.\n4. Búðu til útflutninginn og sæktu zip-skrána þegar Google sendir tölvupóstinn.\n5. Taktu skrána út og sláðu síðan inn slóðina að subscriptions.csv hér fyrir neðan, til dæmis ~/Downloads/Takeout/YouTube and YouTube Music/subscriptions/subscriptions.csv."
           }
         }
       }

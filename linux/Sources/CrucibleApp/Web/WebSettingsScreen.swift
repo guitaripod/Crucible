@@ -173,9 +173,12 @@ final class WebSettingsScreen: SettingsScaffold {
         shown.present(in: window)
     }
 
-    /// A subscriptions file in Downloads, when one is there under a name the usual exports use.
+    /// The subscriptions file Google Takeout leaves in its folder, or one in Downloads under a name the usual exports use.
     private static func likelyFile() -> String? {
         let downloads = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Downloads")
+        if FileManager.default.fileExists(atPath: downloads.appendingPathComponent(WebSettingsCopy.takeoutSubscriptions).path) {
+            return "~/Downloads/" + WebSettingsCopy.takeoutSubscriptions
+        }
         let names = (try? FileManager.default.contentsOfDirectory(atPath: downloads.path)) ?? []
         let found = names.first { name in
             let lowered = name.lowercased()
@@ -280,7 +283,16 @@ enum WebSettingsCopy {
     static let importFile = String(localized: "Import Subscriptions…", comment: "Web video setting: follow the channels listed in a file from another app")
     static let importFileHint = String(localized: "Google Takeout’s subscriptions.csv, an OPML list, or an export from NewPipe, FreeTube or Invidious.",
                                        comment: "Web video setting: which files Import Subscriptions reads")
-    static let importFileAsk = String(localized: "Enter the path of the file.", comment: "Import Subscriptions panel")
+    static let importFileAsk = String(localized: """
+        Get the file from Google Takeout:
+        1. Go to takeout.google.com and sign in.
+        2. Click Deselect all, then tick YouTube and YouTube Music.
+        3. Click All YouTube data included and keep only subscriptions.
+        4. Create the export and download the zip when Google emails it.
+        5. Unzip it, then type the path of subscriptions.csv below, such as ~/Downloads/Takeout/YouTube and YouTube Music/subscriptions/subscriptions.csv.
+        """, comment: "Import Subscriptions panel: how to get the subscriptions file from Google Takeout, then where to type its path")
+    /// Where Google Takeout puts a YouTube subscriptions file once the zip is unzipped into Downloads.
+    static let takeoutSubscriptions = "Takeout/YouTube and YouTube Music/subscriptions/subscriptions.csv"
     static let importAction = String(localized: "Import", comment: "Button that imports subscriptions from the file named")
     static let importFailed = String(localized: "Nothing Was Imported", comment: "Alert title after an import that found nothing")
     static let noSuchFile = String(localized: "There is no file at that path.", comment: "Import Subscriptions error")
