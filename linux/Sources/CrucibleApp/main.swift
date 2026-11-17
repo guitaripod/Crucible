@@ -1,6 +1,7 @@
 import CrucibleCore
 import CrucibleDemo
 import CrucibleUI
+import CrucibleWeb
 import Foundation
 import Kiln
 
@@ -72,6 +73,13 @@ func runCrucible() -> Int32 {
     if let file = ProcessInfo.processInfo.environment["CRUCIBLE_PLAY_FILE"] {
         let player = PlayerScreen(source: .file(URL(fileURLWithPath: file), title: URL(fileURLWithPath: file).deletingPathExtension().lastPathComponent))
         player.onClose = { running = false }
+        window.contentView = player
+        window.background = .black
+        window.focus.focus(player, animated: false)
+    } else if let link = ProcessInfo.processInfo.environment["CRUCIBLE_PLAY_LINK"].flatMap(WebLink.init) {
+        let player = PlayerScreen(source: .web(WebPlayback(entry: WebEntry(id: WebLink.youTubeVideoID(in: link.url) ?? link.url, url: link.url, title: ""))))
+        player.onClose = { running = false }
+        window.useImages(diskDirectory: LinuxSession.imageCacheDirectory, fetch: { try await WebArtwork.fetch($0) })
         window.contentView = player
         window.background = .black
         window.focus.focus(player, animated: false)

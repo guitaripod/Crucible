@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleUI
+import CrucibleWeb
 import Foundation
 import Kiln
 import MidgarCore
@@ -19,9 +20,11 @@ import MidgarCore
 /// through the title.
 @MainActor
 final class PlayerScreen: View {
-    /// What plays: a title on the Plex server from a position, or a local file (headless checks of the player itself).
+    /// What plays: a title on the Plex server from a position, a video from the web (`PlayerScreen+Web`), or a local file
+    /// (headless checks of the player itself).
     enum Source {
         case plex(APIClient, PlexMetadata, resume: Double)
+        case web(WebPlayback)
         case file(URL, title: String)
     }
 
@@ -37,6 +40,10 @@ final class PlayerScreen: View {
     var onPlayTitle: ((PlexMetadata, PlayerRun) -> Void)?
     /// Opens the page of a show picked at the end, once the player has closed.
     var onOpenTitle: ((PlexMetadata) -> Void)?
+    /// Plays the next web video of a queue in place of this one.
+    var onPlayWeb: ((WebPlayback, PlayerRun) -> Void)?
+    /// The web side of the player while a web video plays.
+    var web: WebSession?
     /// The viewer asked for the mini player (P, its button, the menu) or for the full player back from it.
     var onMinimize: (() -> Void)?
     var onExpand: (() -> Void)?
@@ -137,7 +144,7 @@ final class PlayerScreen: View {
     var menuHoldsChrome = false
     var holdOrigin: Double?
     /// Whether the window filled the screen when Match Content last looked.
-    private var matchedFullscreen = false
+    var matchedFullscreen = false
 
     /// Match Content follows the window into full screen and out of it: the screen matches the title only while the player
     /// fills it.
@@ -182,6 +189,9 @@ final class PlayerScreen: View {
         switch source {
         case .plex(_, let item, _): transport.title = item.grandparentTitle.map { "\($0) · \(item.title)" } ?? item.title
         case .file(_, let title): transport.title = title
+        case .web(let playback):
+            transport.title = playback.entry.title
+            web = WebSession(playback: playback)
         }
         transport.onScrub = { [weak self] fraction, phase in
             self?.viewerActed()
@@ -290,6 +300,7 @@ final class PlayerScreen: View {
                 ScreenAwake.hold(true, in: window)
                 showDemoUpNextIfAsked()
             }
+            startWeb()
             return
         }
         loadInfo()
@@ -402,6 +413,7 @@ final class PlayerScreen: View {
 
     var duration: Double {
         if case .plex(_, let item, _) = source, item.durationSecs > 0 { return item.durationSecs }
+        if let known = web?.video?.duration, known > 0, web?.video?.isLive == false { return known }
         return (player?.state.duration ?? 0) + streamOffset
     }
 
@@ -421,7 +433,7 @@ final class PlayerScreen: View {
             offerNext(.credits)
         }
         controls?.update(playing: !playerState.isPaused, title: transport.title, show: showTitle, artURL: artworkFile, duration: duration,
-                         position: position, canGoNext: upNext?.canOfferNext ?? false)
+                         position: position, canGoNext: upNext?.canOfferNext ?? (web?.playback.queue.isEmpty == false))
         let reportState = playerState.isPaused ? "paused" : "playing"
         if scrubOrigin == nil { notePause(playerState.isPaused) }
         if reportState != lastReportedState, scrubOrigin == nil {
@@ -471,6 +483,10 @@ final class PlayerScreen: View {
     /// lacks: a missing audio track falls back to mpv's own pick and a missing subtitle to none. A chosen subtitle beside the
     /// file is fetched and added now that the file is open.
     private func settleFileTracks() {
+        if web != nil {
+            settleWebTracks()
+            return
+        }
         guard let stream, stream.isDirectPlay, let player else { return }
         let tracks = FileTracks(stream)
         if let audio = tracks.audio, audio > player.fileTrackCount("audio") { player.set("aid", "auto") }

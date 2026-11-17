@@ -70,15 +70,21 @@ public final class VideoPlayer {
     /// Plays `url` from `start` seconds, sending `headers` with every request (the Plex token); `options` are mpv options
     /// for this file alone, such as the `aid` and `sid` it opens with.
     public func load(_ url: URL, start: Double = 0, headers: [String: String] = [:], options: KeyValuePairs<String, String> = [:]) {
-        let fields = headers.map { "\($0.key): \($0.value)" }.joined(separator: ",")
+        load(location: url.isFileURL ? url.path : url.absoluteString, start: start, headers: headers, options: options, caches: !url.isFileURL)
+    }
+
+    /// Plays what mpv finds at `location`: a path, an address, or one of mpv's own schemes (`edl://`, which joins a
+    /// picture and a sound into one title). A comma in a header's value is escaped, since mpv splits the list on commas.
+    public func load(location: String, start: Double = 0, headers: [String: String] = [:], options: KeyValuePairs<String, String> = [:], caches: Bool = true) {
+        let fields = headers.map { "\($0.key): \($0.value)".replacingOccurrences(of: ",", with: "\\,") }.joined(separator: ",")
         set("http-header-fields", fields)
         typicalSeekTime = nil
         seekSent = nil
         pendingSeek = nil
         var perFile = ["start=\(String(format: "%.3f", max(start, 0)))"]
-        if url.isFileURL { perFile.append("cache=no") }
+        if !caches { perFile.append("cache=no") }
         perFile += options.map { "\($0.key)=\($0.value)" }
-        command(["loadfile", url.isFileURL ? url.path : url.absoluteString, "replace", "-1", perFile.joined(separator: ",")])
+        command(["loadfile", location, "replace", "-1", perFile.joined(separator: ",")])
     }
 
     /// An mpv property as text, or nil when mpv has none now.

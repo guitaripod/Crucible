@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleUI
+import CrucibleWeb
 import Foundation
 import Kiln
 import MidgarCore
@@ -10,6 +11,10 @@ extension PlayerScreen {
     /// from the playhead, once; anything else says so with Retry, and stops keeping the dead session alive, whose ping would
     /// otherwise rebuild it behind the error every 20 seconds.
     func recover(from message: String) {
+        if web != nil {
+            recoverWeb(from: message)
+            return
+        }
         switch failurePolicy.decide(wasDirectPlay: stream?.isDirectPlay ?? false, isOffline: false) {
         case .fallBackToTranscode:
             fallBackToTranscode(after: message)
@@ -36,6 +41,10 @@ extension PlayerScreen {
     /// Plays again from where it failed, in the same tracks.
     func retryFromPlayhead() {
         failurePolicy = PlaybackFailurePolicy()
+        if web != nil {
+            resolveWeb(fresh: true, at: stream == nil ? nil : position)
+            return
+        }
         guard stream != nil else {
             resolveFirstStream()
             return
@@ -111,7 +120,7 @@ extension PlayerScreen {
 
     func showPreroll() {
         let headline = prerollHeadline
-        let shown = PrerollView(title: headline.title, subtitle: headline.subtitle, posterPath: headline.posterPath)
+        let shown = PrerollView(title: headline.title, subtitle: headline.subtitle, posterPath: headline.posterPath, isLandscape: web != nil)
         preroll = shown
         insertSubview(shown, below: transport)
         chrome.reset(0)
@@ -129,6 +138,9 @@ extension PlayerScreen {
         switch source {
         case .file(_, let title):
             return (title, nil, nil)
+        case .web(let playback):
+            let entry = web?.video.map(WebEntry.init) ?? playback.entry
+            return (entry.title, entry.channel, WebArtwork.url(entry.thumbnailCandidates)?.absoluteString)
         case .plex(_, let item, _):
             if let show = item.grandparentTitle {
                 let code = Formatters.episodeCode(item.parentIndex, item.index)

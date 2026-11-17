@@ -46,6 +46,8 @@ final class PlayerInfoPanel: View {
         var summary: String?
         var facts: String?
         var posterPath: String?
+        /// The artwork is a sixteen by nine picture (a web video's thumbnail), not a poster.
+        var posterIsLandscape = false
         var chapters: [PlexChapter]
         var streamLines: [StreamInfoLine]
         /// What the player does with the picture and sound now (`PlayerScreen.livePlaybackLines`), how the title reaches
@@ -69,7 +71,7 @@ final class PlayerInfoPanel: View {
         self.content = content
         super.init()
         poster.cornerRadius = Theme.current.metrics.radiusS
-        poster.source = content.posterPath.map { .path($0, .poster) }
+        poster.source = content.posterPath.map(WebArtwork.poster)
         tabs.onSelect = { [weak self] chip in self?.select(Tab(rawValue: chip.id) ?? .info) }
         chapters.onActivate = { [weak self] card in
             guard let self, let index = Int(card.id.dropFirst("chapter.".count)), self.content.chapters.indices.contains(index) else { return }
@@ -86,7 +88,7 @@ final class PlayerInfoPanel: View {
 
     func update(_ newContent: Content) {
         content = newContent
-        poster.source = content.posterPath.map { .path($0, .poster) }
+        poster.source = content.posterPath.map(WebArtwork.poster)
         var chips = [ChipRowView.Chip(id: Tab.info.rawValue, title: String(localized: "Info"), isSelected: tab == .info)]
         if !content.chapters.isEmpty {
             chips.append(.init(id: Tab.chapters.rawValue, title: ChapterList.title, isSelected: tab == .chapters))
@@ -161,8 +163,12 @@ final class PlayerInfoPanel: View {
         tabs.frame = Rect(x: inset - metrics.sideMargin, y: inset - metrics.tv(24), width: bounds.width - inset * 2 + metrics.sideMargin * 2,
                           height: metrics.chipHeight + metrics.tv(48))
         let area = body
-        let posterHeight = area.height
-        poster.frame = Rect(x: area.x, y: area.y, width: (posterHeight / 1.5).rounded(), height: posterHeight)
+        if content.posterIsLandscape {
+            let width = min((area.height * 16 / 9).rounded(), (area.width * 0.34).rounded())
+            poster.frame = Rect(x: area.x, y: area.y, width: width, height: (width * 9 / 16).rounded())
+        } else {
+            poster.frame = Rect(x: area.x, y: area.y, width: (area.height / 1.5).rounded(), height: area.height)
+        }
         chapters.frame = Rect(x: area.x - metrics.sideMargin, y: area.y - metrics.shelfTopInset, width: area.width + metrics.sideMargin * 2,
                               height: area.height + metrics.shelfTopInset)
     }
@@ -326,24 +332,38 @@ final class PrerollView: View {
 
     private let poster = ArtworkView()
     private let spinner = SpinnerView()
-    private let title: String
-    private let subtitle: String?
+    private var title: String
+    private var subtitle: String?
     private var shown = Animated(0)
     private var revealed = false
     private var fadeTask: Task<Void, Never>?
+    private let isLandscape: Bool
 
-    init(title: String, subtitle: String?, posterPath: String?) {
+    /// `isLandscape` shows the artwork as a sixteen by nine picture (a web video's thumbnail) in place of a poster.
+    init(title: String, subtitle: String?, posterPath: String?, isLandscape: Bool = false) {
         self.title = title
         self.subtitle = subtitle
+        self.isLandscape = isLandscape
         super.init()
         poster.cornerRadius = Theme.current.metrics.radiusM
-        poster.source = posterPath.map { .path($0, .poster) }
+        poster.source = posterPath.map(WebArtwork.poster)
         poster.isHidden = posterPath == nil
         [poster, spinner].forEach(addSubview)
         alpha = 0
     }
 
     override var isPointerInteractive: Bool { false }
+
+    /// Shows a title and a line under it that were learned after the pre-roll came up (a link's video, once it was read).
+    func update(title: String, subtitle: String?, posterPath: String?) {
+        self.title = title
+        self.subtitle = subtitle
+        if let posterPath {
+            poster.source = WebArtwork.poster(posterPath)
+            poster.isHidden = false
+        }
+        setNeedsDisplay()
+    }
 
     override func didMoveToWindow() {
         guard window != nil, fadeTask == nil else { return }
@@ -376,8 +396,8 @@ final class PrerollView: View {
 
     override func layoutSubviews() {
         let metrics = Theme.current.metrics
-        let height = metrics.tv(360)
-        let width = (height / 1.5).rounded()
+        let height = isLandscape ? metrics.tv(300) : metrics.tv(360)
+        let width = isLandscape ? (height * 16 / 9).rounded() : (height / 1.5).rounded()
         poster.frame = Rect(x: ((bounds.width - width) / 2).rounded(), y: (bounds.height * 0.5 - height - metrics.tv(30)).rounded(), width: width,
                             height: height)
         let side = metrics.tv(64)

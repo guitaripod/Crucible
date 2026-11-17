@@ -62,6 +62,10 @@ extension PlayerScreen {
     /// A file playing directly switches in place; a converted stream is asked for again from where it is, with the new
     /// choice. A failed switch says so, with Retry. The show remembers the languages for its other episodes.
     func choose(track id: Int?, audio: Bool) {
+        if web != nil {
+            chooseWeb(track: id, audio: audio)
+            return
+        }
         guard let stream, case .plex(let api, let item, _) = source else { return }
         if !audio {
             subtitlesTurnedOff = id == nil
@@ -214,6 +218,7 @@ extension PlayerScreen {
 
     /// What the info panel shows: the server's full record once it arrived, the card's until then.
     var infoContent: PlayerInfoPanel.Content {
+        if web != nil { return webInfoContent }
         let headline = prerollHeadline
         guard case .plex(_, let item, _) = source else {
             return PlayerInfoPanel.Content(title: headline.title, chapters: [], streamLines: [], liveLines: livePlaybackLines,
@@ -322,6 +327,7 @@ extension PlayerScreen {
         } else if stream != nil, player?.state.isSeeking == false {
             positionAtLastBeat = position
         }
+        saveWebProgress()
         checkSleepTimer()
     }
 

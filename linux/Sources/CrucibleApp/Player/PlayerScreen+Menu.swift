@@ -80,6 +80,7 @@ extension PlayerScreen {
             }))
         }
         entries.append(.separator)
+        if let quality = webQualitySubmenu() { entries.append(quality) }
         entries.append(audioSubmenu())
         entries.append(subtitleSubmenu())
         entries.append(.submenu(String(localized: "Speed", comment: "Player menu"), detail: Self.speedTitle(speed), symbol: "gauge.with.dots.needle.67percent") {

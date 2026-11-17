@@ -34,8 +34,10 @@ final class PlexArtworkPipeline: ArtworkPipeline {
     }
 
     /// Fetches artwork, with the Plex headers for the server's own (the token travels as a header, never in the cached URL).
+    /// A picture from the web (`WebArtwork`) is fetched apart, without them.
     static func fetcher(token: String) -> ImageStore.Fetch {
         { url in
+            if WebArtwork.isWeb(url) { return try await WebArtwork.fetch(url) }
             var request = URLRequest(url: url)
             request.timeoutInterval = 12
             if isServerArtwork(url) {

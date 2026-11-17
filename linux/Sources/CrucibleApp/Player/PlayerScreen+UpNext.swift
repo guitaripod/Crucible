@@ -9,6 +9,7 @@ extension PlayerScreen {
     /// Asks for the next episode; shows the card, or plays at once when asked for, or what's next at the end with none.
     func offerNext(_ reason: UpNextOffer.Reason) {
         guard let resolver = upNext, case .plex(let api, _, _) = source else {
+            if reason != .credits, playNextWeb(byViewer: reason == .requested) { return }
             if reason == .playbackEnded { endOfPlayback() }
             return
         }
@@ -75,7 +76,7 @@ extension PlayerScreen {
 
     var showTitle: String? {
         if case .plex(_, let item, _) = source { return item.grandparentTitle }
-        return nil
+        return web?.video?.channel ?? web?.playback.entry.channel
     }
 
     func perform(_ command: MediaControls.Command) {
@@ -134,8 +135,7 @@ extension PlayerScreen {
         }
         let now = position
         if let segment = segments.first(where: { now >= $0.startSecs && now < $0.endSecs - 1 }), card == nil {
-            let automatic = segment.isCredits ? Preferences.skipOutroMode == .automatic : Preferences.skipIntroMode == .automatic
-            let off = segment.isCredits ? Preferences.skipOutroMode == .off : Preferences.skipIntroMode == .off
+            let (automatic, off) = skipHandling(of: segment)
             if off { return }
             if automatic, !segment.isCredits, !autoSkipped.contains(segment) {
                 autoSkipped.insert(segment)
@@ -143,7 +143,7 @@ extension PlayerScreen {
                 offerUndo(returningTo: now)
                 return
             }
-            showSkip(title: segment.title, symbol: "forward.end.fill")
+            showSkip(title: skipTitle(of: segment), symbol: "forward.end.fill")
         } else if !skip.isHidden {
             skip.isHidden = true
         }

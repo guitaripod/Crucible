@@ -73,6 +73,7 @@ extension PlayerScreen {
         contextMenu?.dismiss()
         calibration?.removeFromSuperview()
         calibration = nil
+        closeWeb()
         let finished = WatchedRule.isFinished(positionSecs: position, durationSecs: duration, creditsStartSecs: upNext?.creditsStartSecs)
         watchers.forEach { $0.playback(.stopped(position: position, finished: finished, at: Date())) }
         if finished { recordFinish() }

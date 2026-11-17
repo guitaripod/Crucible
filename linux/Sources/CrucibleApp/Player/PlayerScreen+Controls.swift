@@ -439,6 +439,7 @@ extension PlayerScreen {
         switch source {
         case .plex(_, let item, _): PlayerTweakStore.key(ratingKey: item.id)
         case .file(let url, _): "file:" + url.path
+        case .web(let playback): "web:" + playback.entry.id
         }
     }
 
