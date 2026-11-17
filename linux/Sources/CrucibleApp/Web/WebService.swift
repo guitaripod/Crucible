@@ -79,6 +79,13 @@ final class WebService {
         return listing
     }
 
+    /// Saves the video at `address` into `folder`, within the quality the viewer set, and returns the file's path.
+    func download(_ address: String, into folder: URL) async throws -> String {
+        let tool = try tool()
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        return try await tool.download(address, maximumHeight: WebSettings.quality.maximumHeight, into: folder)
+    }
+
     /// Notes the video in the signed-in account's own history on its site, when the viewer asked for that.
     func markWatched(_ address: String) {
         guard WebSettings.marksWatched, WebSettings.cookiesBrowser != nil, let tool = try? tool() else { return }

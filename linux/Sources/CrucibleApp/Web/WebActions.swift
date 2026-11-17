@@ -27,7 +27,7 @@ enum WebActions {
             return
         }
         root.closePlayer()
-        root.playWeb(WebPlayback(entry: entry, start: start, queue: queue))
+        root.playWeb(WebPlayback(entry: entry, start: start, queue: queue, localPath: WebService.shared.library.download(of: entry.id)?.path))
     }
 
     /// Opens the channel `entry` belongs to.
@@ -51,6 +51,14 @@ enum WebActions {
             items.append(.init(id: "later", title: saved ? String(localized: "Remove from Watch Later", comment: "Web video menu")
                                                         : String(localized: "Watch Later", comment: "Web video menu: save the video for later"),
                                symbol: saved ? "minus.circle" : "clock"))
+            items.append(.init(id: "details", title: String(localized: "View Details"), symbol: "info.circle"))
+            if WebDownloads.shared.isRunning(entry.id) {
+                items.append(.init(id: "download.cancel", title: WebDownloads.cancelTitle, symbol: "xmark.circle"))
+            } else if library.download(of: entry.id) != nil {
+                items.append(.init(id: "download.delete", title: WebDownloads.deleteTitle, symbol: "trash"))
+            } else if !entry.isLive, !entry.isUpcoming {
+                items.append(.init(id: "download", title: WebDownloads.downloadTitle, symbol: "arrow.down.circle"))
+            }
         } else {
             items.append(.init(id: "open", title: String(localized: "Open"), symbol: "chevron.right"))
         }
@@ -79,6 +87,12 @@ enum WebActions {
             case "open": open(entry, from: view)
             case "later":
                 if library.isSavedForLater(entry.id) { library.removeFromWatchLater(entry.id) } else { library.saveForLater(entry) }
+                afterChange?()
+            case "details": view.rootView?.push(WebVideoScreen(entry: entry))
+            case "download": WebDownloads.shared.start(entry, in: window)
+            case "download.cancel": WebDownloads.shared.cancel(entry.id)
+            case "download.delete":
+                WebDownloads.shared.delete(entry.id)
                 afterChange?()
             case "channel": openChannel(of: entry, from: view)
             case "follow":

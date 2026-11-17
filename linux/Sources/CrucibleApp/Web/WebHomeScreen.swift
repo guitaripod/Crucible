@@ -26,6 +26,7 @@ final class WebHomeScreen: ScreenView, Reloadable {
     private var loadTask: Task<Void, Never>?
     private var recommendedTask: Task<Void, Never>?
     private var observer: NSObjectProtocol?
+    private var downloadsObserver: NSObjectProtocol?
     private var refreshQueued = false
 
     override init(frame: Rect = .zero) {
@@ -65,10 +66,14 @@ final class WebHomeScreen: ScreenView, Reloadable {
         observer = NotificationCenter.default.addObserver(forName: WebLibrary.didChange, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.libraryChanged() }
         }
+        downloadsObserver = NotificationCenter.default.addObserver(forName: WebDownloads.didChange, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.libraryChanged() }
+        }
     }
 
     isolated deinit {
         if let observer { NotificationCenter.default.removeObserver(observer) }
+        if let downloadsObserver { NotificationCenter.default.removeObserver(downloadsObserver) }
         loadTask?.cancel()
         recommendedTask?.cancel()
     }
@@ -166,6 +171,10 @@ final class WebHomeScreen: ScreenView, Reloadable {
             .init(id: "history", title: String(localized: "History"), symbol: "clock.arrow.circlepath"),
         ]
         if !later.isEmpty { listed.append(.init(id: "later", title: WebCopy.watchLater, symbol: "clock")) }
+        if !library.downloads.isEmpty || WebDownloads.shared.hasRunning {
+            let title = WebDownloads.shared.hasRunning ? WebDownloads.downloadingTitle : WebDownloads.listTitle
+            listed.append(.init(id: "downloads", title: title, symbol: "arrow.down.circle"))
+        }
         if WebSettings.cookiesBrowser != nil {
             listed.append(.init(id: "account.later", title: String(localized: "Account Watch Later", comment: "YouTube chip: the signed-in account's own Watch Later list"), symbol: "person.crop.circle"))
             listed.append(.init(id: "account.liked", title: String(localized: "Liked Videos", comment: "YouTube chip: the signed-in account's liked videos"), symbol: "hand.thumbsup"))
@@ -188,6 +197,7 @@ final class WebHomeScreen: ScreenView, Reloadable {
         case "search": rootView?.select("search")
         case "history": rootView?.push(WebScreens.history())
         case "later": rootView?.push(WebScreens.watchLater())
+        case "downloads": rootView?.push(WebScreens.downloads())
         case "account.later": rootView?.push(WebScreens.account(":ytwatchlater", title: WebCopy.watchLater))
         case "account.liked": rootView?.push(WebScreens.account(":ytfav", title: String(localized: "Liked Videos", comment: "YouTube chip: the signed-in account's liked videos")))
         case "settings": rootView?.push(WebSettingsScreen())
@@ -258,6 +268,15 @@ enum WebScreens {
     static func history() -> WebListScreen {
         WebListScreen(title: String(localized: "History"), empty: .init(symbol: "clock.arrow.circlepath", message: String(localized: "Videos you watch show up here.", comment: "Empty web history"))) { _ in
             WebService.shared.library.history.map(\.entry)
+        }
+    }
+
+    /// The videos saved to this machine, which play from their files.
+    static func downloads() -> WebListScreen {
+        WebListScreen(title: WebDownloads.listTitle, empty: .init(symbol: "arrow.down.circle",
+                                                                 message: String(localized: "Download a video from its menu to watch it without a connection.",
+                                                                                 comment: "Empty web downloads list"))) { _ in
+            WebService.shared.library.downloads.map(\.entry)
         }
     }
 

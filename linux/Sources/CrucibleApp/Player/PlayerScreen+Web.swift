@@ -12,6 +12,8 @@ struct WebPlayback {
     var start: Double?
     /// What plays after this one: the rest of a playlist.
     var queue: [WebEntry] = []
+    /// The file a downloaded video plays from, without asking its site anything.
+    var localPath: String?
 }
 
 /// The web side of one player: what yt-dlp said of the video, what the viewer chose from it, and what goes with it.
@@ -35,6 +37,12 @@ final class WebSession {
     var failed: Set<String> = []
     /// Waits for the site to start serving the chosen streams.
     var loadTask: Task<Void, Never>?
+    /// Set from handing mpv a file until that file is open. mpv reports the file it puts aside for another quality, language
+    /// or the sound alone as ended, which is not the video ending.
+    var isReplacing = false
+    /// Whether only the sound plays, by the viewer's choice, with the video's thumbnail where the picture would be.
+    var soundOnly = false
+    var poster: ArtworkView?
     var sponsorTask: Task<Void, Never>?
     var subtitleTask: Task<Void, Never>?
 
@@ -48,8 +56,37 @@ final class WebSession {
 /// through the same `ResolvedStream` a Plex title has. Progress is kept in the viewer's own library, never on a site.
 extension PlayerScreen {
     func startWeb() {
-        guard web != nil else { return }
-        resolveWeb()
+        guard let web else { return }
+        if let path = web.playback.localPath, FileManager.default.fileExists(atPath: path) {
+            openDownload(at: path)
+        } else {
+            resolveWeb()
+        }
+    }
+
+    /// Plays a downloaded video from its file, carrying on where the viewer left it; nothing is asked of its site.
+    private func openDownload(at path: String) {
+        guard let web else { return }
+        let file = URL(fileURLWithPath: path)
+        let entry = web.playback.entry
+        loadWebArtworkForMediaControls(entry)
+        stream = ResolvedStream(url: file, isDirectPlay: true, sessionId: "", subtitles: [], audioTracks: [], markers: [])
+        segments = []
+        streamOffset = 0
+        prepareForWebFile()
+        player?.load(file, start: web.playback.start ?? WebService.shared.library.resumePosition(of: entry.id))
+        player?.setPaused(false)
+        ScreenAwake.hold(true, in: window)
+        MidgarLog.notice("Playing a downloaded web video", category: .playback)
+    }
+
+    /// Hands mpv what the viewer set for subtitles, speed, sync and the screen before a web file opens.
+    private func prepareForWebFile() {
+        player?.set("sub-scale", String(format: "%.2f", Double(Preferences.subtitleSize.rawValue) / 100))
+        player?.set("speed", String(speed))
+        loadTweaks()
+        applyDisplay()
+        reapplyLoop()
     }
 
     /// Asks yt-dlp for the video and plays it from `position` (by default the link's start or where the viewer left it).
@@ -87,7 +124,8 @@ extension PlayerScreen {
             loadWebArtworkForMediaControls(entry)
         }
         web.video = video
-        let preferences = WebService.shared.preferences(in: window, surround: !spdifCodecs.isEmpty, audioLanguage: web.audioLanguage, excluded: web.failed)
+        var preferences = WebService.shared.preferences(in: window, surround: !spdifCodecs.isEmpty, audioLanguage: web.audioLanguage, excluded: web.failed)
+        preferences.soundOnly = web.soundOnly
         guard let selection = WebFormatPicker.pick(from: video, preferences: preferences, quality: web.chosenQuality), let plan = WebPlaybackPlan(selection) else {
             presentFailure(String(localized: "yt-dlp found nothing to play in this video.", comment: "Web video error: no stream without protection"), retry: nil)
             return
@@ -100,11 +138,9 @@ extension PlayerScreen {
         streamOffset = 0
         transport.title = video.title
         transport.chapterMarks = ChapterList.playable(resolved.chapters).map(\.startSecs)
-        player?.set("sub-scale", String(format: "%.2f", Double(Preferences.subtitleSize.rawValue) / 100))
-        player?.set("speed", String(speed))
-        loadTweaks()
-        applyDisplay()
-        reapplyLoop()
+        prepareForWebFile()
+        videoView?.isHidden = selection.video == nil
+        showWebPoster(selection.video == nil ? WebEntry(video) : nil)
         infoPanel?.update(infoContent)
         web.loadTask?.cancel()
         let wait = min(selection.readyAt?.timeIntervalSinceNow ?? 0, 10)
@@ -122,6 +158,7 @@ extension PlayerScreen {
 
     /// Hands the chosen streams to mpv.
     private func load(_ plan: WebPlaybackPlan, of video: WebVideo, from start: Double, paused: Bool) {
+        web?.isReplacing = true
         player?.set("user-agent", plan.userAgent ?? WebArtwork.userAgent)
         player?.load(location: plan.location, start: start, headers: plan.headers)
         player?.setPaused(paused)
@@ -137,7 +174,9 @@ extension PlayerScreen {
     /// Once mpv has the file open: the chosen subtitle is added again (a reload drops what was added beside the last
     /// one), and the frame rate mpv read from the file replaces the site's rounded one for Match Content.
     func settleWebTracks() {
+        web?.isReplacing = false
         guard let web, let video = web.video, let selection = web.selection else { return }
+        if selection.video == nil { revealPicture() }
         showWebSubtitle()
         guard let measured = player?.get("container-fps").flatMap(Double.init), measured > 0, let declared = selection.video?.frameRate,
               abs(measured - declared) > 0.005, abs(measured - declared) < 1 else { return }
@@ -327,31 +366,64 @@ extension PlayerScreen {
 
     /// Plays on in `quality`, or in what the picker chooses with nil.
     func setWebQuality(_ quality: WebQuality?) {
-        guard let web, let video = web.video, web.chosenQuality != quality else { return }
+        guard let web, let video = web.video, web.chosenQuality != quality || web.soundOnly else { return }
+        web.soundOnly = false
         web.chosenQuality = quality
         openWeb(video, at: position, paused: player?.state.isPaused ?? false)
         let label = web.selection?.quality?.label ?? ""
         say(String(localized: "Quality \(label)", comment: "Player message after changing a web video's quality, as in \"Quality 1080p60\""), symbol: "sparkles.tv")
     }
 
-    /// The Quality menu: Automatic with what it chose, then every quality the video has.
+    /// The Quality menu: Automatic with what it chose, then every quality the video has, then Sound Only.
     func webQualityEntries() -> [ContextMenuView.Entry] {
         guard let web, let video = web.video else { return [] }
         let playing = web.selection?.quality
         var entries: [ContextMenuView.Entry] = [.action(ContextMenuView.Action(
             String(localized: "Automatic", comment: "Web video quality menu: Crucible picks"), detail: web.chosenQuality == nil ? playing?.label : nil,
-            isChecked: web.chosenQuality == nil) { [weak self] in self?.setWebQuality(nil) })]
+            isChecked: web.chosenQuality == nil && !web.soundOnly) { [weak self] in self?.setWebQuality(nil) })]
         entries.append(.separator)
         entries += WebFormatPicker.qualities(of: video).map { quality in
-            .action(ContextMenuView.Action(quality.label, isChecked: web.chosenQuality == quality) { [weak self] in self?.setWebQuality(quality) })
+            .action(ContextMenuView.Action(quality.label, isChecked: web.chosenQuality == quality && !web.soundOnly) { [weak self] in self?.setWebQuality(quality) })
         }
+        entries.append(.separator)
+        entries.append(.action(ContextMenuView.Action(Self.soundOnlyTitle, detail: String(localized: "No picture is fetched", comment: "Player menu: what Sound Only does"),
+                                                      isChecked: web.soundOnly) { [weak self] in self?.setWebSoundOnly(!web.soundOnly) }))
         return entries
+    }
+
+    static var soundOnlyTitle: String { String(localized: "Sound Only", comment: "Player menu: play a web video's sound without its picture") }
+
+    /// Plays on with the sound alone, or with the picture again.
+    func setWebSoundOnly(_ on: Bool) {
+        guard let web, let video = web.video, web.soundOnly != on else { return }
+        web.soundOnly = on
+        openWeb(video, at: position, paused: player?.state.isPaused ?? false)
+        say(on ? Self.soundOnlyTitle : String(localized: "Quality \(web.selection?.quality?.label ?? "")", comment: "Player message after changing a web video's quality, as in \"Quality 1080p60\""),
+            symbol: on ? "waveform" : "sparkles.tv")
+    }
+
+    /// Shows `entry`'s thumbnail where the picture would be while only the sound plays, or takes it away for nil. The
+    /// picture's own view is hidden meanwhile (`openWeb`): mpv takes its video output down for a file without a picture,
+    /// and asking it to draw then crashes it.
+    private func showWebPoster(_ entry: WebEntry?) {
+        guard let web else { return }
+        guard let entry else {
+            web.poster?.removeFromSuperview()
+            web.poster = nil
+            return
+        }
+        let poster = web.poster ?? ArtworkView()
+        poster.source = WebArtwork.source(for: entry)
+        if poster.superview == nil { insertSubview(poster, below: transport) }
+        poster.frame = bounds
+        web.poster = poster
     }
 
     /// The Quality row of the player's menu for a web video with more than one quality.
     func webQualitySubmenu() -> ContextMenuView.Entry? {
-        guard let web, let video = web.video, WebFormatPicker.qualities(of: video).count > 1 else { return nil }
-        return .submenu(String(localized: "Quality", comment: "Player menu: a web video's picture quality"), detail: web.selection?.quality?.label, symbol: "sparkles.tv") {
+        guard let web, let video = web.video, !WebFormatPicker.qualities(of: video).isEmpty else { return nil }
+        return .submenu(String(localized: "Quality", comment: "Player menu: a web video's picture quality"),
+                        detail: web.soundOnly ? Self.soundOnlyTitle : web.selection?.quality?.label, symbol: "sparkles.tv") {
             [weak self] in self?.webQualityEntries() ?? []
         }
     }
@@ -360,12 +432,12 @@ extension PlayerScreen {
 
     /// Keeps where the viewer is in the video, every ten seconds of it and when the player closes.
     func saveWebProgress(force: Bool = false) {
-        guard let web, let video = web.video, !video.isLive, let state = player?.state, state.duration > 0, state.videoWidth > 0 || state.position > 1
-        else { return }
+        guard let web, web.video?.isLive != true, web.video != nil || web.playback.localPath != nil, let state = player?.state, state.duration > 0,
+              state.videoWidth > 0 || state.position > 1 else { return }
         let now = position
         guard now > 1, force || abs(now - web.savedPosition) >= 10 else { return }
         web.savedPosition = now
-        WebService.shared.library.record(WebEntry(video), position: now, duration: duration)
+        WebService.shared.library.record(web.video.map(WebEntry.init) ?? web.playback.entry, position: now, duration: duration)
     }
 
     /// The web side of closing: the last position is kept, and a finished video is noted on its site when asked for.

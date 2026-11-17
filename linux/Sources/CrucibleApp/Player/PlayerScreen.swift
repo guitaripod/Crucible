@@ -88,7 +88,7 @@ final class PlayerScreen: View {
     var card: UpNextCard?
     var offerTask: Task<Void, Never>?
     var player: VideoPlayer?
-    private var videoView: VideoView?
+    var videoView: VideoView?
     let transport = TransportView()
     let skip = ButtonView(style: .glass, title: nil, symbol: "forward.end.fill", symbolTrailing: true)
     var preroll: PrerollView?
@@ -458,6 +458,7 @@ final class PlayerScreen: View {
         case .seeked:
             seekVeil?.lift()
         case .ended:
+            if web?.isReplacing == true { return }
             if endedShort() { return }
             if sleepTimer?.stopsAtEndOfItem == true {
                 closeForSleep()
@@ -898,13 +899,14 @@ final class PlayerScreen: View {
         if isMini {
             laidOutSize = nil
             followFullscreen()
-            for layer in [videoView, seekVeil, calibration, preroll, postPlay] as [View?] { layer?.frame = bounds }
+            for layer in [videoView, web?.poster, seekVeil, calibration, preroll, postPlay] as [View?] { layer?.frame = bounds }
             return
         }
         if let previous = laidOutSize, previous != bounds.size { windowResized() }
         laidOutSize = bounds.size
         followFullscreen()
         videoView?.frame = bounds
+        web?.poster?.frame = bounds
         seekVeil?.frame = bounds
         calibration?.frame = bounds
         preroll?.frame = bounds
