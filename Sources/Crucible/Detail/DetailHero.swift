@@ -360,7 +360,11 @@ final class DetailHeroCoordinator {
 
     /// A phone shows the artwork at the screen's own ratio; a large screen shows it at 16:9 and leaves room for the title's actions below.
     func restHeight(for collectionView: UICollectionView) -> CGFloat {
-        let size = collectionView.bounds.size
+        Self.restHeight(for: collectionView.bounds.size, heightRatio: heightRatio)
+    }
+
+    /// The artwork's height at rest on a screen `size`, which the loading skeleton shares so it dissolves into the page in place.
+    static func restHeight(for size: CGSize, heightRatio: CGFloat) -> CGFloat {
         guard size.width > 0 else { return 0 }
         let compact = Theme.Room(width: size.width, height: size.height) == .compact
         let byWidth = size.width * (compact ? heightRatio : 9 / 16)

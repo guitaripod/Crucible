@@ -206,6 +206,14 @@ final class EpisodeContentView: UIView, UIContentView {
         imageTask = Task { [weak self] in
             let image = await ImageLoader.shared.loadBackdrop(path: path, width: Int(Self.thumbWidth * 3))
             guard !Task.isCancelled, let self, let image else { return }
+            self.reveal(image)
+        }
+    }
+
+    /// Fades a thumbnail that arrived after the row appeared in over its placeholder; one already cached shows at once.
+    private func reveal(_ image: UIImage) {
+        let duration = UIAccessibility.isReduceMotionEnabled || window == nil ? 0 : 0.22
+        UIView.transition(with: thumbImageView, duration: duration, options: [.transitionCrossDissolve, .allowUserInteraction]) {
             self.thumbImageView.image = image
             self.placeholderIcon.isHidden = true
         }

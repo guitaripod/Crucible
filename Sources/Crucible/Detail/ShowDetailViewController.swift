@@ -56,7 +56,8 @@ final class ShowDetailViewController: UICollectionViewController {
     private var playerCoordinator: PlayerCoordinator?
     private lazy var mediaDrag = MediaDragSource { [weak self] indexPath in self?.media(at: indexPath) }
     lazy var multiSelect = MultiSelectController(collectionView: collectionView, host: self)
-    private lazy var hero = DetailHeroCoordinator(navigationItem: navigationItem, heightRatio: 1.13) { [weak self] in
+    private static let heroRatio: CGFloat = 1.13
+    private lazy var hero = DetailHeroCoordinator(navigationItem: navigationItem, heightRatio: Self.heroRatio) { [weak self] in
         self?.playUpNext()
     }
     /// The show's Trakt community: its pulse, what people say, the comments and Write a Review.
@@ -635,7 +636,7 @@ final class ShowDetailViewController: UICollectionViewController {
     func loadData() {
         loadTask?.cancel()
         if model == nil {
-            contentUnavailableConfiguration = UIContentUnavailableConfiguration.loading()
+            showDetailSkeleton(.show, heroRatio: Self.heroRatio)
         }
         loadTask = Task { [weak self] in
             guard let self else { return }
@@ -659,8 +660,8 @@ final class ShowDetailViewController: UICollectionViewController {
                 rating.loaded()
                 community.titleName = kept.show.title
                 community.load()
-                contentUnavailableConfiguration = nil
                 await applySnapshot()
+                revealLoadedPage()
                 if !settled, let scoresTask { finishScores(scoresTask) }
                 if let follow { selectSeasonAfterGaps(follow) }
                 loadGaps()
@@ -670,8 +671,8 @@ final class ShowDetailViewController: UICollectionViewController {
                 if model == nil {
                     showLoadError(message: error.localizedDescription)
                 } else {
-                    contentUnavailableConfiguration = nil
                     await applySnapshot()
+                    revealLoadedPage()
                 }
             }
         }
@@ -689,21 +690,7 @@ final class ShowDetailViewController: UICollectionViewController {
     }
 
     private func showLoadError(message: String) {
-        var config = UIContentUnavailableConfiguration.empty()
-        config.image = UIImage(systemName: "exclamationmark.triangle")
-        config.text = String(localized: "Failed to load")
-        config.secondaryText = message
-        var button = UIButton.Configuration.filled()
-        button.title = String(localized: "Retry")
-        button.baseBackgroundColor = Theme.Color.accent
-        button.baseForegroundColor = Theme.Color.onAccent
-        button.cornerStyle = .capsule
-        config.button = button
-        config.buttonProperties.primaryAction = UIAction { [weak self] _ in
-            self?.contentUnavailableConfiguration = nil
-            self?.loadData()
-        }
-        contentUnavailableConfiguration = config
+        showDetailLoadError(title: String(localized: "Failed to load"), message: message) { [weak self] in self?.loadData() }
     }
 
     func applySnapshot(animated: Bool = false) async {

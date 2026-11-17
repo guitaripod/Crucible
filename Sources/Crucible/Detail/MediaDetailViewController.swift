@@ -62,8 +62,9 @@ final class MediaDetailViewController: UICollectionViewController {
     )
     private lazy var hero = DetailHeroCoordinator(
         navigationItem: navigationItem,
-        heightRatio: mediaType == "episode" ? 0.95 : 1.28
+        heightRatio: heroRatio
     ) { [weak self] in self?.play() }
+    private var heroRatio: CGFloat { mediaType == "episode" ? 0.95 : 1.28 }
     /// The title's Trakt community: its pulse, what people say, the comments and Write a Review.
     private lazy var community = TraktCommunityDetailBlock(api: api, ratingKey: ratingKey, host: self)
 
@@ -441,7 +442,7 @@ final class MediaDetailViewController: UICollectionViewController {
     private func loadData() {
         loadTask?.cancel()
         if model == nil {
-            contentUnavailableConfiguration = UIContentUnavailableConfiguration.loading()
+            showDetailSkeleton(.title, heroRatio: heroRatio)
         }
         loadTask = Task { [weak self] in
             guard let self else { return }
@@ -501,8 +502,8 @@ final class MediaDetailViewController: UICollectionViewController {
             isBackdrop: artwork.isBackdrop,
             offlineRatingKey: DownloadManager.shared.item(for: ratingKey) != nil ? ratingKey : nil
         )
-        contentUnavailableConfiguration = nil
         await applySnapshot()
+        revealLoadedPage()
     }
 
     /// Starts fetching Trakt's scores alongside the page, when Trakt is connected and none are cached.
@@ -541,21 +542,7 @@ final class MediaDetailViewController: UICollectionViewController {
     }
 
     private func showLoadError(message: String) {
-        var config = UIContentUnavailableConfiguration.empty()
-        config.image = UIImage(systemName: "exclamationmark.triangle")
-        config.text = String(localized: "Couldn\u{2019}t Load")
-        config.secondaryText = message
-        var button = UIButton.Configuration.filled()
-        button.title = String(localized: "Retry")
-        button.baseBackgroundColor = Theme.Color.accent
-        button.baseForegroundColor = Theme.Color.onAccent
-        button.cornerStyle = .capsule
-        config.button = button
-        config.buttonProperties.primaryAction = UIAction { [weak self] _ in
-            self?.contentUnavailableConfiguration = nil
-            self?.loadData()
-        }
-        contentUnavailableConfiguration = config
+        showDetailLoadError(title: String(localized: "Couldn\u{2019}t Load"), message: message) { [weak self] in self?.loadData() }
     }
 
     private func applySnapshot(animated: Bool = false) async {

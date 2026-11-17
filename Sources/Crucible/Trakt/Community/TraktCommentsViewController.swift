@@ -182,7 +182,7 @@ final class TraktCommentsViewController: UICollectionViewController {
         page = 0
         hasMore = true
         isLoading = false
-        if comments.isEmpty { contentUnavailableConfiguration = UIContentUnavailableConfiguration.loading() }
+        if comments.isEmpty { contentUnavailableConfiguration = CommentListSkeletonConfiguration() }
         loadNextPage(replacing: true)
     }
 
@@ -213,8 +213,8 @@ final class TraktCommentsViewController: UICollectionViewController {
                 self.comments += found.filter { !known.contains($0.id) }
                 self.isLoading = false
                 self.collectionView.refreshControl?.endRefreshing()
-                self.showState()
                 await self.apply()
+                self.showState()
             } catch {
                 guard let self, !Task.isCancelled else { return }
                 self.isLoading = false
@@ -227,7 +227,7 @@ final class TraktCommentsViewController: UICollectionViewController {
 
     private func showState() {
         guard comments.isEmpty else {
-            contentUnavailableConfiguration = nil
+            revealLoadedPage()
             return
         }
         var empty = UIContentUnavailableConfiguration.empty()

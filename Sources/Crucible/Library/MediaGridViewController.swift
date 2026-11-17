@@ -111,7 +111,7 @@ final class MediaGridViewController: UICollectionViewController {
 
     func reload() {
         loadTask?.cancel()
-        if !hasLoaded { contentUnavailableConfiguration = UIContentUnavailableConfiguration.loading() }
+        if !hasLoaded { contentUnavailableConfiguration = PosterGridSkeletonConfiguration(aspect: artworkAspect) }
         loadTask = Task { [weak self] in
             guard let self else { return }
             do {
@@ -148,7 +148,7 @@ final class MediaGridViewController: UICollectionViewController {
             config.secondaryText = empty.text
             contentUnavailableConfiguration = config
         } else {
-            contentUnavailableConfiguration = nil
+            revealLoadedPage()
         }
     }
 

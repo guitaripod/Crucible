@@ -140,8 +140,19 @@ final class CastContentView: UIView, UIContentView {
         imageTask = Task { [weak self] in
             let image = await ImageLoader.shared.loadImage(path: path, width: Int(Self.avatarSize * 3))
             guard !Task.isCancelled, let self, let image else { return }
-            self.photoView.image = image
-            self.photoView.isHidden = false
+            self.reveal(image)
+        }
+    }
+
+    /// Fades a photo that arrived after the card appeared in over the initials; one already cached shows at once.
+    private func reveal(_ image: UIImage) {
+        photoView.image = image
+        photoView.isHidden = false
+        photoView.alpha = 1
+        guard !UIAccessibility.isReduceMotionEnabled, window != nil else { return }
+        photoView.alpha = 0
+        UIView.animate(withDuration: 0.22, delay: 0, options: [.allowUserInteraction, .curveEaseOut]) {
+            self.photoView.alpha = 1
         }
     }
 }
