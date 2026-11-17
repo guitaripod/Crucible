@@ -551,7 +551,7 @@ final class TVCommentsViewController: TVSettingsScaffold {
     override func viewDidLoad() {
         super.viewDidLoad()
         installHeading(heading)
-        presentState(.loading(title: TraktCommunityCopy.comments))
+        presentState(.skeleton(.rows(count: 6)))
         translationObserver = TVCommunityScreens.observeTranslations { [weak self] in
             guard let self else { return }
             if case .aspect(let aspect, _) = self.source { self.heading.setTitle(TraktSentimentsTranslation.text(aspect)) }
@@ -606,7 +606,7 @@ final class TVCommentsViewController: TVSettingsScaffold {
                 guard let self, !Task.isCancelled, !(error is CancellationError) else { return }
                 if self.comments.isEmpty {
                     self.presentState(.error(title: TraktCommunityCopy.loadFailed, message: error.localizedDescription, retryTitle: String(localized: "Retry")) { [weak self] in
-                        self?.presentState(.loading(title: TraktCommunityCopy.comments))
+                        self?.presentState(.skeleton(.rows(count: 6)))
                         self?.reload()
                     })
                 }
@@ -741,7 +741,7 @@ final class TVTraktMemberViewController: TVSettingsScaffold {
             self.render()
         }
         column.show(user)
-        presentState(.loading(title: user.displayName))
+        presentState(.skeleton(.rows(count: 5)))
         let handle = user.handle
         Task { [weak self] in
             async let profile = try? TraktCommunity.shared.profile(handle)

@@ -64,15 +64,21 @@ class TVSettingsScaffold: TVScreenViewController {
     }
 
     /// Replaces the list with a loading, empty or error state, or brings the list back with nil. The
-    /// context column steps aside while a state shows, because a state fills the whole screen.
+    /// context column steps aside while a state shows, because a state fills the whole screen, except
+    /// beside a skeleton of rows, which stands only where the list will be.
     func presentState(_ state: TVStateView.State?) {
         loadViewIfNeeded()
-        contextColumn.isHidden = state != nil
+        contextColumn.isHidden = state.map { !Self.keepsContext($0) } ?? false
         if let state {
             show(state: state)
         } else {
             showContent()
         }
+    }
+
+    private static func keepsContext(_ state: TVStateView.State) -> Bool {
+        guard case .skeleton(let layout) = state else { return false }
+        return layout.keepsContext
     }
 
     /// The row that takes the focus when the screen appears; nil puts it on the first row that does something.

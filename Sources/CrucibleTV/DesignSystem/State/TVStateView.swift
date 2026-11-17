@@ -10,6 +10,8 @@ import UIKit
 final class TVStateView: UIView {
     enum State {
         case loading(title: String?)
+        /// Placeholders in the shape of what is loading, pulsing softly; focus rests on the anchor.
+        case skeleton(TVSkeletonLayout)
         case empty(title: String, message: String?, symbol: String, action: Action?)
         case error(title: String, message: String?, retryTitle: String, retry: @MainActor () -> Void, secondary: Action? = nil)
     }
@@ -22,6 +24,7 @@ final class TVStateView: UIView {
     private let stateView = UIContentUnavailableView(configuration: .loading())
     private let anchor = TVFocusAnchorView()
     private var hasButton = false
+    private var skeleton: (layout: TVSkeletonLayout, view: UIView)?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -50,14 +53,43 @@ final class TVStateView: UIView {
     override var preferredFocusEnvironments: [UIFocusEnvironment] { hasButton ? [stateView] : [anchor] }
 
     func show(_ state: State) {
-        stateView.configuration = Self.configuration(for: state)
         hasButton = Self.hasButton(state)
-        accessibilityElements = [stateView]
+        guard case .skeleton(let layout) = state else {
+            removeSkeleton()
+            stateView.isHidden = false
+            stateView.configuration = Self.configuration(for: state)
+            accessibilityElements = [stateView]
+            return
+        }
+        stateView.isHidden = true
+        accessibilityElements = [showSkeleton(layout)]
+    }
+
+    /// Puts the skeleton for `layout` in, filling the view under the anchor, or keeps the one already there.
+    private func showSkeleton(_ layout: TVSkeletonLayout) -> UIView {
+        if let skeleton, skeleton.layout == layout { return skeleton.view }
+        removeSkeleton()
+        let view = layout.makeView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        insertSubview(view, belowSubview: anchor)
+        NSLayoutConstraint.activate([
+            view.topAnchor.constraint(equalTo: topAnchor),
+            view.bottomAnchor.constraint(equalTo: bottomAnchor),
+            view.leadingAnchor.constraint(equalTo: leadingAnchor),
+            view.trailingAnchor.constraint(equalTo: trailingAnchor),
+        ])
+        skeleton = (layout, view)
+        return view
+    }
+
+    private func removeSkeleton() {
+        skeleton?.view.removeFromSuperview()
+        skeleton = nil
     }
 
     private static func hasButton(_ state: State) -> Bool {
         switch state {
-        case .loading: false
+        case .loading, .skeleton: false
         case .empty(_, _, _, let action): action != nil
         case .error: true
         }
@@ -69,6 +101,8 @@ final class TVStateView: UIView {
         case .loading(let title):
             configuration = .loading()
             configuration.text = title
+        case .skeleton:
+            configuration = .loading()
         case .empty(let title, let message, let symbol, let action):
             configuration = .empty()
             configuration.image = UIImage(systemName: symbol)

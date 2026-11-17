@@ -68,7 +68,7 @@ final class TVMediaGridViewController: TVScreenViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         configureDataSource()
-        show(state: .loading(title: nil))
+        show(state: .skeleton(skeletonLayout))
         serverState = ServerStateFollower(every: .seconds(5), isOnScreen: { [weak self] in
             self?.viewIfLoaded?.window != nil
         }, refresh: { [weak self] in
@@ -116,8 +116,9 @@ final class TVMediaGridViewController: TVScreenViewController {
                 MidgarLog.error("Grid load failed for \(screenTitle): \(error.localizedDescription)", category: .networking)
                 if !hasLoaded {
                     show(state: .error(title: String(localized: "Couldn\u{2019}t Load"), message: error.localizedDescription, retryTitle: String(localized: "Retry")) { [weak self] in
-                        self?.show(state: .loading(title: nil))
-                        self?.reload()
+                        guard let self else { return }
+                        show(state: .skeleton(skeletonLayout))
+                        reload()
                     })
                 }
             }
@@ -160,6 +161,11 @@ final class TVMediaGridViewController: TVScreenViewController {
     }
 
     private var followsArtwork: Bool { style == .poster }
+
+    /// The loading state in the grid's own shape: its title over cards laid out as the grid will lay them.
+    private var skeletonLayout: TVSkeletonLayout {
+        .grid(title: screenTitle, style: cardStyle, columns: followsArtwork ? cardStyle.gridColumns : 3)
+    }
 
     /// Lays a grid that follows its artwork out in the shape most of the cards' artwork has; the snapshot that follows redraws
     /// the cards on screen in it.

@@ -2,8 +2,9 @@
 import CrucibleDesign
 import UIKit
 
-/// One state view at full-screen size: `CRUCIBLE_GALLERY=state-loading|state-empty|state-error`.
-/// The loading screen also shows a skeleton shelf, as a library screen does while its first page loads.
+/// One state view at full-screen size: `CRUCIBLE_GALLERY=state-loading|state-empty|state-error|state-skeleton-grid|state-skeleton-rows`.
+/// The loading screen also shows a skeleton shelf, as a library screen does while its first page loads; the two skeletons are what a
+/// grid of titles and a Settings-style list show while they load.
 final class TVGalleryStateViewController: UIViewController {
     private let mode: String
     private let stateView = TVStateView()
@@ -39,6 +40,10 @@ final class TVGalleryStateViewController: UIViewController {
                 symbol: "line.3.horizontal.decrease.circle",
                 action: TVStateView.Action(title: "Clear Filters") {}
             ))
+        case "state-skeleton-grid":
+            stateView.show(.skeleton(.grid(title: "Collections", style: .poster, columns: TVCardStyle.poster.gridColumns)))
+        case "state-skeleton-rows":
+            stateView.show(.skeleton(.rows(count: 6)))
         case "state-error":
             stateView.show(.error(
                 title: "Couldn't Load Library",
