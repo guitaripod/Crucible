@@ -38,6 +38,29 @@ enum TVMotion {
         UIView.transition(with: view, duration: duration, options: [.transitionCrossDissolve, .allowUserInteraction], animations: animations)
     }
 
+    /// Brings `views` in one after another, each fading in from a short rise `step` after the one before, the way a full-screen
+    /// message settles in. Under Reduce Motion or the UI-test switch they simply show.
+    static func stagger(_ views: [UIView], rise: CGFloat = 28, step: TimeInterval = 0.07, duration: TimeInterval = 0.6) {
+        guard ambientAllowed else {
+            views.forEach { $0.alpha = 1; $0.transform = .identity }
+            return
+        }
+        for (index, view) in views.enumerated() {
+            view.alpha = 0
+            view.transform = CGAffineTransform(translationX: 0, y: rise)
+            UIView.animate(
+                withDuration: duration,
+                delay: Double(index) * step,
+                usingSpringWithDamping: 0.9,
+                initialSpringVelocity: 0,
+                options: [.allowUserInteraction, .beginFromCurrentState]
+            ) {
+                view.alpha = 1
+                view.transform = .identity
+            }
+        }
+    }
+
     /// Starts the soft 1.2s opacity pulse on `layer` when ambient animation is allowed, and stops
     /// it otherwise; calling it again restarts nothing that is already running.
     static func setPulsing(_ layer: CALayer, active: Bool) {

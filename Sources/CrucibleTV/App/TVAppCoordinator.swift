@@ -239,18 +239,23 @@ final class TVAppCoordinator: TVSessionActions {
         window.backgroundColor = Theme.Color.canvas
         guard !UIAccessibility.isReduceMotionEnabled else {
             window.rootViewController = root
-            router.activate(root)
-            presentDemoIntroIfPending()
-            Task { await presentTrialNoticeIfDue() }
+            mainAppAppeared(root)
             return
         }
         UIView.transition(with: window, duration: Self.crossDissolveDuration, options: [.transitionCrossDissolve, .curveEaseOut]) {
             self.window.rootViewController = root
         } completion: { [weak self] _ in
-            self?.router.activate(root)
-            self?.presentDemoIntroIfPending()
-            Task { await self?.presentTrialNoticeIfDue() }
+            self?.mainAppAppeared(root)
         }
+    }
+
+    /// The main UI is up: the router takes over, then one note may speak, the welcome of a first library before the demo's
+    /// welcome and the trial note.
+    private func mainAppAppeared(_ root: TVRootTabBarController) {
+        router.activate(root)
+        guard !presentWelcomeIfOwed(over: root) else { return }
+        presentDemoIntroIfPending()
+        Task { await presentTrialNoticeIfDue() }
     }
 
     private func showOnboarding() {

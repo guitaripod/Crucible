@@ -41,7 +41,7 @@ enum TVDebugSession {
     private static let mockMachineIdentifier = "9c1f0e2a7b3d4e5f8a6b1c2d3e4f5a6b"
 
     /// With `CRUCIBLE_FRESH=1` first forgets the account, server, remembered address and Top Shelf
-    /// snapshot, so every launch starts as a new install. With `CRUCIBLE_MOCK=<url>` replaces the
+    /// snapshot, so every launch starts as a new install; it owes the welcome of a first library only with `CRUCIBLE_WELCOME=1`. With `CRUCIBLE_MOCK=<url>` replaces the
     /// stored connection with the mock Plex server, signed in as Marcus, exactly like the
     /// marketing capture harness, and forgets the languages remembered per show and whether the
     /// account owns the server, so no test inherits another's; the launch learns ownership again
@@ -53,6 +53,7 @@ enum TVDebugSession {
             AccountSessionReset.signOut(.tv)
             forgetDemo()
             ProMomentLedger().reset()
+            WelcomeLedger.shared.stageFreshInstall(owesWelcome: environment["CRUCIBLE_WELCOME"] == "1")
             MidgarLog.notice("Debug session: fresh install state", category: .lifecycle)
         }
         guard let value = environment["CRUCIBLE_MOCK"], let base = URL(string: value) else { return }

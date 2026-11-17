@@ -16,6 +16,7 @@ public final class TVAppDelegate: UIResponder, UIApplicationDelegate {
         #if DEBUG
         TVDebugSession.bootstrapIfRequested()
         #endif
+        WelcomeLedger.shared.settleAtLaunch()
         ServerRouteMonitor.shared.start()
         Self.followAppActivity()
         return true
