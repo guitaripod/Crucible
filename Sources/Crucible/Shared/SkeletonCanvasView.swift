@@ -5,10 +5,15 @@ import CrucibleDesign
 protocol SkeletonConfiguration: UIContentConfiguration {}
 
 extension UIViewController {
+    /// Whether the screen still shows its loading skeleton.
+    var showsLoadingSkeleton: Bool {
+        contentUnavailableConfiguration is any SkeletonConfiguration
+    }
+
     /// Takes the loading state away from a screen whose first answer was just applied under it: a skeleton dissolves into the content,
     /// which already sits in its place, and any other state simply goes.
     func revealLoadedPage() {
-        guard contentUnavailableConfiguration is any SkeletonConfiguration, view.window != nil else {
+        guard contentUnavailableConfiguration is any SkeletonConfiguration, view.window != nil, !UIAccessibility.isReduceMotionEnabled else {
             contentUnavailableConfiguration = nil
             return
         }
@@ -29,6 +34,7 @@ class SkeletonCanvasView: UIView {
     private let artworkMask = CAGradientLayer()
     private var blocks: [UIView] = []
     private var artwork: UIView?
+    private var motionObserver: (any NSObjectProtocol)?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -103,7 +109,8 @@ class SkeletonCanvasView: UIView {
         blockMask.frame = bounds
         let path = UIBezierPath()
         for block in blocks where !block.isHidden {
-            let rect = block.convert(block.bounds, to: self)
+            let rect = visibleRect(of: block)
+            guard !rect.isEmpty else { continue }
             path.append(UIBezierPath(roundedRect: rect, cornerRadius: block.layer.cornerRadius))
         }
         blockMask.path = path.cgPath
@@ -111,12 +118,38 @@ class SkeletonCanvasView: UIView {
         CATransaction.commit()
     }
 
+    /// Where `block` shows on the canvas: its frame cut by every strip above it that clips, so the light never glows over the part
+    /// of a row that runs off a narrow window.
+    private func visibleRect(of block: UIView) -> CGRect {
+        var rect = block.convert(block.bounds, to: self)
+        var ancestor = block.superview
+        while let view = ancestor, view !== self {
+            if view.clipsToBounds { rect = rect.intersection(view.convert(view.bounds, to: self)) }
+            ancestor = view.superview
+        }
+        return rect
+    }
+
     override func didMoveToWindow() {
         super.didMoveToWindow()
         light.removeAllAnimations()
+        followReduceMotion(window != nil)
         guard window != nil else { return }
         setNeedsLayout()
         startSweeping()
+    }
+
+    /// Rests or resumes the light when Reduce Motion changes while the skeleton is on screen.
+    private func followReduceMotion(_ isOnScreen: Bool) {
+        if let motionObserver { NotificationCenter.default.removeObserver(motionObserver) }
+        motionObserver = nil
+        guard isOnScreen else { return }
+        motionObserver = NotificationCenter.default.addObserver(forName: UIAccessibility.reduceMotionStatusDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.light.removeAllAnimations()
+                self?.startSweeping()
+            }
+        }
     }
 
     private func startSweeping() {

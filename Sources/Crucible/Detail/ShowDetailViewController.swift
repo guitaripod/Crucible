@@ -651,7 +651,7 @@ final class ShowDetailViewController: UICollectionViewController {
                     onShow: { self.showArrived($0) }
                 )
                 guard let loaded else {
-                    if model == nil { showLoadError(message: DetailMessage.showUnavailable) }
+                    if model == nil || showsLoadingSkeleton { showLoadError(message: DetailMessage.showUnavailable) }
                     return
                 }
                 if isSuperseded(by: loaded) { return loadData() }
