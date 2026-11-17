@@ -165,9 +165,9 @@ func captureKey(_ character: Character) -> KeyEvent? {
     return KeyEvent(key: .character(character), text: String(character))
 }
 
-/// Presses a capture's keys in order, moving the pointer for each `{X,Y}` among them, pressing and releasing the primary
-/// button for `[` and `]`, clicking the secondary for `#` and the middle for `*`, holding Ctrl for the letter after a `^`
-/// and waiting the milliseconds of a `(MS)` before going on, then calls `finished`.
+/// Presses a capture's keys in order, moving the pointer for each `{X,Y}` among them, turning the wheel for each `{wN}`,
+/// pressing and releasing the primary button for `[` and `]`, clicking the secondary for `#` and the middle for `*`,
+/// holding Ctrl for the letter after a `^` and waiting the milliseconds of a `(MS)` before going on, then calls `finished`.
 @MainActor
 func performCaptureInput(_ keys: String, in window: Window, then finished: @escaping @MainActor () -> Void) {
     var rest = Substring(keys)
@@ -180,8 +180,13 @@ func performCaptureInput(_ keys: String, in window: Window, then finished: @esca
             return
         }
         if character == "{", let close = rest.firstIndex(of: "}") {
-            let numbers = rest[rest.index(after: rest.startIndex)..<close].split(separator: ",").compactMap { Float($0) }
-            if numbers.count == 2 { window.handlePointerMoved(to: Point(x: numbers[0], y: numbers[1])) }
+            let body = rest[rest.index(after: rest.startIndex)..<close]
+            if body.first == "w", let notches = Float(body.dropFirst()) {
+                window.handleScroll(ScrollEvent(dx: 0, dy: notches * 15, notchesY: notches, source: .wheel))
+            } else {
+                let numbers = body.split(separator: ",").compactMap { Float($0) }
+                if numbers.count == 2 { window.handlePointerMoved(to: Point(x: numbers[0], y: numbers[1])) }
+            }
             rest = rest[rest.index(after: close)...]
             continue
         }
@@ -215,10 +220,10 @@ func performCaptureInput(_ keys: String, in window: Window, then finished: @esca
 /// `--capture SECONDS:KEYS:PATH` (repeatable, for headless checks): after SECONDS, presses KEYS (`d` down, `u` up, `l` left,
 /// `r` right, `e` Enter, `x` Escape, `m` Menu, `p` Play/Pause, `<` and `>` the back and forward keys, `;` Ctrl+comma, a digit
 /// Ctrl with it, `+` and `-` Ctrl with them, `!` F10, `?` Ctrl+?, `^` and a letter Ctrl with it, `{X,Y}` moves the pointer to
-/// that point of the window, `[` and `]` press and release the primary button, `#` clicks the secondary and `*` the middle,
-/// `~` and a letter presses the virtual gamepad of `CRUCIBLE_VIRTUAL_PAD=1` (see `pressCapturePad`), `(MS)` waits that many
-/// milliseconds, any other character itself, in order), waits a moment and writes the window to PATH; the app quits after
-/// the last.
+/// that point of the window, `{wN}` turns the wheel N notches (negative ones away from the viewer), `[` and `]` press and
+/// release the primary button, `#` clicks the secondary and `*` the middle, `~` and a letter presses the virtual gamepad of
+/// `CRUCIBLE_VIRTUAL_PAD=1` (see `pressCapturePad`), `(MS)` waits that many milliseconds, any other character itself, in
+/// order), waits a moment and writes the window to PATH; the app quits after the last.
 @MainActor
 func scheduleCaptures(_ arguments: [String], window: Window, coordinator: AppCoordinator, done: @escaping () -> Void) {
     let specs = arguments.indices.filter { arguments[$0] == "--capture" && $0 + 1 < arguments.count }.map { arguments[$0 + 1] }
