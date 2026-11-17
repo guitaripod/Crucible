@@ -11,6 +11,7 @@ enum Entry {
         if MidgarProAccess.reachesMidgarServices {
             MidgarServices.live().install()
             MidgarProAccess.installPlaybackOffer(firstOfferAfter: 3, laterOfferEvery: 5)
+            MidgarProAccess.installReviewMoments()
         }
         DemoMode.shared.install(demoProvider())
         HostedBrain.installDemo(DemoBrain())

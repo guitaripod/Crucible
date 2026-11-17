@@ -66,6 +66,16 @@ package final class MidgarProAccess: ProAccessProviding {
         PlaybackOffer.noteOffered = { policy.noteOffered() }
     }
 
+    /// Gives `ReviewMoments` MidgarKit's review policy and counts this launch as a session of it. Call once per launch.
+    @MainActor
+    package static func installReviewMoments() {
+        let policy = MidgarReviewPolicy(appID: appID)
+        policy.beginSession()
+        ReviewMoments.noteSuccess = { policy.noteSuccess() }
+        ReviewMoments.notePrompted = { policy.notePrompted() }
+        ReviewMoments.notePurchaseFailure = { policy.notePurchaseFailure() }
+    }
+
     #if DEBUG
     /// UI tests start a launch as a new install: the offer policy forgets how many finishes it counted, or only the very first run
     /// on a simulator would ever see the note after a finished video. Runs before the policy is installed, which reads the file once.

@@ -158,6 +158,7 @@ package final class PaywallModel {
         case .failed(let failure):
             state.busy = .idle
             state.notice = .failure(Self.message(for: failure))
+            ReviewMoments.notePurchaseFailure()
         }
     }
 

@@ -5,11 +5,16 @@ import UIKit
 extension PlaybackOffer {
     /// Counts a finished item and, a moment after the player has closed, shows over `host` what it led to: the Pro Week's
     /// announcement on the first, the paywall saying the week has ended on the first after it, or the paywall when the offer
-    /// policy says it is the moment. A note that could not be shown stays due for the next finish.
+    /// policy says it is the moment. A note that could not be shown stays due for the next finish. A finish with no note to show
+    /// may instead be the moment to ask for an App Store rating; the two never share one finish.
     static func offerAfterFinishing(over host: UIViewController?) {
         guard let host else { return }
         let outcome = noteFinishedItem()
-        guard outcome != .nothing else { return }
+        let asksForRating = ReviewMoments.finishedTitle()
+        guard outcome != .nothing else {
+            if asksForRating { ReviewRequest.ask(over: host) }
+            return
+        }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
             guard host.presentedViewController == nil, host.view.window != nil else { return }
             show(outcome, over: host)
