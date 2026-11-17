@@ -35,9 +35,11 @@ package struct WebVideo: Sendable, Decodable {
     /// Sheets of small stills along the video, coarsest first.
     package let storyboards: [WebStoryboard]
     package let comments: [WebComment]
+    /// When yt-dlp read the video; its stream addresses stop working some hours later.
+    package let extracted: Date?
 
     enum CodingKeys: String, CodingKey {
-        case id, title, description, channel, uploader, duration, timestamp, thumbnail, language, chapters, formats, subtitles, heatmap, comments, url
+        case id, title, description, channel, uploader, duration, timestamp, thumbnail, language, chapters, formats, subtitles, heatmap, comments, url, epoch
         case pageURL = "webpage_url"
         case originalURL = "original_url"
         case site = "extractor_key"
@@ -82,6 +84,7 @@ package struct WebVideo: Sendable, Decodable {
         let live = (try? container.decodeIfPresent(Bool.self, forKey: .isLive)) ?? false
         liveStatus = WebLiveStatus(container.text(.liveStatus), isLive: live)
         ageLimit = container.number(.ageLimit).map { Int($0) } ?? 0
+        extracted = container.number(.epoch).map { Date(timeIntervalSince1970: $0) }
         language = container.text(.language)
         chapters = ((try? container.decodeIfPresent([WebChapter].self, forKey: .chapters)) ?? nil) ?? []
         let every = ((try? container.decodeIfPresent([Lossy<WebFormat>].self, forKey: .formats)) ?? nil)?.compactMap(\.value) ?? []

@@ -26,6 +26,15 @@ package struct WebFormat: Sendable, Decodable, Equatable {
     package let transport: String?
     package let headers: [String: String]
     package let fileSize: Int?
+    /// When the site starts serving the address; some are refused for a few seconds after yt-dlp read them.
+    package let availableAt: Date?
+    /// yt-dlp's own rank of the stream among its kind, higher for better; nil when it gives none.
+    package let rank: Double?
+    /// Whether the stream carries a picture: yt-dlp says "none" for the codec of what a stream lacks; where it knows no
+    /// codec at all, a stream with a size is a picture and one with only a sound's facts is not.
+    package let hasVideo: Bool
+    /// Whether the stream carries sound; one whose sound codec yt-dlp does not know may.
+    package let hasAudio: Bool
     let isProtected: Bool
     let fragments: [Fragment]
     let rows: Int?
@@ -37,7 +46,7 @@ package struct WebFormat: Sendable, Decodable, Equatable {
     }
 
     enum CodingKeys: String, CodingKey {
-        case url, ext, vcodec, acodec, width, height, fps, tbr, vbr, abr, asr, language, fragments, rows, columns, filesize
+        case url, ext, vcodec, acodec, width, height, fps, tbr, vbr, abr, asr, language, fragments, rows, columns, filesize, quality
         case id = "format_id"
         case dynamicRange = "dynamic_range"
         case audioChannels = "audio_channels"
@@ -47,6 +56,7 @@ package struct WebFormat: Sendable, Decodable, Equatable {
         case headers = "http_headers"
         case approximateSize = "filesize_approx"
         case isProtected = "has_drm"
+        case availableAt = "available_at"
     }
 
     package init(from decoder: Decoder) throws {
@@ -58,6 +68,8 @@ package struct WebFormat: Sendable, Decodable, Equatable {
         let audio = container.text(.acodec)
         videoCodec = video == "none" ? nil : video
         audioCodec = audio == "none" ? nil : audio
+        availableAt = container.number(.availableAt).map { Date(timeIntervalSince1970: $0) }
+        rank = Self.rank(container.number(.quality), note: container.text(.note))
         width = container.number(.width).map { Int($0) }
         height = container.number(.height).map { Int($0) }
         frameRate = container.number(.fps)
@@ -67,6 +79,10 @@ package struct WebFormat: Sendable, Decodable, Equatable {
         dynamicRange = container.text(.dynamicRange)
         audioChannels = container.number(.audioChannels).map { Int($0) }
         sampleRate = container.number(.asr).map { Int($0) }
+        let soundsLikeAudio = audioChannels != nil || sampleRate != nil || audioBitrate != nil
+            || ["m4a", "mp3", "opus", "ogg", "oga", "aac", "flac", "wav", "weba"].contains(self.container ?? "")
+        hasVideo = video.map { $0 != "none" } ?? (height != nil || width != nil || !soundsLikeAudio)
+        hasAudio = audio.map { $0 != "none" } ?? true
         language = container.text(.language)
         languagePreference = container.number(.languagePreference).map { Int($0) } ?? -1
         note = container.text(.note)
@@ -101,6 +117,10 @@ package struct WebFormat: Sendable, Decodable, Equatable {
         transport = nil
         headers = [:]
         fileSize = nil
+        availableAt = nil
+        rank = nil
+        hasVideo = true
+        hasAudio = true
         isProtected = false
         fragments = []
         rows = nil
@@ -109,8 +129,20 @@ package struct WebFormat: Sendable, Decodable, Equatable {
 
     var isStoryboard: Bool { note == "storyboard" || container == "mhtml" }
 
-    package var hasVideo: Bool { videoCodec != nil || (audioCodec == nil && id == "direct") }
-    package var hasAudio: Bool { audioCodec != nil || id == "direct" }
+    /// yt-dlp's rank when it gives one; a segmented sound stream comes without, and its note ("Default, high") says which
+    /// of the site's two it is: the high one matches the middle rank of the single-file sounds, the low one the lowest.
+    private static func rank(_ quality: Double?, note: String?) -> Double? {
+        if let quality, quality >= 0 { return quality }
+        guard let note = note?.lowercased() else { return nil }
+        if note.contains("high") { return 3 }
+        if note.contains("low") { return 2 }
+        return nil
+    }
+
+    /// Whether the site serves the address at `date` already.
+    package func isReady(at date: Date) -> Bool {
+        availableAt.map { $0 <= date } ?? true
+    }
 
     /// Whether the address is one file that seeks by byte range, not a playlist of segments.
     package var isProgressive: Bool { transport == "https" || transport == "http" || transport == nil }
@@ -202,8 +234,9 @@ package struct WebSubtitle: Sendable, Equatable, Identifiable {
         }
     }
 
-    /// The formats mpv reads, best first.
-    private static let readable = ["vtt", "srt", "ass", "ttml"]
+    /// The formats mpv reads, best first: the site's SRT of automatic captions shows each line once, where its WebVTT
+    /// repeats every line as the words arrive.
+    private static let readable = ["srt", "vtt", "ass"]
 
     /// One track per language from yt-dlp's lists: the publisher's own first, then the automatic ones, each in the first
     /// format mpv reads; a publisher's track hides the automatic one of the same language.

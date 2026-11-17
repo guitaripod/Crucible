@@ -45,13 +45,17 @@ package struct WebPlaybackPreferences: Sendable, Equatable {
     package var prefersSurround: Bool
     /// The language to hear, or nil for the one the video was made in.
     package var audioLanguage: String?
+    /// Streams that failed to play in this sitting, which are not picked again.
+    package var excluded: Set<String>
 
-    package init(maximumHeight: Int? = nil, codec: Codec = .automatic, allowsHDR: Bool = true, prefersSurround: Bool = false, audioLanguage: String? = nil) {
+    package init(maximumHeight: Int? = nil, codec: Codec = .automatic, allowsHDR: Bool = true, prefersSurround: Bool = false, audioLanguage: String? = nil,
+                 excluded: Set<String> = []) {
         self.maximumHeight = maximumHeight
         self.codec = codec
         self.allowsHDR = allowsHDR
         self.prefersSurround = prefersSurround
         self.audioLanguage = audioLanguage
+        self.excluded = excluded
     }
 }
 
@@ -62,6 +66,16 @@ package struct WebSelection: Sendable, Equatable {
     package let audio: WebFormat?
 
     package var quality: WebQuality? { video.flatMap(WebQuality.init) }
+
+    /// When the site serves every chosen stream; nil when it does already.
+    package var readyAt: Date? {
+        [video?.availableAt, audio?.availableAt].compactMap { $0 }.max()
+    }
+
+    /// The streams' names, for leaving them out after they failed.
+    package var formats: Set<String> {
+        Set([video?.id, audio?.id].compactMap { $0 })
+    }
 }
 
 /// A language a video can be heard in.
@@ -74,12 +88,13 @@ package struct WebAudioLanguage: Sendable, Equatable, Identifiable {
 }
 
 /// Chooses which of a video's streams play, as a web player's automatic quality does but for a home screen: the tallest
-/// picture the screen shows, the highest frame rate, HDR when the screen has it, the most efficient codec, and the
-/// original language's best sound.
+/// picture within the viewer's limit, the highest frame rate, HDR when the screen has it, and the original language's
+/// best sound. Among streams of that quality, one the site serves at once comes before one it holds back for a few
+/// seconds, a single file (which seeks by byte) before a playlist of segments, and a leaner codec before a heavier one.
 package enum WebFormatPicker {
     /// Every quality the video has, best first.
     package static func qualities(of video: WebVideo) -> [WebQuality] {
-        Set(pictures(of: video).compactMap(WebQuality.init)).sorted(by: >)
+        Set(video.formats.filter(\.hasVideo).compactMap(WebQuality.init)).sorted(by: >)
     }
 
     /// The languages the video's sound comes in, the original first; empty when there is only one.
@@ -95,30 +110,21 @@ package enum WebFormatPicker {
         return languages.count > 1 ? languages : []
     }
 
-    /// The streams to play: `quality` when the viewer chose one, else the best within the preferences.
-    package static func pick(from video: WebVideo, preferences: WebPlaybackPreferences, quality: WebQuality? = nil) -> WebSelection? {
-        let pictures = pictures(of: video)
-        let picture = quality.flatMap { wanted in best(among: pictures.filter { WebQuality($0) == wanted }, preferences: preferences) }
-            ?? automatic(among: pictures, preferences: preferences)
-        guard let picture else {
-            guard let sound = sound(of: video, preferences: preferences) ?? video.formats.first(where: \.hasAudio) else { return nil }
+    /// The streams to play at `now`: `quality` when the viewer chose one, else the best within the preferences.
+    package static func pick(from video: WebVideo, preferences: WebPlaybackPreferences, quality: WebQuality? = nil, now: Date = Date()) -> WebSelection? {
+        let pictures = video.formats.filter { $0.hasVideo && !preferences.excluded.contains($0.id) }
+        let chosen = quality.flatMap { wanted in best(among: pictures.filter { WebQuality($0) == wanted }, preferences: preferences, now: now) }
+            ?? automatic(among: pictures, preferences: preferences, now: now)
+        guard let picture = chosen else {
+            guard let sound = sound(of: video, preferences: preferences, now: now) ?? video.formats.first(where: { $0.hasAudio && !preferences.excluded.contains($0.id) })
+            else { return nil }
             return WebSelection(video: nil, audio: sound)
         }
         if picture.hasAudio { return WebSelection(video: picture, audio: nil) }
-        return WebSelection(video: picture, audio: sound(of: video, preferences: preferences))
+        return WebSelection(video: picture, audio: sound(of: video, preferences: preferences, now: now))
     }
 
-    /// The picture streams worth choosing between: one file each where the site has those, since they seek at once, else
-    /// whatever it has.
-    private static func pictures(of video: WebVideo) -> [WebFormat] {
-        let all = video.formats.filter(\.hasVideo)
-        let separate = all.filter { !$0.hasAudio && $0.isProgressive }
-        if !separate.isEmpty { return separate }
-        let progressive = all.filter(\.isProgressive)
-        return video.isLive || progressive.isEmpty ? all : progressive
-    }
-
-    private static func automatic(among pictures: [WebFormat], preferences: WebPlaybackPreferences) -> WebFormat? {
+    private static func automatic(among pictures: [WebFormat], preferences: WebPlaybackPreferences, now: Date) -> WebFormat? {
         var candidates = pictures
         if !preferences.allowsHDR {
             let standard = candidates.filter { !$0.isHDR }
@@ -133,14 +139,15 @@ package enum WebFormatPicker {
                 candidates = within
             }
         }
-        guard let top = candidates.compactMap(WebQuality.init).max() else { return best(among: candidates, preferences: preferences) }
-        return best(among: candidates.filter { WebQuality($0) == top }, preferences: preferences)
+        guard let top = candidates.compactMap(WebQuality.init).max() else { return best(among: candidates, preferences: preferences, now: now) }
+        return best(among: candidates.filter { WebQuality($0) == top }, preferences: preferences, now: now)
     }
 
-    /// Among streams of one quality: the viewer's codec, else AV1, VP9, H.264 in that order (each needs fewer bits than
-    /// the next for the same picture), then the higher bitrate.
-    private static func best(among formats: [WebFormat], preferences: WebPlaybackPreferences) -> WebFormat? {
-        func rank(_ format: WebFormat) -> Int {
+    /// Among streams of one quality: one served at once, then a picture with its sound beside it (the site's joined
+    /// files carry its poorest sound), then a single file, then the viewer's codec or AV1, VP9, HEVC, H.264 in that order
+    /// (each needs fewer bits than the next for the same picture), then the higher bitrate.
+    private static func best(among formats: [WebFormat], preferences: WebPlaybackPreferences, now: Date) -> WebFormat? {
+        func codec(_ format: WebFormat) -> Int {
             let family = format.videoFamily
             if preferences.codec != .automatic, family?.rawValue == preferences.codec.rawValue { return 10 }
             switch family {
@@ -151,16 +158,17 @@ package enum WebFormatPicker {
             default: return 0
             }
         }
-        return formats.max { (rank($0), $0.bitrate ?? 0) < (rank($1), $1.bitrate ?? 0) }
+        func order(_ format: WebFormat) -> (Int, Int, Int, Int, Double) {
+            (format.isReady(at: now) ? 1 : 0, format.hasAudio ? 0 : 1, format.isProgressive ? 1 : 0, codec(format), format.bitrate ?? 0)
+        }
+        return formats.max { order($0) < order($1) }
     }
 
     /// The sound to go with a picture: the chosen language (else the original), in surround only when asked for, never the
-    /// compressed mix when there is another, then the better codec and bitrate.
-    private static func sound(of video: WebVideo, preferences: WebPlaybackPreferences) -> WebFormat? {
-        var sounds = video.formats.filter { $0.hasAudio && !$0.hasVideo }
+    /// compressed mix when there is another, then one served at once, the site's own rank, the better codec and bitrate.
+    private static func sound(of video: WebVideo, preferences: WebPlaybackPreferences, now: Date) -> WebFormat? {
+        var sounds = video.formats.filter { $0.hasAudio && !$0.hasVideo && !preferences.excluded.contains($0.id) }
         guard !sounds.isEmpty else { return nil }
-        let progressive = sounds.filter(\.isProgressive)
-        if !progressive.isEmpty { sounds = progressive }
         if let wanted = preferences.audioLanguage, sounds.contains(where: { $0.language == wanted }) {
             sounds = sounds.filter { $0.language == wanted }
         } else {
@@ -176,7 +184,7 @@ package enum WebFormatPicker {
         } else if !stereo.isEmpty {
             sounds = stereo
         }
-        func rank(_ format: WebFormat) -> Int {
+        func codec(_ format: WebFormat) -> Int {
             switch format.audioFamily {
             case .eac3: return preferences.prefersSurround ? 4 : 1
             case .ac3: return preferences.prefersSurround ? 3 : 0
@@ -185,9 +193,10 @@ package enum WebFormatPicker {
             default: return 0
             }
         }
-        let richest = sounds.map { $0.audioBitrate ?? $0.bitrate ?? 0 }.max() ?? 0
-        let full = sounds.filter { ($0.audioBitrate ?? $0.bitrate ?? 0) >= richest * 0.7 }
-        return full.max { (rank($0), $0.audioBitrate ?? $0.bitrate ?? 0) < (rank($1), $1.audioBitrate ?? $1.bitrate ?? 0) }
+        func order(_ format: WebFormat) -> (Int, Double, Int, Double) {
+            (format.isReady(at: now) ? 1 : 0, format.rank ?? -1, codec(format), format.audioBitrate ?? format.bitrate ?? 0)
+        }
+        return sounds.max { order($0) < order($1) }
     }
 }
 

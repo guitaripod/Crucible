@@ -44,7 +44,7 @@ enum Fixture {
     @Test func listsOneSubtitlePerLanguageThePublishersFirst() throws {
         let video = try Fixture.video("video-captions")
         #expect(video.subtitles.map(\.id) == ["sub:de", "sub:fi", "auto:en", "auto:sv"])
-        #expect(video.subtitles.allSatisfy { $0.format == "vtt" })
+        #expect(video.subtitles.allSatisfy { $0.format == "srt" })
         #expect(video.subtitles.first { $0.id == "auto:en" }?.isOriginal == true)
         #expect(video.subtitles.first { $0.id == "auto:sv" }?.isOriginal == false)
         #expect(video.chapters.map(\.title) == ["Intro", "The Conversation", "Credits"])
@@ -58,6 +58,34 @@ enum Fixture {
         #expect(selection.video?.id == "401")
         #expect(selection.audio?.id == "251")
         #expect(selection.quality?.label == "2160p60")
+        #expect(selection.formats == ["401", "251"])
+    }
+
+    @Test func startsWithStreamsTheSiteServesAtOnce() throws {
+        let video = try Fixture.video("video-captions")
+        let read = try #require(video.extracted)
+        let early = try #require(WebFormatPicker.pick(from: video, preferences: WebPlaybackPreferences(), now: read))
+        #expect(early.video?.id == "625")
+        #expect(early.video?.isProgressive == false)
+        #expect(early.audio?.id == "234")
+        #expect(early.readyAt.map { $0 <= read } == true)
+        let later = try #require(WebFormatPicker.pick(from: video, preferences: WebPlaybackPreferences(), now: read.addingTimeInterval(10)))
+        #expect(later.video?.id == "401")
+        #expect(later.audio?.id == "251")
+        let dubbed = try #require(WebFormatPicker.pick(from: video, preferences: WebPlaybackPreferences(audioLanguage: "de"), now: read))
+        #expect(dubbed.audio?.id == "251-1")
+        #expect(dubbed.readyAt == read.addingTimeInterval(4))
+    }
+
+    @Test func leavesOutStreamsThatFailed() throws {
+        let video = try Fixture.video("video-captions")
+        let read = try #require(video.extracted)
+        let second = try #require(WebFormatPicker.pick(from: video, preferences: WebPlaybackPreferences(excluded: ["625", "234"]), now: read))
+        #expect(second.video?.height == 2160)
+        #expect(second.video?.id != "625")
+        #expect(second.audio?.id != "234")
+        let everything = Set(video.formats.map(\.id))
+        #expect(WebFormatPicker.pick(from: video, preferences: WebPlaybackPreferences(excluded: everything), now: read) == nil)
     }
 
     @Test func staysWithinTheHeightAndTheCodecAsked() throws {
@@ -87,8 +115,9 @@ enum Fixture {
     @Test func hearsTheOriginalLanguageUnlessAnotherIsChosen() throws {
         let video = try Fixture.video("video-captions")
         #expect(WebFormatPicker.audioLanguages(of: video) == [WebAudioLanguage(code: "en", isOriginal: true), WebAudioLanguage(code: "de", isOriginal: false)])
-        #expect(WebFormatPicker.pick(from: video, preferences: WebPlaybackPreferences())?.audio?.id == "251")
-        #expect(WebFormatPicker.pick(from: video, preferences: WebPlaybackPreferences(audioLanguage: "de"))?.audio?.id == "251-1")
+        let later = try #require(video.extracted).addingTimeInterval(10)
+        #expect(WebFormatPicker.pick(from: video, preferences: WebPlaybackPreferences(), now: later)?.audio?.id == "251")
+        #expect(WebFormatPicker.pick(from: video, preferences: WebPlaybackPreferences(audioLanguage: "de"), now: later)?.audio?.id == "251-1")
     }
 
     @Test func joinsPictureAndSoundForMpv() throws {
