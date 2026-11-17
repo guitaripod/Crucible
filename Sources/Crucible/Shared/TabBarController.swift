@@ -33,6 +33,8 @@ final class TabBarController: UITabBarController {
     private var downloadObserver: UUID?
     private var downloadsTab: AnyObject?
     private var searchTab: AnyObject?
+    /// The window's player and the bar above the tab bar it shrinks into.
+    private(set) lazy var miniPlayer = MiniPlayerDock(tabBar: self)
     private lazy var libraryTabMenu = LibraryTabMenu(title: String(localized: "Library")) { [weak self] in self?.libraryTabMenuContents() }
 
     /// `preloadsHome` hands Home the shelves the launch fetched; a window opened later passes false so Home loads its own.
@@ -86,6 +88,7 @@ final class TabBarController: UITabBarController {
         if !libraries.isEmpty {
             libraryTabMenu.attach(in: tabBar)
         }
+        miniPlayer.layoutFallback()
     }
 
     /// What holding the Library tab offers, as the library title's menu does: every library to switch to, the one the tab is
@@ -384,7 +387,7 @@ final class TabBarController: UITabBarController {
         case .newWindow: return UIApplication.shared.supportsMultipleScenes
         case .skip: return presentedPlayer?.skipTitle != nil
         case .playNext: return presentedPlayer?.offersNextEpisode == true
-        case .closePlayer: return presentedPlayer != nil
+        case .closePlayer: return presentedPlayer != nil || miniPlayer.docked != nil
         default: break
         }
         guard !isShowingModal else { return false }
@@ -420,7 +423,7 @@ final class TabBarController: UITabBarController {
         case .newWindow: WindowActivity.openWindow(for: nil, from: view.window?.windowScene)
         case .skip: presentedPlayer?.performShownSkip()
         case .playNext: presentedPlayer?.playOfferedNextEpisode()
-        case .closePlayer: presentedPlayer?.close()
+        case .closePlayer: (presentedPlayer ?? miniPlayer.docked)?.close()
         case .refresh, .largerPosters, .smallerPosters, .play, .toggleWatched, .download, .rate:
             contentHandler?.perform(command)
         }

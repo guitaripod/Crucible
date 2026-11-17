@@ -268,11 +268,17 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         (window?.rootViewController as? LaunchViewController) ?? installLaunchScreen()
     }
 
+    /// A main app being replaced ends the title playing in its window, so the server hears where it stopped.
+    private func endMainAppPlayback() {
+        (window?.rootViewController as? TabBarController)?.miniPlayer.closeActive()
+    }
+
     private func installLaunchScreen() -> LaunchViewController {
         let gate = LaunchViewController()
         gate.onRetry = { [weak self] in self?.reconfigureRoot() }
         gate.onSwitchServer = { [weak self] in self?.switchServerFromLaunchFailure() }
         gate.switchTitle = DemoMode.shared.isActive ? DemoPhoneCopy.leaveTitle : String(localized: "Switch Server")
+        endMainAppPlayback()
         window?.rootViewController = gate
         return gate
     }
@@ -301,6 +307,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     private func present(root: UIViewController) {
         guard let window else { return }
         window.backgroundColor = Theme.Color.canvas
+        endMainAppPlayback()
         UIView.transition(with: window, duration: 0.4, options: [.transitionCrossDissolve, .curveEaseOut]) {
             window.rootViewController = root
         } completion: { [weak self] _ in
@@ -335,6 +342,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         }
         let nav = UINavigationController(rootViewController: setup)
         window?.backgroundColor = Theme.Color.canvas
+        endMainAppPlayback()
         window?.rootViewController = nav
         #if DEBUG
         DispatchQueue.main.async { PhoneDebugSession.openIfRequested(over: nav) }

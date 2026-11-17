@@ -15,10 +15,10 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
 
     private let api: APIClient
     /// The item on screen, replaced without taking the player off screen when the next episode starts.
-    private var request: PlaybackRequest
-    private var session: PlaybackSession
+    private(set) var request: PlaybackRequest
+    private(set) var session: PlaybackSession
 
-    private var playerVC: AVPlayerViewController?
+    private(set) var playerVC: AVPlayerViewController?
     private var nowPlaying: NowPlayingBridge?
     private var resolveTask: Task<Void, Never>?
     private var eventsTask: Task<Void, Never>?
@@ -31,7 +31,11 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     private var pendingUpNext: UpNextOffer?
     private var foregroundObserver: (any NSObjectProtocol)?
     private var suspensionObservers: [any NSObjectProtocol] = []
-    private var isFinishing = false
+    private(set) var isFinishing = false
+    /// Shrunk into the bar above the tab bar, playing on while the viewer browses.
+    var isDocked = false
+    /// The window's dock that holds this player while it plays.
+    weak var dock: MiniPlayerDock?
     private var lastOfflineWrite: Double = 0
     private var skipPill: SkipPillView?
     private var moreButton: PlayerMoreButton?
@@ -119,6 +123,10 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
 
     func present(from viewController: UIViewController) {
         guard !isPresenting else { return }
+        if let docked = Self.docked(playing: request, near: viewController) {
+            docked.expand()
+            return
+        }
         isPresenting = true
         presentingVC = viewController
         if let resolving = Self.resolvingCoordinator, resolving !== self {
@@ -195,6 +203,8 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
             other.session.player?.pause()
         }
         Self.playingCoordinator = self
+        dock = MiniPlayerDock.of(viewController)
+        dock?.adopt(self)
 
         let playerVC = makePlayerController(for: player)
         self.playerVC = playerVC
@@ -262,6 +272,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         case .position(let absolute, let rate):
             nowPlaying?.updateElapsed(absolute, rate: rate)
             recordOfflineProgress(at: absolute)
+            dock?.showPosition(of: self, at: absolute)
         case .viewerActed:
             viewerActed()
             removePostPlay()
@@ -282,6 +293,10 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
             showPlaybackError(message)
         case .finished(let finish):
             guard !isInPiP else { return }
+            guard !isDocked else {
+                close()
+                return
+            }
             offerWhatsNext(after: finish)
         case .sleepTimerFired:
             Haptics.soft()
@@ -397,7 +412,8 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     private func showPlaybackError(_ message: String) {
         let alert = UIAlertController(title: String(localized: "Playback Error"), message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: String(localized: "OK"), style: .default))
-        (playerVC ?? presentingVC)?.present(alert, animated: true)
+        let host = isDocked ? dock?.presentationHost : (playerVC ?? presentingVC)
+        host?.present(alert, animated: true)
     }
 
     private func setupForegroundObserver() {
@@ -566,7 +582,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         overlay.begin()
     }
 
-    private func flushPendingUpNext() {
+    func flushPendingUpNext() {
         guard let pending = pendingUpNext, !isFinishing, !isAdvancing else { return }
         pendingUpNext = nil
         if pending.playbackEnded, pending.autoplays {
@@ -664,7 +680,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     private func playSuggestion(_ item: PlexMetadata) {
         viewerActed()
         guard item.mediaType == "movie" else {
-            let navigation = Self.navigation(under: presentingVC)
+            let navigation = Self.navigation(under: presentingVC ?? dock?.tabBarController)
             let screen = DetailRouter.viewController(for: .related(item), api: api)
             Task {
                 await dismissPlayer()
@@ -768,14 +784,18 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         next.continueSleepTimer(from: session)
         self.request = request
         self.session = next
-        playerVC?.player = player
+        if isDocked {
+            dock?.follow(self, to: player)
+        } else {
+            playerVC?.player = player
+        }
         updateNowPlaying()
         isAdvancing = false
         observeEvents()
         if let title = request.metadata?.title {
             windowScene?.title = title
         }
-        (presentingVC?.tabBarController as? TabBarController)?.updateWindowTitle()
+        windowTabBar?.updateWindowTitle()
         Self.playingCoordinator = self
     }
 
@@ -820,7 +840,9 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         advanceTask?.cancel()
         advanceTask = nil
         let pvc = playerVC
+        let wasDocked = isDocked
         await cleanup()
+        guard !wasDocked else { return }
         (pvc?.presentingViewController ?? pvc)?.dismiss(animated: true)
     }
 
@@ -866,10 +888,12 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         willEndFullScreenPresentationWithAnimationCoordinator coordinator: UIViewControllerTransitionCoordinator
     ) {
         MainActor.assumeIsolated {
+            let wasPlaying = (session.player?.rate ?? 0) > 0
             _ = coordinator.animate(alongsideTransition: nil) { [weak self] context in
                 guard let self, !context.isCancelled, !self.isInPiP, !self.isFinishing else { return }
                 Task { @MainActor [weak self] in
                     guard let self, !self.isInPiP, !self.isFinishing else { return }
+                    if self.dockAfterDismissal(resuming: wasPlaying) { return }
                     self.isFinishing = true
                     self.removeUpNextOverlay()
                     await self.cleanup()
@@ -879,6 +903,8 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     }
 
     private func cleanup() async {
+        isDocked = false
+        dock?.release(self)
         removeUpNextOverlay()
         removePostPlay(dismissing: false)
         skipPill?.dismiss(animated: false)
@@ -916,10 +942,15 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
 
         playerVC = nil
         isPresenting = false
-        (presentingVC?.tabBarController as? TabBarController)?.updateWindowTitle()
+        windowTabBar?.updateWindowTitle()
         if let finalPosition, session.hasFinished(at: finalPosition) {
             PlaybackOffer.offerAfterFinishing(over: presentingVC)
         }
+    }
+
+    /// The main screen of the window this player plays in, whose title follows what it shows.
+    private var windowTabBar: TabBarController? {
+        dock?.tabBarController ?? presentingVC?.tabBarController as? TabBarController
     }
 
     // MARK: - Keyboard

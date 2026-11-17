@@ -1,7 +1,7 @@
 # Crucible
 
 A fast, native Plex client for iPhone, iPad and Apple TV, with a desktop client for Linux in [linux/](linux/README.md). Offline downloads,
-Skip Intro, Picture-in-Picture and lock-screen controls on iPhone; a sidebar, windows and keyboard shortcuts on iPad; a
+Skip Intro, a mini player to browse while you watch, Picture-in-Picture and lock-screen controls on iPhone; a sidebar, windows and keyboard shortcuts on iPad; a
 focus-driven Liquid Glass app on Apple TV.
 
 **[Crucible for Plex on the App Store](https://apps.apple.com/us/app/crucible-for-plex/id6822066419)**: free on iPhone,
