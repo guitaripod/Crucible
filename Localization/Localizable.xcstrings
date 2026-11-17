@@ -43290,6 +43290,102 @@
         }
       }
     },
+    "Collections, playlists, cast and crew, trailers and what your server is missing." : {
+      "comment" : "Welcome highlight detail: browsing",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Samlinger, playlister, medvirkende, trailere og det, din server mangler."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sammlungen, Playlists, Besetzung & Crew, Trailer und alles, was auf deinem Server fehlt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Colecciones, listas de reproducción, reparto y equipo, tráileres y lo que le falta a tu servidor."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kokoelmat, soittolistat, näyttelijät ja tekijät, trailerit ja se, mitä palvelimeltasi puuttuu."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collections, listes de lecture, distribution et équipe, bandes-annonces et ce qui manque à votre serveur."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Samsöfn, spilunarlistar, leikarar og tökulið, stiklur og það sem þjóninn þinn vantar."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Raccolte, playlist, cast e troupe, trailer e ciò che manca sul tuo server."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コレクション、プレイリスト、キャスト・スタッフ、予告編、サーバーにない作品までまとめて。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "컬렉션, 재생목록, 출연진 & 제작진, 예고편, 서버에 없는 항목까지 확인해요."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Samlinger, spillelister, medvirkende, trailere og det som mangler på serveren din."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kolekcje, playlisty, obsada i ekipa, zwiastuny oraz to, czego brakuje na serwerze."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coleções, playlists, elenco e equipe, trailers e o que ainda falta no seu servidor."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Samlingar, spellistor, medverkande, trailers och det din server saknar."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "合集、播放列表、演职人员、预告片，以及你的服务器缺少的内容。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "合集、播放清單、演職員、預告片，以及伺服器缺少的內容。"
+          }
+        }
+      }
+    },
     "Comment deleted" : {
       "comment" : "Confirmation after deleting a Trakt comment",
       "localizations" : {
@@ -44711,6 +44807,294 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "連接 Trakt"
+          }
+        }
+      }
+    },
+    "Connect Trakt for its score beside IMDb and Rotten Tomatoes on every title, with reviews and what people say. Everything you watch is checked off on Trakt by itself." : {
+      "comment" : "Welcome invitation to connect Trakt",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forbind Trakt for at se dens bedømmelse ved siden af IMDb og Rotten Tomatoes på hver titel, med anmeldelser og hvad folk siger. Alt, du ser, bliver automatisk afkrydset på Trakt."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verbinde Trakt für die Bewertung neben IMDb und Rotten Tomatoes bei jedem Titel, mit Kritiken und dem, was Leute sagen. Alles, was du schaust, wird bei Trakt automatisch abgehakt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conecta Trakt para ver su puntuación junto a la de IMDb y Rotten Tomatoes en cada título, con las reseñas y lo que dice la gente. Todo lo que ves se marca solo en Trakt."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yhdistä Trakt, niin näet sen pistemäärän IMDb:n ja Rotten Tomatoesin rinnalla jokaisen nimikkeen kohdalla, sekä arvostelut ja sen, mitä ihmiset sanovat. Kaikki katsomasi merkitään Traktiin automaattisesti."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connectez Trakt pour afficher sa note à côté d’IMDb et de Rotten Tomatoes sur chaque titre, avec les critiques et ce qu’en disent les gens. Tout ce que vous regardez est coché automatiquement sur Trakt."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tengdu Trakt til að sjá einkunn þess við hlið IMDb og Rotten Tomatoes á hverjum titli, ásamt umsögnum og því sem fólk segir. Allt sem þú horfir á er sjálfkrafa skráð á Trakt."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collega Trakt per vedere il suo punteggio accanto a IMDb e Rotten Tomatoes su ogni titolo, con recensioni e cosa dicono le persone. Ogni cosa che guardi viene segnata su Trakt in automatico."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt に接続すると、すべての作品で IMDb や Rotten Tomatoes と並んで Trakt のスコア、レビュー、みんなの声が表示されます。観た作品は自動で Trakt にチェックされます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt를 연결하면 모든 작품에서 IMDb, Rotten Tomatoes 점수와 나란히 Trakt 점수, 리뷰, 사람들의 의견을 볼 수 있어요. 보는 모든 작품은 Trakt에 자동으로 체크돼요."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koble til Trakt for å se poengsummen ved siden av IMDb og Rotten Tomatoes på hver tittel, med anmeldelser og hva folk sier. Alt du ser, blir automatisk krysset av på Trakt."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Połącz Trakt, aby przy każdym tytule zobaczyć jego ocenę obok IMDb i Rotten Tomatoes, recenzje oraz opinie widzów. Wszystko, co obejrzysz, zostanie na Trakt odhaczone automatycznie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conecte o Trakt para ver a nota dele ao lado do IMDb e do Rotten Tomatoes em todos os títulos, com avaliações e o que as pessoas dizem. Tudo o que você assistir é marcado como visto no Trakt automaticamente."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anslut Trakt för att se betyget bredvid IMDb och Rotten Tomatoes på varje titel, med recensioner och vad folk säger. Allt du tittar på bockas av på Trakt automatiskt."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连接 Trakt，即可在每个标题旁看到它的评分（与 IMDb 和 Rotten Tomatoes 并列），还能查看评论和大家的看法。你看过的内容会自动在 Trakt 上标记为已看。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "連接 Trakt，每部作品都會在 IMDb 與 Rotten Tomatoes 旁顯示 Trakt 評分，並附上評論與大家的看法。你看過的內容會自動在 Trakt 標示為已看。"
+          }
+        }
+      }
+    },
+    "Connect Trakt to see its score beside IMDb and Rotten Tomatoes, the reviews, and what people say about %@." : {
+      "comment" : "Title page invitation to connect Trakt, naming the film or show",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forbind Trakt for at se bedømmelsen ved siden af IMDb og Rotten Tomatoes, anmeldelserne og hvad folk siger om %@."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verbinde Trakt, um die Bewertung neben IMDb und Rotten Tomatoes, die Kritiken und das zu sehen, was Leute über %@ sagen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conecta Trakt para ver su puntuación junto a la de IMDb y Rotten Tomatoes, las reseñas y lo que dice la gente sobre %@."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yhdistä Trakt, niin näet kohteen %@ pistemäärän IMDb:n ja Rotten Tomatoesin rinnalla, arvostelut ja sen, mitä ihmiset sanovat."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connectez Trakt pour voir sa note à côté d’IMDb et de Rotten Tomatoes, les critiques et ce qu’en disent les gens sur %@."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tengdu Trakt til að sjá einkunn þess við hlið IMDb og Rotten Tomatoes, umsagnirnar og það sem fólk segir um %@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collega Trakt per vedere il suo punteggio accanto a IMDb e Rotten Tomatoes, le recensioni e cosa dicono le persone su %@."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt に接続すると、%@ の Trakt スコアやレビュー、みんなの声を IMDb や Rotten Tomatoes と並べて見られます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt를 연결하면 %@에 대한 Trakt 점수를 IMDb, Rotten Tomatoes 점수와 나란히, 리뷰와 사람들의 의견과 함께 볼 수 있어요."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koble til Trakt for å se poengsummen ved siden av IMDb og Rotten Tomatoes, anmeldelsene og hva folk sier om %@."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Połącz Trakt, aby zobaczyć jego ocenę obok IMDb i Rotten Tomatoes, recenzje oraz opinie widzów o %@."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conecte o Trakt para ver a nota dele ao lado do IMDb e do Rotten Tomatoes, as avaliações e o que as pessoas dizem sobre %@."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anslut Trakt för att se betyget bredvid IMDb och Rotten Tomatoes, recensionerna och vad folk säger om %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连接 Trakt，即可查看 %@ 在 IMDb 和 Rotten Tomatoes 旁的评分、评论以及大家的看法。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "連接 Trakt，即可查看 %@ 在 IMDb 與 Rotten Tomatoes 旁的評分、評論，以及大家的看法。"
+          }
+        }
+      }
+    },
+    "Connect Trakt to see its score beside IMDb and Rotten Tomatoes, the reviews, and what people say about this title." : {
+      "comment" : "Title page invitation to connect Trakt, when the title has no name yet",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forbind Trakt for at se bedømmelsen ved siden af IMDb og Rotten Tomatoes, anmeldelserne og hvad folk siger om denne titel."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verbinde Trakt, um die Bewertung neben IMDb und Rotten Tomatoes, die Kritiken und das zu sehen, was Leute über diesen Titel sagen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conecta Trakt para ver su puntuación junto a la de IMDb y Rotten Tomatoes, las reseñas y lo que dice la gente sobre este título."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yhdistä Trakt, niin näet tämän nimikkeen pistemäärän IMDb:n ja Rotten Tomatoesin rinnalla, arvostelut ja sen, mitä ihmiset sanovat."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connectez Trakt pour voir sa note à côté d’IMDb et de Rotten Tomatoes, les critiques et ce qu’en disent les gens sur ce titre."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tengdu Trakt til að sjá einkunn þess við hlið IMDb og Rotten Tomatoes, umsagnirnar og það sem fólk segir um þennan titil."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collega Trakt per vedere il suo punteggio accanto a IMDb e Rotten Tomatoes, le recensioni e cosa dicono le persone su questo titolo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt に接続すると、この作品の Trakt スコアやレビュー、みんなの声を IMDb や Rotten Tomatoes と並べて見られます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt를 연결하면 이 작품의 Trakt 점수를 IMDb, Rotten Tomatoes 점수와 나란히, 리뷰와 사람들의 의견과 함께 볼 수 있어요."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koble til Trakt for å se poengsummen ved siden av IMDb og Rotten Tomatoes, anmeldelsene og hva folk sier om denne tittelen."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Połącz Trakt, aby zobaczyć jego ocenę obok IMDb i Rotten Tomatoes, recenzje oraz opinie widzów o tym tytule."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conecte o Trakt para ver a nota dele ao lado do IMDb e do Rotten Tomatoes, as avaliações e o que as pessoas dizem sobre este título."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anslut Trakt för att se betyget bredvid IMDb och Rotten Tomatoes, recensionerna och vad folk säger om den här titeln."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连接 Trakt，即可查看这部作品在 IMDb 和 Rotten Tomatoes 旁的评分、评论以及大家的看法。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "連接 Trakt，即可查看這部作品在 IMDb 與 Rotten Tomatoes 旁的評分、評論，以及大家的看法。"
           }
         }
       }
@@ -55875,6 +56259,102 @@
         }
       }
     },
+    "Crucible Pro is yours" : {
+      "comment" : "Welcome heading for a viewer who bought Crucible Pro",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du har Crucible Pro"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Pro gehört dir"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Pro es tuyo"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Pro on sinun"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Pro est à vous"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Pro er þitt"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Pro è tuo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Pro をご利用いただけます"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Pro를 사용할 수 있어요"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Pro er ditt"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Pro jest Twój"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Crucible Pro é seu"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du har Crucible Pro"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Pro 已属于你"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Pro 已是你的"
+          }
+        }
+      }
+    },
     "Crucible Pro is yours for a week" : {
       "localizations" : {
         "da" : {
@@ -58519,6 +58999,102 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Crucible 需要此權限才能在 Wi-Fi 中找到伺服器。請在「設定」中為 Crucible 開啟。"
+          }
+        }
+      }
+    },
+    "Crucible on Linux is free, with every feature open." : {
+      "comment" : "Welcome message on Linux",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible på Linux er gratis, med alle funktioner åbne."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible unter Linux ist kostenlos, mit allen Funktionen freigeschaltet."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible en Linux es gratis, con todas las funciones abiertas."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible on Linuxilla ilmainen, ja kaikki ominaisuudet ovat käytössä."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible sous Linux est gratuit, avec toutes les fonctions ouvertes."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible á Linux er ókeypis, með öllum eiginleikum opnum."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible su Linux è gratuito, con ogni funzione sbloccata."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Linux 版の Crucible は無料で、すべての機能をご利用いただけます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Linux의 Crucible은 무료이며 모든 기능을 사용할 수 있어요."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible på Linux er gratis, med alle funksjoner åpne."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible na Linuksie jest bezpłatny, a wszystkie funkcje są odblokowane."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Crucible no Linux é gratuito, com todos os recursos liberados."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible på Linux är gratis, med alla funktioner upplåsta."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Linux 版 Crucible 免费提供，所有功能均已开放。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Linux 版 Crucible 免費，所有功能都已開放。"
           }
         }
       }
@@ -63963,6 +64539,102 @@
         }
       }
     },
+    "Direct play or transcoding, Skip Intro and Credits, and the next episode at the credits." : {
+      "comment" : "Welcome highlight detail: playback",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Direkte afspilning eller transkodning, spring intro og rulleliste over, og næste afsnit ved rulleteksterne."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Direktwiedergabe oder Transkodierung, Intro und Abspann überspringen und die nächste Folge direkt am Abspann."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reproducción directa o transcodificación, Saltar intro y créditos, y el siguiente episodio al llegar a los créditos."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suora toisto tai transkoodaus, alun ja lopputekstien ohitus sekä seuraava jakso lopputekstien aikana."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lecture directe ou transcodage, Passer l’intro et le générique, et épisode suivant dès la fin du générique."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bein spilun eða umkóðun, Sleppa upphafi og lokainneignum, og næsti þáttur við lokainneignirnar."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riproduzione diretta o transcodifica, Salta intro e titoli di coda, e il prossimo episodio alla fine dei titoli."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ダイレクト再生やトランスコードに対応し、イントロとエンディングをスキップできます。エンディングの後は次のエピソードへ進みます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "직접 재생 또는 트랜스코딩, 인트로와 크레딧 건너뛰기, 크레딧에서 다음 에피소드로 이동."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Direkte avspilling eller transkoding, hopp over intro og sluttekst, og neste episode når sluttekstene starter."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bezpośrednie odtwarzanie lub transkodowanie, Pomiń intro i napisy końcowe oraz następny odcinek po napisach końcowych."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reprodução direta ou transcodificação, Pular introdução e créditos, e o próximo episódio ao fim dos créditos."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Direktuppspelning eller omkodning, Hoppa över intro och eftertexter, och nästa avsnitt när eftertexterna börjar."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支持直接播放或转码，可跳过片头和片尾，并在片尾自动播放下一集。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "直接播放或轉碼、跳過片頭與片尾，並在片尾時接續播放下一集。"
+          }
+        }
+      }
+    },
     "Directed by %@" : {
       "comment" : "Credit line on a shared watch card, e.g. Directed by Denis Villeneuve",
       "localizations" : {
@@ -66814,6 +67486,102 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "下載失敗。輕點兩下以重試"
+          }
+        }
+      }
+    },
+    "Download films and episodes to watch offline, with your place and the skips kept." : {
+      "comment" : "Welcome highlight detail: downloads",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hent film og afsnit til at se offline, med din position og dine spring gemt."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lade Filme und Folgen zum Offline-Schauen herunter. Deine Position und übersprungene Stellen bleiben erhalten."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Descarga películas y episodios para verlos sin conexión, con tu punto de reproducción y los saltos guardados."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lataa elokuvia ja jaksoja katsottavaksi offline-tilassa. Kohtasi ja ohitukset tallentuvat."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Téléchargez films et épisodes pour les regarder hors ligne, avec votre progression et les passages sautés conservés."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sæktu kvikmyndir og þætti til að horfa án nettengingar, með stöðunni þinni og sleppingum vistuðum."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scarica film ed episodi da guardare offline, con il punto in cui sei rimasto e i salti conservati."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "映画やエピソードをダウンロードして、オフラインで視聴できます。再生位置とスキップの設定も保持されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "영화와 에피소드를 다운로드해서 오프라인으로 볼 수 있어요. 재생 위치와 건너뛴 구간도 그대로 유지돼요."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last ned filmer og episoder for å se uten nett, med plassen din og hoppene beholdt."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pobieraj filmy i odcinki, aby oglądać je offline, z zapisanym miejscem i pominięciami."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Baixe filmes e episódios para assistir offline, mantendo onde você parou e os pulos salvos."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hämta filmer och avsnitt för att se offline, med din plats och dina hopp sparade."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下载电影和剧集以便离线观看，并保留你的观看进度和跳过设置。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下載電影與影集離線觀看，並保留你的觀看進度與跳過的片段。"
           }
         }
       }
@@ -75091,6 +75859,294 @@
         }
       }
     },
+    "Everything in Crucible Pro is open until %@." : {
+      "comment" : "Welcome message during a free trial, with its end date",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alt i Crucible Pro er åbent til %@."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alles in Crucible Pro ist bis %@ freigeschaltet."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todo lo de Crucible Pro está abierto hasta el %@."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kaikki Crucible Pro -ominaisuudet ovat käytössä %@ asti."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tout dans Crucible Pro est ouvert jusqu’au %@."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allt í Crucible Pro er opið til %@."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tutto in Crucible Pro è aperto fino al %@."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Pro のすべての機能を %@ までご利用いただけます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@까지 Crucible Pro의 모든 기능을 사용할 수 있어요."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alt i Crucible Pro er låst opp til %@."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wszystko w Crucible Pro jest otwarte do %@."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tudo no Crucible Pro está liberado até %@."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allt i Crucible Pro är upplåst till %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 前可使用 Crucible Pro 的全部功能。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Pro 的全部功能開放至 %@。"
+          }
+        }
+      }
+    },
+    "Everything in Crucible Pro is open until %@. Nothing is charged and nothing renews." : {
+      "comment" : "Welcome message during the Pro week, with its end date",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alt i Crucible Pro er åbent til %@. Der opkræves intet, og intet fornyes."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alles in Crucible Pro ist bis %@ freigeschaltet. Es wird nichts berechnet und nichts verlängert."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todo lo de Crucible Pro está abierto hasta el %@. No se cobra nada y nada se renueva."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kaikki Crucible Pro -ominaisuudet ovat käytössä %@ asti. Mitään ei veloiteta eikä mikään uusiudu."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tout dans Crucible Pro est ouvert jusqu’au %@. Rien n’est facturé et rien ne se renouvelle."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allt í Crucible Pro er opið til %@. Ekkert er rukkað og ekkert endurnýjast."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tutto in Crucible Pro è aperto fino al %@. Non viene addebitato nulla e nulla si rinnova."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Pro のすべての機能を %@ までご利用いただけます。料金はかからず、自動更新もありません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@까지 Crucible Pro의 모든 기능을 사용할 수 있어요. 요금은 청구되지 않고 자동으로 갱신되지도 않아요."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alt i Crucible Pro er låst opp til %@. Ingenting belastes og ingenting fornyes."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wszystko w Crucible Pro jest otwarte do %@. Nic nie jest pobierane i nic się nie odnawia."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tudo no Crucible Pro está liberado até %@. Nada é cobrado e nada é renovado."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allt i Crucible Pro är upplåst till %@. Inget debiteras och inget förnyas."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 前可使用 Crucible Pro 的全部功能。不收取任何费用，也不会自动续订。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Pro 的全部功能開放至 %@。不會收費，也不會自動續訂。"
+          }
+        }
+      }
+    },
+    "Everything in Crucible Pro is open." : {
+      "comment" : "Welcome message during a free trial without a known end",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alt i Crucible Pro er åbent."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alles in Crucible Pro ist freigeschaltet."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todo lo de Crucible Pro está abierto."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kaikki Crucible Pro -ominaisuudet ovat käytössä."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tout dans Crucible Pro est ouvert."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allt í Crucible Pro er opið."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tutto in Crucible Pro è aperto."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Pro のすべての機能をご利用いただけます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Pro의 모든 기능을 사용할 수 있어요."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alt i Crucible Pro er låst opp."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wszystko w Crucible Pro jest otwarte."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tudo no Crucible Pro está liberado."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allt i Crucible Pro är upplåst."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Pro 的全部功能均已开放。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Pro 的全部功能都已開放。"
+          }
+        }
+      }
+    },
     "Everything in Pro is open until %@. Nothing is charged and nothing renews; titles you download stay on this iPhone." : {
       "localizations" : {
         "da" : {
@@ -75181,6 +76237,102 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pro 的全部功能在 %@ 前開放。不收取任何費用，也不會自動續訂；下載的影片會保留在這部 iPhone 上。"
+          }
+        }
+      }
+    },
+    "Everything is open" : {
+      "comment" : "Welcome heading in a build where every feature is included",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alt er åbent"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alles ist freigeschaltet"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todo está abierto"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kaikki on auki"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tout est ouvert"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allt er opið"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tutto è aperto"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべての機能が使えます"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모두 열려 있어요"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alt er låst opp"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wszystko jest otwarte"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tudo está liberado"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allt är upplåst"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部功能已开放"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部功能已開放"
           }
         }
       }
@@ -79946,6 +81098,102 @@
         }
       }
     },
+    "Free to watch, for good" : {
+      "comment" : "Welcome heading for a viewer without Crucible Pro",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gratis at se, for altid"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Für immer kostenlos zum Schauen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gratis para ver, para siempre"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Katselu on ilmaista, pysyvästi"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gratuit à regarder, pour de bon"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ókeypis áhorf, til frambúðar"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gratis da guardare, per sempre"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ずっと無料で視聴"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "계속 무료로 볼 수 있어요"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gratis å se, for alltid"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oglądaj za darmo, na zawsze"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Assistir é grátis, para sempre"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gratis att titta på, för alltid"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "免费观看，永久有效"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "永久免費觀看"
+          }
+        }
+      }
+    },
     "Free trial" : {
       "localizations" : {
         "da" : {
@@ -83917,6 +85165,102 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "HTTP %lld：%@"
+          }
+        }
+      }
+    },
+    "Half-star ratings saved to Plex, your watch history and this week's statistics." : {
+      "comment" : "Welcome highlight detail: ratings and history",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Halvstjernede bedømmelser gemmes i Plex, din seerhistorik og ugens statistik."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Halbsterne-Bewertungen werden in Plex, im Wiedergabeverlauf und in den Statistiken dieser Woche gespeichert."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valoraciones de media estrella guardadas en Plex, en tu historial de reproducción y en las estadísticas de esta semana."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Puolen tähden arviot tallentuvat Plexiin, ja lisäksi katseluhistoria ja tämän viikon tilastot."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes en demi-étoiles enregistrées dans Plex, votre historique de lecture et les statistiques de la semaine."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hálfstjörnueinkunnir vistaðar í Plex, áhorfsferillinn þinn og tölfræði vikunnar."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valutazioni a mezza stella salvate in Plex, nella cronologia di visione e nelle statistiche di questa settimana."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "星半分刻みの評価は、Plex、視聴履歴、今週の統計に保存されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "반 개 단위 별점이 Plex, 시청 기록, 이번 주 통계에 저장돼요."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Halvstjernevurderinger lagres i Plex, visningsloggen din og ukens statistikk."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oceny w połówkach gwiazdek zapisywane w Plex, w historii oglądania i w statystykach tego tygodnia."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avaliações de meia estrela salvas no Plex, no seu histórico de exibição e nas estatísticas desta semana."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Halvstjärniga betyg sparas i Plex, din visningshistorik och veckans statistik."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "半星评分会保存到 Plex、你的观看记录和本周统计中。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "半星評分會儲存到 Plex、你的觀看紀錄與本週統計資料。"
           }
         }
       }
@@ -132705,6 +134049,102 @@
         }
       }
     },
+    "Play, browse and search everything on your server." : {
+      "comment" : "Welcome message while the App Store has not answered",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afspil, gennemse og søg i alt på din server."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spiele ab, durchstöbere und durchsuche alles auf deinem Server."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reproduce, explora y busca todo lo de tu servidor."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toista, selaa ja hae kaikkea palvelimeltasi."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lisez, parcourez et recherchez tout sur votre serveur."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spilaðu, skoðaðu og leitaðu að öllu á þjóninum þínum."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riproduci, sfoglia e cerca tutto sul tuo server."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サーバー上のすべてを再生、閲覧、検索できます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "서버의 모든 항목을 재생하고, 둘러보고, 검색하세요."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spill av, bla og søk i alt på serveren din."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odtwarzaj, przeglądaj i wyszukuj wszystko na swoim serwerze."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reproduza, navegue e pesquise tudo no seu servidor."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spela upp, bläddra och sök bland allt på din server."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "播放、浏览并搜索服务器上的全部内容。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "播放、瀏覽並搜尋伺服器上的所有內容。"
+          }
+        }
+      }
+    },
     "Playback" : {
       "comment" : "Settings section title for playback options",
       "localizations" : {
@@ -134803,6 +136243,102 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "依星期統計播放次數。最忙的是%@，共 %lld 次。"
+          }
+        }
+      }
+    },
+    "Plays everything" : {
+      "comment" : "Welcome highlight title: playback",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afspiller alt"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spielt alles ab"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reproduce de todo"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toistaa kaiken"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lit tout"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spilar allt"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riproduce tutto"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "どんな作品も再生"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모든 것을 재생해요"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spiller alt"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odtwarza wszystko"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reproduz tudo"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spelar upp allt"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "播放一切"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "什麼都能播放"
           }
         }
       }
@@ -141434,6 +142970,102 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "「已看完，請評分」會清空，目前已看完的內容不會再發出提醒。"
+          }
+        }
+      }
+    },
+    "Rate and remember" : {
+      "comment" : "Welcome highlight title: ratings and history",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bedøm og husk"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bewerten und merken"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valora y recuerda"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arvioi ja muista"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noter et retenir"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gefðu einkunn og munaðu"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valuta e ricorda"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "評価して記録"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "평가하고 기억해요"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vurder og husk"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oceniaj i zapamiętuj"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avalie e lembre-se"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Betygsätt och kom ihåg"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "评分与记录"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "評分與記錄"
           }
         }
       }
@@ -157219,6 +158851,102 @@
         }
       }
     },
+    "Scores, reviews and what people say are on every title." : {
+      "comment" : "Welcome line when Trakt is connected, without the account name",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bedømmelser, anmeldelser og hvad folk siger findes på hver titel."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bewertungen, Kritiken und was Leute sagen gibt es bei jedem Titel."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Puntuaciones, reseñas y lo que dice la gente, en cada título."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pistemäärät, arvostelut ja se, mitä ihmiset sanovat, näkyvät jokaisen nimikkeen kohdalla."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes, critiques et avis figurent sur chaque titre."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einkunnir, umsagnir og það sem fólk segir eru á hverjum titli."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Punteggi, recensioni e cosa dicono le persone su ogni titolo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべての作品に、スコア、レビュー、みんなの声が表示されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모든 작품에 점수, 리뷰, 사람들의 의견이 있어요."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poengsummer, anmeldelser og hva folk sier, finnes på hver tittel."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oceny, recenzje i opinie widzów przy każdym tytule."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notas, avaliações e o que as pessoas dizem em todos os títulos."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Betyg, recensioner och vad folk säger finns på varje titel."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每个标题都有评分、评论和大家的看法。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每部作品都有評分、評論與大家的看法。"
+          }
+        }
+      }
+    },
     "Screenshot" : {
       "comment" : "Player menu: save or copy the picture on screen",
       "extractionState" : "manual",
@@ -160528,6 +162256,102 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "看看大家怎麼說"
+          }
+        }
+      }
+    },
+    "See what everyone thinks" : {
+      "comment" : "Title of the invitation to connect Trakt",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se, hvad alle mener"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erfahre, was alle denken"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mira lo que opina todo el mundo"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Katso, mitä kaikki ajattelevat"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Découvrez ce que tout le monde en pense"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sjáðu hvað allir segja"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scopri cosa pensano tutti"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "みんなの声を見てみよう"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모두의 생각을 확인해요"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se hva alle mener"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zobacz, co myślą inni"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Veja o que todo mundo acha"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se vad alla tycker"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "看看大家怎么说"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "看看大家的想法"
           }
         }
       }
@@ -171071,6 +172895,102 @@
         }
       }
     },
+    "Signed in as %@. Scores, reviews and what people say are on every title." : {
+      "comment" : "Welcome line when Trakt is connected, with the Trakt account name",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Logget ind som %@. Bedømmelser, anmeldelser og hvad folk siger findes på hver titel."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Angemeldet als %@. Bewertungen, Kritiken und was Leute sagen gibt es bei jedem Titel."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Has iniciado sesión como %@. Puntuaciones, reseñas y lo que dice la gente, en cada título."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kirjautuneena tilillä %@. Pistemäärät, arvostelut ja se, mitä ihmiset sanovat, näkyvät jokaisen nimikkeen kohdalla."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connecté en tant que %@. Notes, critiques et avis figurent sur chaque titre."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skráð inn sem %@. Einkunnir, umsagnir og það sem fólk segir eru á hverjum titli."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accesso eseguito come %@. Punteggi, recensioni e cosa dicono le persone su ogni titolo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ としてサインイン中です。すべての作品に、スコア、レビュー、みんなの声が表示されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 계정으로 로그인했어요. 모든 작품에 점수, 리뷰, 사람들의 의견이 있어요."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Logget inn som %@. Poengsummer, anmeldelser og hva folk sier, finnes på hver tittel."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zalogowano jako %@. Oceny, recenzje i opinie widzów przy każdym tytule."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conectado como %@. Notas, avaliações e o que as pessoas dizem em todos os títulos."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inloggad som %@. Betyg, recensioner och vad folk säger finns på varje titel."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已以 %@ 身份登录。每个标题都有评分、评论和大家的看法。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已以 %@ 登入。每部作品都有評分、評論與大家的看法。"
+          }
+        }
+      }
+    },
     "Signed in as the owner" : {
       "comment" : "Sports Research requirement title",
       "localizations" : {
@@ -177800,6 +179720,102 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "從頭開始"
+          }
+        }
+      }
+    },
+    "Start Watching" : {
+      "comment" : "Button that closes the welcome and shows the library",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Begynd at se"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los geht’s"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Empezar a ver"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aloita katselu"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Commencer à regarder"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Byrja að horfa"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inizia a guardare"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "視聴を始める"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "시청 시작"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start å se"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zacznij oglądać"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Começar a assistir"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Börja titta"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开始观看"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開始觀看"
           }
         }
       }
@@ -185101,6 +187117,102 @@
         }
       }
     },
+    "Take it with you" : {
+      "comment" : "Welcome highlight title: downloads",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tag den med dig"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nimm es mit"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Llévatelo contigo"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ota mukaan"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Emportez-les partout"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taktu það með þér"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Portala con te"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "持ち歩いて楽しめる"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "어디든 함께 가져가세요"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ta det med deg"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zabierz ze sobą"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leve com você"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ta med dig det"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "随身带走"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隨身帶著走"
+          }
+        }
+      }
+    },
     "Taken back" : {
       "comment" : "Library Research file state: research was taken back and the file shows as it was",
       "localizations" : {
@@ -186232,6 +188344,102 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "文字"
+          }
+        }
+      }
+    },
+    "Thank you for supporting Crucible. Everything is open, on every device that uses your Apple Account." : {
+      "comment" : "Welcome message for a viewer who bought Crucible Pro",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tak, fordi du støtter Crucible. Alt er åbent på alle enheder, der bruger din Apple-konto."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Danke, dass du Crucible unterstützt. Alles ist freigeschaltet, auf jedem Gerät, das deinen Apple-Account nutzt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gracias por apoyar Crucible. Todo está abierto, en cada dispositivo que use tu cuenta de Apple."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kiitos, että tuet Crucibleä. Kaikki on auki jokaisella laitteella, jolla käytät Apple-tiliäsi."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Merci de soutenir Crucible. Tout est ouvert, sur chaque appareil qui utilise votre compte Apple."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Takk fyrir að styðja Crucible. Allt er opið á hverju tæki sem notar Apple-aðganginn þinn."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grazie per aver sostenuto Crucible. Tutto è aperto su ogni dispositivo che usa il tuo Account Apple."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible を応援してくださり、ありがとうございます。同じ Apple アカウントを使うすべてのデバイスで、すべての機能をご利用いただけます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible을 후원해 주셔서 감사해요. 같은 Apple 계정을 쓰는 모든 기기에서 모든 기능을 사용할 수 있어요."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Takk for at du støtter Crucible. Alt er låst opp på alle enheter som bruker Apple-kontoen din."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dziękuję, że wspierasz Crucible. Wszystko jest otwarte na każdym urządzeniu, na którym używasz konta Apple."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obrigado por apoiar o Crucible. Tudo está liberado em todos os aparelhos que usam sua Conta Apple."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tack för att du stöder Crucible. Allt är upplåst på varje enhet som använder ditt Apple-konto."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "感谢支持 Crucible。全部功能已开放，在所有使用你的 Apple 账户的设备上都可使用。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "感謝你支持 Crucible。所有功能都已開放，適用於使用你的 Apple 帳號的每一台裝置。"
           }
         }
       }
@@ -193716,6 +195924,102 @@
         }
       }
     },
+    "This build of Crucible includes every feature." : {
+      "comment" : "Welcome message in a source build",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Denne version af Crucible indeholder alle funktioner."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Build von Crucible enthält alle Funktionen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta versión de Crucible incluye todas las funciones."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tämä Crucible-versio sisältää kaikki ominaisuudet."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cette version de Crucible inclut toutes les fonctions."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Þessi útgáfa af Crucible inniheldur alla eiginleika."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questa build di Crucible include ogni funzione."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このビルドの Crucible には、すべての機能が含まれています。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 빌드의 Crucible에는 모든 기능이 포함되어 있어요."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Denne versjonen av Crucible inkluderer alle funksjoner."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ta wersja Crucible zawiera wszystkie funkcje."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta versão do Crucible inclui todos os recursos."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Den här versionen av Crucible innehåller alla funktioner."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此版本的 Crucible 包含全部功能。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這個 Crucible 版本包含所有功能。"
+          }
+        }
+      }
+    },
     "This code expired. Get a new one to try again." : {
       "comment" : "Status when the Trakt code expired",
       "localizations" : {
@@ -200452,6 +202756,102 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Trakt 已鎖定此帳號，請聯絡 Trakt 客服以解鎖。"
+          }
+        }
+      }
+    },
+    "Trakt is connected" : {
+      "comment" : "Welcome line when Trakt is already connected",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt er forbundet"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt ist verbunden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt está conectado"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt on yhdistetty"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt est connecté"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt er tengt"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt è collegato"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt に接続済み"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt가 연결되어 있어요"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt er koblet til"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt jest połączony"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Trakt está conectado"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trakt är anslutet"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已连接 Trakt"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已連接 Trakt"
           }
         }
       }
@@ -212163,6 +214563,198 @@
         }
       }
     },
+    "Watching, browsing and your history are free. Crucible Pro adds more whenever you want it." : {
+      "comment" : "Welcome message for a free viewer whose Pro week is over",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afspilning, gennemsyn og din historik er gratis. Crucible Pro tilføjer mere, når du vil have det."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schauen, Stöbern und dein Verlauf sind kostenlos. Crucible Pro bietet mehr, wann immer du möchtest."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ver, explorar y tu historial son gratis. Crucible Pro añade más cuando quieras."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Katselu, selaaminen ja katseluhistoria ovat ilmaisia. Crucible Pro tuo lisää, kun sitä haluat."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La lecture, la navigation et votre historique sont gratuits. Crucible Pro ajoute davantage, quand vous le souhaitez."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Áhorf, vafur og áhorfsferillinn er ókeypis. Crucible Pro bætir við fleiru hvenær sem þú vilt."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guardare, sfogliare e la cronologia sono gratuiti. Crucible Pro aggiunge altro quando vuoi."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "視聴、閲覧、視聴履歴は無料です。Crucible Pro で、必要なときに機能を追加できます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "시청, 둘러보기, 기록은 무료예요. Crucible Pro로 원할 때 더 많은 기능을 추가할 수 있어요."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Å se, bla og visningsloggen din er gratis. Crucible Pro gir deg mer når du vil ha det."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oglądanie, przeglądanie i historia są bezpłatne. Crucible Pro dodaje więcej, kiedy tylko zechcesz."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Assistir, navegar e ver seu histórico são gratuitos. O Crucible Pro acrescenta mais recursos quando você quiser."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Att titta, bläddra och din historik är gratis. Crucible Pro lägger till mer när du vill."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "观看、浏览和观看记录均免费。想要更多功能时，随时可以开通 Crucible Pro。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "觀看、瀏覽與觀看紀錄都免費。Crucible Pro 可隨時為你加入更多功能。"
+          }
+        }
+      }
+    },
+    "Watching, browsing and your history are free. Finish your first film or episode and Crucible Pro is yours for a week, with nothing charged and nothing renewing." : {
+      "comment" : "Welcome message for a free viewer whose Pro week has not started",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afspilning, gennemsyn og din historik er gratis. Når du har set din første film eller dit første afsnit, har du Crucible Pro i en uge, uden at noget bliver opkrævet eller fornyet."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schauen, Stöbern und dein Verlauf sind kostenlos. Beende deinen ersten Film oder deine erste Folge, dann gehört dir Crucible Pro eine Woche lang, ohne Kosten und ohne Verlängerung."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ver, explorar y tu historial son gratis. Termina tu primera película o episodio y Crucible Pro será tuyo durante una semana, sin cobros ni renovaciones."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Katselu, selaaminen ja katseluhistoria ovat ilmaisia. Katso ensimmäinen elokuva tai jakso loppuun, niin saat Crucible Pro -version viikoksi. Mitään ei veloiteta eikä mikään uusiudu."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La lecture, la navigation et votre historique sont gratuits. Terminez votre premier film ou épisode et Crucible Pro est à vous pendant une semaine, sans frais ni renouvellement."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Áhorf, vafur og áhorfsferillinn er ókeypis. Ljúktu fyrstu kvikmynd eða þætti og Crucible Pro er þitt í eina viku, án gjalds og án endurnýjunar."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guardare, sfogliare e la cronologia sono gratuiti. Finisci il tuo primo film o episodio e Crucible Pro è tuo per una settimana, senza addebiti e senza rinnovi."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "視聴、閲覧、視聴履歴は無料です。最初の映画かエピソードを観終えると、Crucible Pro を 1 週間ご利用いただけます。料金はかからず、自動更新もありません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "시청, 둘러보기, 기록은 무료예요. 첫 영화나 에피소드를 끝까지 보면 요금 청구나 자동 갱신 없이 일주일 동안 Crucible Pro를 사용할 수 있어요."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Å se, bla og visningsloggen din er gratis. Fullfør din første film eller episode, så er Crucible Pro ditt i én uke, uten belastning og uten fornyelse."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oglądanie, przeglądanie i historia są bezpłatne. Obejrzyj pierwszy film lub odcinek, a Crucible Pro będzie Twój przez tydzień, bez żadnych opłat i bez odnawiania."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Assistir, navegar e ver seu histórico são gratuitos. Termine seu primeiro filme ou episódio e o Crucible Pro é seu por uma semana, sem cobrança e sem renovação."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Att titta, bläddra och din historik är gratis. Avsluta din första film eller ditt första avsnitt så har du Crucible Pro i en vecka, utan att något debiteras eller förnyas."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "观看、浏览和观看记录均免费。看完第一部电影或剧集后，即可免费使用 Crucible Pro 一周，不收取任何费用，也不会自动续订。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "觀看、瀏覽與觀看紀錄都免費。看完第一部電影或第一集，即可免費使用 Crucible Pro 一週，不收費，也不會自動續訂。"
+          }
+        }
+      }
+    },
     "Watchlist" : {
       "comment" : "Name of the list of titles saved to watch later",
       "localizations" : {
@@ -212822,6 +215414,102 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "每週摘要"
+          }
+        }
+      }
+    },
+    "Welcome to Crucible" : {
+      "comment" : "Title of the welcome shown the first time a library opens on a device",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Velkommen til Crucible"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Willkommen bei Crucible"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bienvenido a Crucible"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tervetuloa Crucibleen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bienvenue dans Crucible"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Velkomin í Crucible"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Benvenuto in Crucible"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible へようこそ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible에 오신 것을 환영해요"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Velkommen til Crucible"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Witaj w Crucible"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Boas-vindas ao Crucible"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Välkommen till Crucible"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "欢迎使用 Crucible"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "歡迎使用 Crucible"
           }
         }
       }
@@ -221251,6 +223939,102 @@
         }
       }
     },
+    "Your Pro week is on" : {
+      "comment" : "Welcome heading during the free Pro week",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Din Pro-uge er i gang"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Pro-Woche läuft"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu semana Pro está activa"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro-viikkosi on käynnissä"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre semaine Pro est activée"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro-vikan þín er hafin"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La tua settimana Pro è attiva"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro ウィーク中です"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro 위크가 시작됐어요"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro-uken din er i gang"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Twój tydzień Pro trwa"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sua semana Pro está ativa"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Din Pro-vecka är igång"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的 Pro 周已开启"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的 Pro 週已開啟"
+          }
+        }
+      }
+    },
     "Your Pro week runs until %@. Crucible Pro keeps everything open after that." : {
       "localizations" : {
         "da" : {
@@ -222483,6 +225267,102 @@
         }
       }
     },
+    "Your family shares Crucible Pro with you, so everything is open." : {
+      "comment" : "Welcome message for Pro shared through Family Sharing",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Din familie deler Crucible Pro med dig, så alt er åbent."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Familie teilt Crucible Pro mit dir, daher ist alles freigeschaltet."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu familia comparte Crucible Pro contigo, así que todo está abierto."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Perheesi jakaa Crucible Pro -version kanssasi, joten kaikki on auki."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre famille partage Crucible Pro avec vous, tout est donc ouvert."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fjölskyldan þín deilir Crucible Pro með þér, svo allt er opið."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La tua famiglia condivide Crucible Pro con te, quindi tutto è aperto."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ファミリー共有で Crucible Pro をご利用いただいているため、すべての機能が開放されています。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "가족이 Crucible Pro를 함께 쓰고 있어서 모든 기능을 사용할 수 있어요."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Familien din deler Crucible Pro med deg, så alt er låst opp."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Twoja rodzina udostępnia Ci Crucible Pro, więc wszystko jest otwarte."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sua família compartilha o Crucible Pro com você, então tudo está liberado."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Din familj delar Crucible Pro med dig, så allt är upplåst."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的家人与你共享 Crucible Pro，因此全部功能均已开放。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的家人與你共享 Crucible Pro，因此所有功能都已開放。"
+          }
+        }
+      }
+    },
     "Your file name becomes a real title, date, description and poster. The file stays where it is." : {
       "comment" : "Library Research: what research does to a file, under the example",
       "localizations" : {
@@ -223046,6 +225926,102 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "你的媒體庫"
+          }
+        }
+      }
+    },
+    "Your library is ready" : {
+      "comment" : "Welcome heading while the App Store has not said whether the viewer has Crucible Pro",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dit bibliotek er klar"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Mediathek ist bereit"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu biblioteca está lista"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kirjastosi on valmis"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre bibliothèque est prête"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Safnið þitt er tilbúið"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La tua libreria è pronta"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ライブラリの準備ができました"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "보관함이 준비됐어요"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Biblioteket ditt er klart"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Twoja biblioteka jest gotowa"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sua biblioteca está pronta"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ditt bibliotek är klart"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的资料库已就绪"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的媒體庫已準備就緒"
           }
         }
       }
@@ -224370,6 +227346,102 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "您的觀看情形，視覺化呈現"
+          }
+        }
+      }
+    },
+    "Your whole library" : {
+      "comment" : "Welcome highlight title: browsing",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hele dit bibliotek"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine ganze Mediathek"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toda tu biblioteca"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koko kirjastosi"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toute votre bibliothèque"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allt safnið þitt"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tutta la tua libreria"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ライブラリすべてを"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "보관함 전체"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hele biblioteket ditt"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cała Twoja biblioteka"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sua biblioteca inteira"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hela ditt bibliotek"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的整个资料库"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的整個媒體庫"
           }
         }
       }
