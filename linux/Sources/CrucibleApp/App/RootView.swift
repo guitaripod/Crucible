@@ -308,6 +308,14 @@ final class RootView: View, WindowRestoration.Restorable {
         stack.push(SettingsScreen(api: payload.api))
     }
 
+    /// Opens Trakt's settings on the You tab, where Trakt lives, for the welcome's Connect Trakt.
+    func openTraktSettings() {
+        select("you")
+        guard let stack = stacks["you"], !(stack.top is TraktSettingsScreen) else { return }
+        stack.popToRoot()
+        stack.push(TraktSettingsScreen())
+    }
+
     /// The tvOS app's commands with Ctrl for Command: Ctrl+1 to Ctrl+9 pick tabs, F10 opens the app's menu and Ctrl+? lists
     /// every shortcut.
     func handleCommand(_ event: KeyEvent) -> Bool {

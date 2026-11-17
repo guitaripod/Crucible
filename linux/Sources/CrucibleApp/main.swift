@@ -30,6 +30,7 @@ func runCrucible() -> Int32 {
     HostedBrain.installDemo(DemoBrain())
     OwnModel.install()
     if arguments.contains("--check-news") { return ClosedNewsCheck.run(loop: EventLoop()) }
+    settleWelcome()
     LinuxDisplay.restore(arguments: arguments)
     MatchContent.restoreLeftover()
     let loop = EventLoop()
@@ -113,6 +114,17 @@ func runCrucible() -> Int32 {
     loop.run(timeoutMilliseconds: 16) { PlayerScreen.pendingStop == nil || Window.now() > deadline }
     instance?.close()
     return 0
+}
+
+/// Decides once per install whether the first library opens with the welcome (`WelcomeLedger`), before a sign-in can save a
+/// server. A debug build stages it for a headless check with `CRUCIBLE_WELCOME=1`; a release build is staged through the
+/// settings file instead, `MOCK_DEFAULTS='{"welcome.v1.state": "owed"}'` with `mock-session.sh`.
+@MainActor
+func settleWelcome() {
+    #if DEBUG
+    if ProcessInfo.processInfo.environment["CRUCIBLE_WELCOME"] == "1" { WelcomeLedger.shared.stageFreshInstall(owesWelcome: true) }
+    #endif
+    WelcomeLedger.shared.settleAtLaunch()
 }
 
 /// SIGTERM (logout, `kill`), SIGINT (Ctrl+C) and SIGHUP (the terminal closing) quit the way Ctrl+Q does: the player

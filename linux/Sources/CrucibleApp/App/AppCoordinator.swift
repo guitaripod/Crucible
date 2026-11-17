@@ -35,6 +35,7 @@ final class AppCoordinator: WindowDelegate {
     let router = Router()
     private var launchTask: Task<Void, Never>?
     private var finaleTask: Task<Void, Never>?
+    private var welcomeTask: Task<Void, Never>?
     private var root: RootView?
     private var payload: LaunchPayload?
     private var onboarding: OnboardingView?
@@ -53,6 +54,8 @@ final class AppCoordinator: WindowDelegate {
 
     private static let finaleSettleDelay: Duration = .milliseconds(1200)
     private static let finaleRetryInterval: Duration = .milliseconds(800)
+    /// The launch gate takes 0.4 s to dissolve over the app; the welcome comes up a moment after.
+    private static let welcomeSettleDelay: Duration = .milliseconds(600)
 
     init(window: Window) {
         self.window = window
@@ -118,6 +121,7 @@ final class AppCoordinator: WindowDelegate {
                     self.showMain(payload)
                     if let root = self.root { self.dissolve(gate, over: root) }
                     self.presentDemoIntroIfPending()
+                    self.presentWelcomeIfOwed(serverName: connection.serverName)
                 }
             case .failure(.signInExpired):
                 gate.showSignInExpired()
@@ -278,6 +282,7 @@ final class AppCoordinator: WindowDelegate {
         newsWatcher?.stop()
         launchTask?.cancel()
         finaleTask?.cancel()
+        welcomeTask?.cancel()
         APIClient.onBaseURLChanged.withLock { $0 = nil }
         router.deactivate()
         root = nil
@@ -371,6 +376,32 @@ final class AppCoordinator: WindowDelegate {
         LinuxDemoState.clearIntro()
         DemoSheetView(title: DemoCopy.introTitle, message: DemoCopy.introBody, steps: DemoTour.shared.steps,
                       actions: [.init(title: DemoCopy.introStart, isPrimary: true) {}], quietest: 0).present(in: window)
+    }
+
+    /// The welcome a first library opens with on this computer (`WelcomeLedger`), never in the demo, which has its own: it
+    /// waits for the launch gate to dissolve and, like the finale, for nothing to cover the tabs, then shows once.
+    private func presentWelcomeIfOwed(serverName: String) {
+        guard WelcomeLedger.shared.isWelcomeOwed, !DemoMode.shared.isActive else { return }
+        welcomeTask?.cancel()
+        welcomeTask = Task { [weak self] in
+            try? await Task.sleep(for: Self.welcomeSettleDelay)
+            while !Task.isCancelled, let self, WelcomeLedger.shared.isWelcomeOwed, !DemoMode.shared.isActive {
+                if let root = self.root, root.isUnobstructed {
+                    self.presentWelcome(serverName: serverName)
+                    return
+                }
+                try? await Task.sleep(for: Self.finaleRetryInterval)
+            }
+        }
+    }
+
+    private func presentWelcome(serverName: String) {
+        WelcomeLedger.shared.welcomeWasShown()
+        MidgarLog.notice("Welcome presented", category: .lifecycle)
+        WelcomeSheetView(serverName: serverName) { [weak self] exit in
+            guard exit == .connectTrakt else { return }
+            self?.root?.openTraktSettings()
+        }.present(in: window)
     }
 
     /// The finale never covers the player, an alert, a menu or another sheet: it waits, a little after the step that earned

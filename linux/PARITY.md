@@ -6,7 +6,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 
 | Area | Done | Partial | Missing | n/a |
 | --- | --- | --- | --- | --- |
-| Sign in, launch, tabs and navigation | 56 | 0 | 0 | 1 |
+| Sign in, launch, tabs and navigation | 57 | 0 | 0 | 1 |
 | Home and libraries | 78 | 0 | 0 | 0 |
 | Title pages, collections, playlists and server activity | 81 | 0 | 0 | 1 |
 | Player and What to Watch | 68 | 0 | 0 | 1 |
@@ -15,13 +15,14 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | Settings and integrations | 67 | 0 | 0 | 2 |
 | Design system | 97 | 0 | 0 | 0 |
 | Linux-only requirements (docs/LINUX.md) | 103 | 1 | 0 | 0 |
-| **All** | 689 | 1 | 0 | 16 |
+| **All** | 690 | 1 | 0 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
 - [x] `shell-launch-saved-session` (S) Relaunch with a saved server skips onboarding and goes straight to the launch gate, connecting to that server. _Apple TV: Sources/CrucibleTV/App/TVAppCoordinator.swift:64 (reconnect, routeToSavedSession)_
 - [x] `shell-launch-gate-progress` (S) Full-screen launch gate shows Connecting to <server> with live progress lines and holds the main UI until the route is validated and Home and libraries are loaded. _Apple TV: Sources/CrucibleTV/App/TVLaunchViewController.swift (showLoading, showProgress)_
 - [x] `shell-launch-gate-handoff` (S) Launch gate hands off with a success flare on the crystal glyph and a 0.4 s cross-dissolve into the tab bar (instant under Reduce Motion), with ambient glyph breathing that stops under Reduce Motion and in UI tests. _Apple TV: Sources/CrucibleTV/App/TVLaunchViewController.swift:82-91 (playSuccess), :107-113 (applyAmbientAnimation)_
+- [x] `shell-first-library-welcome` (M) The first library on a device (a new install, or the first since Crucible's settings were cleared; never after an update, never in the demo) opens with a welcome once the launch gate has dissolved: the crystal, Welcome to Crucible, Connected to <server>, where the viewer stands (on Linux every feature is open), what the app does, and what Trakt adds with Connect Trakt (Trakt's settings) or that it is connected, rising in one part after another (all at once under Reduce Motion); focus starts on Start Watching and Escape closes it _Apple TV: Sources/CrucibleCore/Features/Welcome/WelcomePlan.swift, Sources/CrucibleCore/Features/Welcome/WelcomeLedger.swift_
 - [x] `shell-launch-failure-retry` (S) Gate failure state titled Couldn't Reach <server> shows the failure message with Try Again (reruns the pipeline) and Switch Server, focused for keyboard or remote. _Apple TV: Sources/CrucibleTV/App/TVLaunchViewController.swift:showFailure_
 - [x] `shell-sign-in-expired-gate` (S) Gate state Your Plex sign-in expired offers Sign In Again and Sign Out, where Sign Out asks Sign Out? with the account-removal warning first. _Apple TV: Sources/CrucibleTV/App/TVLaunchViewController.swift:showSignInExpired_
 - [x] `shell-you-sign-out-confirm` (S) Sign Out in the You tab asks Are you sure you want to sign out? before removing the account, server and caches. _Apple TV: Sources/CrucibleTV/You/TVYouViewController.swift:303-307 (confirmSignOut, signOutRow)_
