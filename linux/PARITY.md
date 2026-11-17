@@ -8,14 +8,14 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | --- | --- | --- | --- | --- |
 | Sign in, launch, tabs and navigation | 56 | 0 | 0 | 1 |
 | Home and libraries | 78 | 0 | 0 | 0 |
-| Title pages, collections, playlists and server activity | 80 | 0 | 0 | 1 |
+| Title pages, collections, playlists and server activity | 81 | 0 | 0 | 1 |
 | Player and What to Watch | 68 | 0 | 0 | 1 |
 | Search, Pro features (free on Linux) and demo | 55 | 0 | 0 | 8 |
 | You, profiles, history, statistics and manage | 84 | 0 | 0 | 3 |
 | Settings and integrations | 67 | 0 | 0 | 2 |
 | Design system | 97 | 0 | 0 | 0 |
 | Linux-only requirements (docs/LINUX.md) | 103 | 1 | 0 | 0 |
-| **All** | 688 | 1 | 0 | 16 |
+| **All** | 689 | 1 | 0 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -170,6 +170,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `detail-rate` (M) Rate action on movie, episode and show pages: glass panel with ten half-star steps moved by swipe, Select to commit, Clear Rating when set, Menu to close, failure alert Your rating was not saved. _Apple TV: Sources/CrucibleTV/Detail/TVRatingViewController.swift:85-124_
 - [x] `detail-trakt-checkin` (M) Trakt Check In and Cancel Check In for movies and episodes, with a replace-confirmation when a check-in is active and result alerts _Apple TV: Sources/CrucibleTV/Detail/TVMediaDetailViewController.swift:339-347_
 - [x] `detail-trakt-community-pulse` (M) Community after Cast & Crew (after the episodes on a show): Trakt's score with its 1 to 10 vote spread as rising bars, watchers, plays, lists, comments and favourites, and who is watching now with their faces; Select lists who is watching (Pro) _Apple TV: Sources/CrucibleTV/Trakt/TVCommunityViews.swift (TVCommunityPulseView), Sources/CrucibleTV/Detail/TVDetailViewController.swift (communitySections)_
+- [x] `detail-trakt-invite` (S) While Trakt is not connected (or signed Crucible out), Community on a title page invites the viewer to connect it: what Trakt adds to that title, Connect Trakt (or Connect Again) to Trakt's settings, and Not Now, which fades it away for good on this computer; connecting while the page shows brings in the scores and the community _Apple TV: Sources/CrucibleCore/Features/Trakt/TraktInvite.swift_
 - [x] `detail-trakt-community-sentiments` (S) What people loved and what not so much, as chips that open the comments each came from (Pro) _Apple TV: Sources/CrucibleTV/Detail/TVDetailViewController.swift (aspectChip, selectAspect)_
 - [x] `detail-trakt-community-comments` (M) Comments shelf, most liked first: spoilers covered until pressed, inline spoiler tags drawn as bars, Markdown and emoji short codes, GIFs, likes, replies and reactions per card; long press likes, reacts, reports, edits and deletes; See All, Unlock (without Pro, two comments free) and Write a Review cards _Apple TV: Sources/CrucibleTV/Trakt/TVCommunityViews.swift (TVCommentCardView, TVCommunityActionCard)_
 - [x] `trakt-comment-thread` (M) A comment's thread: the comment in the left column (Reveal Spoilers, Read in Full), Like with its count, React with the seven reactions, Reply, the author, each reply opening as a thread of its own, More Replies, Edit and Delete for the viewer's own, Report with Trakt's eleven reasons _Apple TV: Sources/CrucibleTV/Trakt/TVCommunityScreens.swift (TVCommentThreadViewController)_

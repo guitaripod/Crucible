@@ -5,13 +5,16 @@ import Kiln
 
 /// A title page's Trakt community (`TVDetailViewController`'s community sections), after Cast & Crew: the pulse, what people
 /// loved and did not, and the comments rail ending in See All and Write a Review. It loads after the page, from the cache
-/// at once when it is fresh, and follows likes, reactions and posts as Trakt answers them.
+/// at once when it is fresh, and follows likes, reactions and posts as Trakt answers them. While Trakt is not connected the
+/// same place invites the viewer to connect it (`TraktInvite`), until they do or say Not Now.
 @MainActor
 final class CommunitySection {
     /// The sections changed shape (one appeared or went), so the page lays its sections out again.
     var onReshape: (() -> Void)?
     /// The title's name, for the screens the community opens.
     var titleName = ""
+    /// Trakt was connected while the page shows, so the page loads again for the scores and the community.
+    var onConnected: (() -> Void)?
 
     private weak var host: ScreenView?
     private let api: APIClient
@@ -21,6 +24,8 @@ final class CommunitySection {
     private var barsAnimated = false
     private var loadTask: Task<Void, Never>?
     private var observer: (any NSObjectProtocol)?
+    private var accountObserver: UUID?
+    private var wasConnected = false
     private var shape: [String] = []
 
     private let heading = SectionTitleView(title: TraktCommunityCopy.title)
@@ -31,16 +36,24 @@ final class CommunitySection {
     private let rail = PanelShelfView(title: TraktCommunityCopy.comments, height: CommentCardContent.size.height)
     private var cards: [Int: (panel: StatsPanelView, content: CommentCardContent)] = [:]
     private var actions: [String: (panel: StatsPanelView, content: CommunityActionContent)] = [:]
+    private let invite = TraktInviteView()
+    private lazy var inviteRow = MarginRow(content: invite)
 
     init(api: APIClient, host: ScreenView) {
         self.api = api
         self.host = host
         pulsePanel.onSelect = { [weak self] in self?.openWatching() }
         aspects.onSelect = { [weak self] chip in self?.openAspect(chip.id) }
+        invite.onConnect = { [weak self] in self?.host?.navigation?.push(TraktSettingsScreen()) }
+        invite.onDismissed = { [weak self] in self?.inviteDismissed() }
     }
 
-    /// Follows the community's changes while the page shows.
+    /// Follows the community's changes and the Trakt account while the page shows.
     func start() {
+        if accountObserver == nil {
+            wasConnected = TraktCommunity.shared.isAvailable
+            accountObserver = TraktAccount.shared.observe { [weak self] in self?.accountChanged() }
+        }
         guard observer == nil else { return }
         observer = NotificationCenter.default.addObserver(forName: .traktCommunityChanged, object: nil, queue: .main) { [weak self] note in
             guard let change = note.object as? TraktCommunity.Change else { return }
@@ -51,7 +64,35 @@ final class CommunitySection {
     func stop() {
         if let observer { NotificationCenter.default.removeObserver(observer) }
         observer = nil
+        if let accountObserver { TraktAccount.shared.stopObserving(accountObserver) }
+        accountObserver = nil
         loadTask?.cancel()
+    }
+
+    /// The invitation due for this title, or nil while Trakt is connected or after Not Now.
+    private var invitation: TraktInvite? {
+        guard !TraktCommunity.shared.isAvailable else { return nil }
+        return TraktInvite.current(titleName: titleName)
+    }
+
+    /// Trakt connecting while the page shows (the account finished loading, or the viewer connected it) reloads the page once;
+    /// any other change shows or takes away the invitation.
+    private func accountChanged() {
+        let connected = TraktCommunity.shared.isAvailable
+        defer { wasConnected = connected }
+        if connected {
+            if !wasConnected { onConnected?() }
+        } else if snapshot != nil {
+            adopt(nil)
+        } else {
+            reshapeIfNeeded()
+        }
+    }
+
+    /// Not Now faded the invitation out: the focus it held goes back to the page and the page closes the gap.
+    private func inviteDismissed() {
+        if invite.containsFocus, let host { host.window?.focus.focus(host, animated: false) }
+        reshapeIfNeeded()
     }
 
     /// Loads `ratingKey`'s community, showing the cached one at once when it is fresh.
@@ -74,8 +115,12 @@ final class CommunitySection {
         }
     }
 
-    /// The community's sections, each only when it has something to show.
+    /// The community's sections, each only when it has something to show, or the invitation to connect Trakt.
     var views: [View] {
+        if let invitation {
+            invite.apply(invitation)
+            return [heading, inviteRow]
+        }
         guard snapshot != nil, TraktCommunity.shared.isAvailable else { return [] }
         var views: [View] = []
         if hasPulse || hasAspects { views.append(heading) }

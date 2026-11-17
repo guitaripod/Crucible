@@ -56,6 +56,7 @@ class DetailScreen: ScreenView {
             self.rootView?.contentScrolled(offset: offset)
         }
         synopsis.onMore = { [weak self] in self?.presentSynopsis() }
+        community.onConnected = { [weak self] in self?.reload() }
         state.isHidden = true
         if let placeholder {
             hero.configure(HeroInfo(title: placeholder.title), animated: false)
