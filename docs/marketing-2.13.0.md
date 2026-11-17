@@ -38,5 +38,9 @@ New covers everything after 2.12.0, including the work that only ever reached Te
   `202611171245` attached, review notes pushed with `asc review details-update`, `asc validate` with no errors (the
   annual subscription's promotional-image warning and the unverifiable App Privacy publish state are the same as
   2.12.0's), submitted 2026-11-17T11:31Z, release on approval: submission `c13cb2cc-02d6-45ff-9fdf-f96d2dd808fe`.
-- Tag `2.13.0` names 081b30ee, the commit the build came from. The Apple TV app is not in this submission; its 2.13.0
-  build `202611152013` is in TestFlight.
+- Apple TV 2.13.0 (tvOS) staged from 2.12.0's localizations with What's New and promotional text in all 21 locales
+  (`store/metadata/tvos/version/2.13.0/`), review notes `store/review-notes-tvos-2.13.0.txt`, build `202611152013`
+  attached, the Apple TV screenshot set read back COMPLETE, submitted 2026-11-17T11:38Z: submission
+  `9a5d190c-b3c1-4864-a919-ae4cf405c0de`, release on approval.
+- Tag `2.13.0` names 081b30ee, the commit the iOS build came from; the Apple TV build `202611152013` came from
+  9c7b65cd, which carries every tvOS change in this release.

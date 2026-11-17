@@ -1,0 +1,25 @@
+WHAT'S NEW IN 2.13.0 (Apple TV; follows 2.12.0 on the store)
+- Welcome: the first time a library opens on an Apple TV after a new install (never after an update, never in the demo), it names the server, says where the viewer stands with Crucible Pro and what that holds, then what Trakt adds, with Connect Trakt; Start Watching or Menu closes it.
+- Trakt on a title page: while Trakt is not connected, a title's Community place shows Trakt's mark, what connecting adds to that title and Connect Trakt, with Not Now to put it away on this Apple TV; the page reads itself again once Trakt connects.
+- Translation: Trakt's comments and What People Say translate on Apple TV with Apple Intelligence's on-device model, with a translation row in each thread, Translate to English in the composer and Settings > Translation.
+- Skeletons: collections, playlists, a person's films, and Trakt's comments and member pages load behind skeleton cards and rows drawn in their own shape instead of a spinner.
+- Live updates: returning to the app re-reads Home and every page, another device pausing or stopping updates them live, and playback starts where the server has the title now.
+- Player: a click on the clickpad's side lands on the set skip distance, a hold does only its jump, the Up Next card no longer goes missing or counts down after a credits skip, changing playbacks no longer cuts to black, the sleep timer fades and ends on the dot.
+- Fixed: a trailer watched to its end no longer counts as a finished film toward the Pro week; the Trakt invitation waits for the account to load.
+
+Crucible is a client for the user's own Plex Media Server and has no content of its own. Plex needs a Plex Pass or Remote Watch Pass to stream away from home, so I cannot give App Review a working account and server. The demo runs a fictional Plex server inside the app (Guideline 2.1(a)): no account, server or network needed.
+
+START THE DEMO
+Welcome screen > "Try the demo" > "Start exploring". Account types and settings are under You.
+
+WHERE THE NEW THINGS ARE
+- Welcome: once per install, so the demo path skips it; a debug build stages it with CRUCIBLE_FRESH=1 CRUCIBLE_WELCOME=1.
+- Trakt invitation: with Trakt disconnected (Settings > Integrations > Trakt), open any title's Community place.
+- Translation: Trakt's stand-in is at Settings > Integrations > Trakt > Connect; open Movies > Halcyon and scroll to the community, then select a comment's Translate row. It needs an Apple TV whose system supports Apple Intelligence.
+- Player: play anything; the clickpad's side clicks and holds use the skip distance set in Settings > Playback, and the next episode's card appears at the end of an episode.
+
+CRUCIBLE PRO
+com.guitaripod.crucible.pro.lifetime, non-consumable, $17.99 (rises to $39.99 on December 7, 2026); com.guitaripod.crucible.pro.yearly, auto-renewable, $7.99 a year ($14.99 for new subscribers from December 7, 2026), no free trial. Both approved; universal purchase covers iPhone and iPad. Playback is never gated.
+
+OTHER NOTES
+Local network access reaches servers on the home network; App Transport Security allows arbitrary loads because Plex servers on private addresses use HTTP or self-signed HTTPS. No third-party SDK. Data: an anonymous Midgar ID for purchases and, only when the person asks Crucible's AI, what the privacy policy and App Privacy answers describe; what they write in Trakt Community goes to their own Trakt account. Crucible uses Trakt but is not endorsed or certified by Trakt.
