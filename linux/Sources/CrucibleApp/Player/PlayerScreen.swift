@@ -93,7 +93,7 @@ final class PlayerScreen: View {
     var spdifCodecs: [String] = []
     /// Direct play failed on this file, so every stream from now on is converted by the server.
     var convertsAfterFailure = false
-    private var failurePolicy = PlaybackFailurePolicy()
+    var failurePolicy = PlaybackFailurePolicy()
     var heals = HealBudget()
     var pingTask: Task<Void, Never>?
     var sessionWatch: SessionWatch?
@@ -156,25 +156,25 @@ final class PlayerScreen: View {
     private var triggerScrub: Task<Void, Never>?
     var holdHandled = false
     /// Where the last seek went and when, so presses that come before the player has got there add up.
-    private var seekTarget: (position: Double, at: ContinuousClock.Instant)?
-    private var chrome = Animated(1)
-    private var hideTask: Task<Void, Never>?
+    var seekTarget: (position: Double, at: ContinuousClock.Instant)?
+    var chrome = Animated(1)
+    var hideTask: Task<Void, Never>?
     /// Whether the player was paused at its last report, to start the chrome's rest when playback resumes: mpv reports
     /// the change a moment after Space or a click asked for it, too late for the rest those start.
     private var wasPaused = true
     var resolveTask: Task<Void, Never>?
-    private var reportTask: Task<Void, Never>?
-    private var heartbeatTask: Task<Void, Never>?
-    private var revealTask: Task<Void, Never>?
+    var reportTask: Task<Void, Never>?
+    var heartbeatTask: Task<Void, Never>?
+    var revealTask: Task<Void, Never>?
     var metadataTask: Task<Void, Never>?
-    private var lastReportedState: String?
-    private var watchers: [PlaybackWatching] = []
-    private var watchersStarted = false
+    var lastReportedState: String?
+    var watchers: [PlaybackWatching] = []
+    var watchersStarted = false
     private var lastClick: Date?
-    private(set) var closed = false
+    var closed = false
     var controls: MediaControls?
     var artworkFile: URL?
-    private var alert: AlertView?
+    var alert: AlertView?
 
     init(source: Source) {
         self.source = source
@@ -255,7 +255,7 @@ final class PlayerScreen: View {
 
     // MARK: Playback
 
-    private func start() {
+    func start() {
         guard let window, let loop = window.loop else { return }
         PlayerScreen.active = self
         if run.beganWindowed == nil { run.beganWindowed = !window.isFullscreen }
@@ -485,460 +485,6 @@ final class PlayerScreen: View {
         player?.addSubtitle(url, title: subtitle.displayTitle)
     }
 
-    /// Answers a failed stream as `PlaybackSession` does: a file that fails to play as it is gets converted by the server
-    /// from the playhead, once; anything else says so with Retry, and stops keeping the dead session alive, whose ping would
-    /// otherwise rebuild it behind the error every 20 seconds.
-    private func recover(from message: String) {
-        switch failurePolicy.decide(wasDirectPlay: stream?.isDirectPlay ?? false, isOffline: false) {
-        case .fallBackToTranscode:
-            fallBackToTranscode(after: message)
-        case .ignore:
-            break
-        case .restartTranscode, .fail:
-            pingTask?.cancel()
-            presentFailure(message, retry: { [weak self] in self?.retryFromPlayhead() })
-        }
-    }
-
-    /// Plays the file converted by the server from where direct play stopped, or from the resume point when it never started.
-    private func fallBackToTranscode(after message: String) {
-        guard case .plex(_, let item, let resumePosition) = source else { return }
-        let start = PlaybackFailurePolicy.fallbackStart(lastAbsolute: position, resumePosition: resumePosition)
-        MidgarLog.notice("Direct play of \(item.id) failed (\(message)); converting from \(Int(start)) s", category: .playback)
-        convertsAfterFailure = true
-        reloadStream(at: start, freshSession: false) { [weak self] in
-            self?.failurePolicy.recordFailure()
-            self?.presentFailure(message, retry: { [weak self] in self?.retryFromPlayhead() })
-        }
-    }
-
-    /// Plays again from where it failed, in the same tracks.
-    private func retryFromPlayhead() {
-        failurePolicy = PlaybackFailurePolicy()
-        guard stream != nil else {
-            resolveFirstStream()
-            return
-        }
-        let at = position
-        reloadStream(at: at, freshSession: true) { [weak self] in
-            self?.presentFailure(String(localized: "The server didn’t answer."), retry: { [weak self] in self?.retryFromPlayhead() })
-        }
-    }
-
-    /// Playback Error with Retry and Close (`TVPlayerCoordinator.presentFailure`); Escape closes. One alert at a time.
-    func presentFailure(_ message: String, retry: (() -> Void)?) {
-        guard alert == nil, !closed, let window else { return }
-        var actions = [AlertView.Action(String(localized: "Close", comment: "Alert button that dismisses the error"), role: .cancel) { [weak self] in
-            self?.alert = nil
-            self?.close()
-        }]
-        if let retry {
-            actions.insert(AlertView.Action(String(localized: "Retry")) { [weak self] in
-                self?.alert = nil
-                retry()
-            }, at: 0)
-        }
-        let shown = AlertView(title: String(localized: "Playback Error"), message: String(localized: "This video couldn’t be played.\n\(message)"),
-                              actions: actions)
-        alert = shown
-        shown.present(in: window)
-    }
-
-    /// A drag along the scrubber: playback holds while it moves, and the picture follows the pointer by keyframe seeks when
-    /// seeks on this file land quickly; from a slow source (a spinning disk behind the server) the preview stills carry the
-    /// drag instead. Letting go seeks exactly, shows the still for that moment until the picture arrives, and plays on if
-    /// it was playing. The place it started from is kept for Go Back, and the server and Trakt hear nothing of the hold.
-    private func scrub(to fraction: Float, phase: TransportView.ScrubPhase) {
-        guard duration > 0 else { return }
-        let target = Double(fraction) * duration
-        switch phase {
-        case .began:
-            scrubOrigin = position
-            scrubResumes = player?.state.isPaused == false
-            if scrubResumes { player?.setPaused(true) }
-            if dragMovesPicture { seek(to: target, mode: .keyframe) }
-        case .moved:
-            if dragMovesPicture { seek(to: target, mode: .keyframe) }
-        case .ended:
-            seek(to: target)
-            if scrubResumes { player?.setPaused(false) }
-            if let scrubOrigin { noteJump(from: scrubOrigin, to: target) }
-            scrubOrigin = nil
-            scrubResumes = false
-        }
-    }
-
-    /// `CRUCIBLE_PLAYER_SLEEP_TIMER=<seconds>` starts with a timed sleep timer that runs out that many seconds later (`end`
-    /// for one that stops at the end of the item), and `CRUCIBLE_PLAYER_UNATTENDED=<n>` as if `n` episodes had played with
-    /// nobody at the keyboard, so headless checks reach the end of a timer and "Still watching?" without waiting for them.
-    private func applyTestPresets() {
-        let environment = ProcessInfo.processInfo.environment
-        if let value = environment["CRUCIBLE_PLAYER_SLEEP_TIMER"], run.sleepTimer == nil {
-            if value == "end" {
-                sleepTimer = SleepTimer(choice: .endOfItem)
-            } else if let seconds = Double(value) {
-                sleepTimer = SleepTimer(choice: .minutes(15), now: Date().addingTimeInterval(seconds - 15 * 60))
-            }
-            transport.isSleepTimerSet = sleepTimer != nil
-        }
-        if let count = environment["CRUCIBLE_PLAYER_UNATTENDED"].flatMap(Int.init) {
-            run.unattendedEpisodes = count
-            run.viewerActedThisEpisode = false
-        }
-    }
-
-    // MARK: Pre-roll
-
-    private func showPreroll() {
-        let headline = prerollHeadline
-        let shown = PrerollView(title: headline.title, subtitle: headline.subtitle, posterPath: headline.posterPath)
-        preroll = shown
-        insertSubview(shown, below: transport)
-        chrome.reset(0)
-        pacePlayheadReports()
-        setNeedsLayout()
-        revealTask = Task { [weak self] in
-            try? await Task.sleep(for: PrerollView.revealTimeout)
-            guard let self, !Task.isCancelled else { return }
-            self.revealPicture()
-        }
-    }
-
-    /// The pre-roll's title and its episode or year line, before the server's full record arrives.
-    var prerollHeadline: (title: String, subtitle: String?, posterPath: String?) {
-        switch source {
-        case .file(_, let title):
-            return (title, nil, nil)
-        case .plex(_, let item, _):
-            if let show = item.grandparentTitle {
-                let code = Formatters.episodeCode(item.parentIndex, item.index)
-                return (item.title, [show, code].compactMap { $0 }.joined(separator: " · "), item.grandparentThumb ?? item.thumb)
-            }
-            let line = [item.year.map(String.init), item.contentRating].compactMap { $0 }.joined(separator: " · ")
-            return (item.title, line.isEmpty ? nil : line, item.thumb)
-        }
-    }
-
-    /// Dissolves from the pre-roll into the picture, the transport coming up with it.
-    private func revealPicture() {
-        revealTask?.cancel()
-        guard let preroll, !preroll.isRevealed else { return }
-        preroll.reveal()
-        self.preroll = nil
-        showChrome(autoHide: true)
-    }
-
-    // MARK: Up Next
-
-    /// Asks for the next episode; shows the card, or plays at once when asked for, or what's next at the end with none.
-    func offerNext(_ reason: UpNextOffer.Reason) {
-        guard let resolver = upNext, case .plex(let api, _, _) = source else {
-            if reason == .playbackEnded { endOfPlayback() }
-            return
-        }
-        offerTask?.cancel()
-        offerTask = Task { [weak self] in
-            let answer = await Result { try await resolver.loadOffer(api: api, reason: reason) }
-            guard let self, !Task.isCancelled, !self.closed else { return }
-            if case .success(let found) = answer { self.nextKnown = found.map(NextKnown.offer) ?? .nothingNext }
-            guard case .success(let found) = answer, let offer = found else {
-                if reason == .playbackEnded { self.endOfPlayback() }
-                return
-            }
-            if reason == .requested {
-                self.playNext(offer, byViewer: true)
-            } else {
-                self.show(offer)
-            }
-        }
-    }
-
-    private func show(_ offer: UpNextOffer) {
-        card?.removeFromSuperview()
-        let next = UpNextCard(offer: offer, asksStillWatching: run.asksStillWatching, stopsAfterItem: sleepTimer?.stopsAtEndOfItem == true)
-        next.onPlay = { [weak self] byViewer in self?.playNext(offer, byViewer: byViewer) }
-        next.onLeave = { [weak self] in
-            self?.viewerActed()
-            if offer.playbackEnded { self?.close() } else { self?.dismissCard() }
-        }
-        card = next
-        addSubview(next)
-        setNeedsLayout()
-        next.appearNow()
-        window?.focus.focus(next, animated: false)
-        showChrome(autoHide: true)
-    }
-
-    /// `CRUCIBLE_UPNEXT_DEMO=1` with a local file shows the Up Next card two seconds in, for headless checks of its look.
-    private func showDemoUpNextIfAsked() {
-        guard ProcessInfo.processInfo.environment["CRUCIBLE_UPNEXT_DEMO"] == "1" else { return }
-        let json = #"{"ratingKey":"demo-2","key":"/library/metadata/2","type":"episode","title":"What the Bees Know","index":2,"parentIndex":1}"#
-        guard let episode = try? JSONDecoder().decode(PlexMetadata.self, from: Data(json.utf8)) else { return }
-        Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
-            self?.show(UpNextOffer(episode: episode, seasonRatingKey: "demo", reason: .credits, autoplays: true))
-        }
-    }
-
-    func dismissCard() {
-        card?.stopCounting()
-        card?.removeFromSuperview()
-        card = nil
-        window?.focus.focus(self, animated: false)
-    }
-
-    /// Ends this playback (the server hears it stopped) and hands the next episode, or the playlist's next entry, on with the
-    /// run it continues.
-    private func playNext(_ offer: UpNextOffer, byViewer: Bool) {
-        let next = run.advancing(byViewer: byViewer, languages: trackLanguages, sleepTimer: sleepTimer, queue: offer.queue)
-        let hand = onPlayNext
-        onClose = nil
-        close()
-        hand?(offer.episode, next)
-    }
-
-    private var showTitle: String? {
-        if case .plex(_, let item, _) = source { return item.grandparentTitle }
-        return nil
-    }
-
-    private func perform(_ command: MediaControls.Command) {
-        guard let player else { return }
-        switch command {
-        case .playPause: togglePause()
-        case .play: player.setPaused(false)
-        case .pause: player.setPaused(true)
-        case .stop: close()
-        case .seek(let offset):
-            guard offset != 0 else { return }
-            seek(to: playhead + Double(offset > 0 ? Preferences.skipForwardSeconds : -Preferences.skipBackSeconds))
-        case .setPosition(let target): seek(to: target)
-        case .next: offerNext(.requested)
-        case .previous: startOver()
-        case .raise: window?.raise()
-        case .quit: MediaControls.onQuit?()
-        }
-    }
-
-    func togglePause() {
-        player?.togglePause()
-    }
-
-    /// Seeks to `absolute` on the title's timeline; a long exact jump shows the preview still there until the picture lands.
-    /// A converted stream starts where the server began it, so a place before that asks the server for the stream again
-    /// from there (a drag waits for its release).
-    func seek(to absolute: Double, mode: VideoPlayer.SeekMode = .exact) {
-        let target = min(max(absolute, 0), max(duration - 1, 0))
-        if let stream, !stream.isDirectPlay, target < streamOffset - 0.5 {
-            guard mode == .exact else { return }
-            seekTarget = (target, .now)
-            veil(at: target)
-            reloadStream(at: target, freshSession: false, paused: player?.state.isPaused ?? false)
-            return
-        }
-        if mode == .exact, abs(target - position) >= Self.jumpWorthReturning { veil(at: target) }
-        seekTarget = (target, .now)
-        player?.seek(to: target - streamOffset, mode: mode)
-        controls?.seeked(to: target)
-        showChrome(autoHide: true)
-    }
-
-    /// Back to the start of the title, playing on if it was playing.
-    func startOver() {
-        seek(to: 0)
-    }
-
-    // MARK: Skipping
-
-    /// Shows Skip Intro or Skip Credits inside a segment, or skips it at once when Settings say so (once per segment, so
-    /// seeking back into it plays it), then offers Undo Skip for a few seconds.
-    private func updateSkip() {
-        if let undo {
-            if ContinuousClock.now < undo.until { return }
-            self.undo = nil
-        }
-        let now = position
-        if let segment = segments.first(where: { now >= $0.startSecs && now < $0.endSecs - 1 }), card == nil {
-            let automatic = segment.isCredits ? Preferences.skipOutroMode == .automatic : Preferences.skipIntroMode == .automatic
-            let off = segment.isCredits ? Preferences.skipOutroMode == .off : Preferences.skipIntroMode == .off
-            if off { return }
-            if automatic, !segment.isCredits, !autoSkipped.contains(segment) {
-                autoSkipped.insert(segment)
-                seek(to: segment.endSecs)
-                offerUndo(returningTo: now)
-                return
-            }
-            showSkip(title: segment.title, symbol: "forward.end.fill")
-        } else if !skip.isHidden {
-            skip.isHidden = true
-        }
-    }
-
-    private func showSkip(title: String, symbol: Symbol) {
-        skip.title = title
-        skip.symbol = symbol
-        if skip.isHidden {
-            skip.isHidden = false
-            setNeedsLayout()
-        }
-    }
-
-    private func offerUndo(returningTo position: Double) {
-        undo = (position, ContinuousClock.now.advanced(by: PlaybackTiming.autoSkipUndoWindow))
-        showSkip(title: String(localized: "Undo Skip"), symbol: "arrow.uturn.backward")
-    }
-
-    func skipSegment() {
-        if let undo {
-            self.undo = nil
-            skip.isHidden = true
-            seek(to: undo.returnTo)
-            return
-        }
-        let now = position
-        guard let segment = segments.first(where: { now >= $0.startSecs && now < $0.endSecs }) else { return }
-        if segment.isCredits && segment.endSecs >= duration - 2 {
-            close()
-        } else {
-            seek(to: segment.endSecs)
-        }
-    }
-
-    // MARK: Timeline
-
-    /// The integrations that follow this title (Trakt scrobbling), made once for it: a stream restarted mid-play keeps
-    /// them, so a play is never started twice.
-    private func startWatchers(for item: PlexMetadata, api: APIClient) {
-        guard !watchersStarted else { return }
-        watchersStarted = true
-        watchers = Integrations.playbackWatchers(for: PlaybackSubject(
-            ratingKey: item.id, mediaType: item.mediaType, showRatingKey: item.grandparentRatingKey, title: item.title,
-            showTitle: item.grandparentTitle, seasonNumber: item.parentIndex, episodeNumber: item.index, durationSecs: duration,
-            server: ServerBootstrap.savedMachineIdentifier ?? "", api: api))
-    }
-
-    private func startReporting() {
-        reportTask?.cancel()
-        reportTask = Task { [weak self] in
-            while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: UInt64(PlaybackTiming.timelineInterval * 1_000_000_000))
-                guard let self, !Task.isCancelled else { return }
-                self.report(self.player?.state.isPaused == true ? "paused" : "playing")
-            }
-        }
-    }
-
-    /// Beats four times a second for as long as the player is open: the sleep timer counts and fades on it, and a beat that
-    /// comes long after the last one means the machine slept, which brings the player back where it was.
-    private func startHeartbeat() {
-        heartbeatTask = Task { [weak self] in
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .milliseconds(250))
-                guard let self, !Task.isCancelled else { return }
-                self.beat()
-            }
-        }
-    }
-
-    @discardableResult
-    func report(_ playbackState: String) -> Task<Void, Never>? {
-        guard stream != nil, duration > 0, case .plex(let api, let item, _) = source else { return nil }
-        lastReportedState = playbackState
-        let endpoint = PlexEndpoint.timeline(ratingKey: item.id, state: playbackState, timeMs: Int(position * 1000), durationMs: Int(duration * 1000))
-        return Task {
-            do {
-                try await api.requestVoid(endpoint)
-            } catch {
-                MidgarLog.error("Timeline report failed: \(error)", category: .playback)
-            }
-        }
-    }
-
-    /// Stops playback, tells the server where it stopped and leaves.
-    func close() {
-        guard !closed else { return }
-        closed = true
-        MatchContent.release()
-        resolveTask?.cancel()
-        reportTask?.cancel()
-        heartbeatTask?.cancel()
-        pingTask?.cancel()
-        revealTask?.cancel()
-        metadataTask?.cancel()
-        hideTask?.cancel()
-        offerTask?.cancel()
-        card?.stopCounting()
-        alert?.dismiss()
-        alert = nil
-        contextMenu?.dismiss()
-        calibration?.removeFromSuperview()
-        calibration = nil
-        let finished = WatchedRule.isFinished(positionSecs: position, durationSecs: duration, creditsStartSecs: upNext?.creditsStartSecs)
-        watchers.forEach { $0.playback(.stopped(position: position, finished: finished, at: Date())) }
-        if finished { recordFinish() }
-        watchers = []
-        if let stopped = report("stopped") {
-            let pending = Task { @MainActor in
-                await stopped.value
-                PlayerScreen.pendingStop = nil
-            }
-            PlayerScreen.pendingStop = pending
-        }
-        if let stream, !stream.isDirectPlay, case .plex(let api, _, _) = source {
-            let session = stream.sessionId
-            Task { try? await api.requestVoid(.stopTranscode(session: session)) }
-        }
-        player?.stop()
-        player?.shutDown()
-        player = nil
-        controls?.close()
-        controls = nil
-        sessionWatch?.close()
-        sessionWatch = nil
-        ScreenAwake.hold(false, in: window)
-        window?.setCursor(.default)
-        window?.onDisplayColorChange = nil
-        restoreWindow()
-        onClose?()
-    }
-
-    /// Takes the window back out of full screen as the sitting's last title closes, whichever way it closes, when the sitting
-    /// began in a window; a hand-over to the next title (no `onClose`) keeps it full screen.
-    private func restoreWindow() {
-        guard onClose != nil, run.beganWindowed == true else { return }
-        _ = LinuxDisplay.leaveFullscreen(window)
-    }
-
-    /// Notes a finished movie or episode in the ledger behind Rate What You Watched and the shows the viewer follows
-    /// (`PlaybackSession.recordFinish`): an episode closed its season when the next one belongs to another season, and
-    /// closed the show when there was nothing next; a playlist's entries close neither.
-    private func recordFinish() {
-        guard case .plex(_, let item, _) = source else { return }
-        let kind: FinishedTitle.Kind
-        switch item.mediaType {
-        case "movie": kind = .movie
-        case "episode": kind = .episode
-        default: return
-        }
-        var endedShow = false
-        var endedSeason = false
-        if kind == .episode, run.queue == nil {
-            switch nextKnown {
-            case .offer(let offer):
-                endedSeason = offer.episode.parentIndex != nil && offer.episode.parentIndex != item.parentIndex
-            case .nothingNext:
-                endedShow = true
-            case nil:
-                break
-            }
-        }
-        FinishedTitlesLedger.shared.record(FinishedTitle(
-            ratingKey: item.id, kind: kind, title: item.title, showTitle: item.grandparentTitle, showRatingKey: item.grandparentRatingKey,
-            seasonNumber: item.parentIndex, episodeNumber: item.index, posterPath: item.thumb, showPosterPath: item.grandparentThumb,
-            finishedAt: Date(), endedShow: endedShow, endedSeason: endedSeason, librarySectionID: item.librarySectionID
-        ), server: ServerBootstrap.savedMachineIdentifier)
-    }
-
     // MARK: Chrome
 
     /// Whether the transport is showing or on its way in.
@@ -997,7 +543,7 @@ final class PlayerScreen: View {
     /// The player's reports while the playhead is on screen (the transport up, or the mini player's bar) come every frame;
     /// with it hidden, four a second do for the skip button, the credits and the session controls, and the window is not
     /// drawn again for each frame's report besides the picture.
-    private func pacePlayheadReports() {
+    func pacePlayheadReports() {
         player?.progressInterval = chromeShown || isMini ? 0 : 0.25
     }
 
