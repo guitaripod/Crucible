@@ -328,6 +328,9 @@ enum Fixture {
         let library = WebLibrary(file: file)
         #expect(library.subscribe(toAll: fromTakeout) == 2)
         #expect(library.subscribe(toAll: fromTakeout + fromOPML) == 0)
+        let exported = WebSubscriptionImport.channels(in: WebSubscriptionImport.opml([WebChannel(id: "UCsXVk37bltHxD1rDPwtNM8Q", title: "Tom & \"Co\"")]))
+        #expect(exported.map(\.id) == ["UCsXVk37bltHxD1rDPwtNM8Q"])
+        #expect(exported.first?.title == "Tom & \"Co\"")
         library.flush()
     }
 }

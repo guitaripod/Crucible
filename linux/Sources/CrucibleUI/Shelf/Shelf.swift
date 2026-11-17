@@ -374,6 +374,8 @@ public final class CardGridView: View {
     public var aspect: Float = 1.5 { didSet { if aspect != oldValue { setNeedsLayout() } } }
     /// A fixed number of columns (Search's six posters or four episodes) in place of as many as fit.
     public var columns: Int? { didSet { if columns != oldValue { setNeedsLayout() } } }
+    /// How many lines a card's title takes, in place of the grid's own choice (two for web videos, whose titles run long).
+    public var titleLines: Int? { didSet { if titleLines != oldValue { setNeedsLayout() } } }
     public var onActivate: ((CardItem) -> Void)?
     public var onFocus: ((CardItem) -> Void)?
     public var onPlay: ((CardItem) -> Bool)?
@@ -428,10 +430,11 @@ public final class CardGridView: View {
 
     /// The cards' geometry: as wide as a poster's area allows, or as `columns` share the width.
     private func gridStyle(width: Float) -> CardStyle {
-        guard let columns else { return CardStyle.grid(aspect: aspect, width: width) }
+        var style = CardStyle.grid(aspect: aspect, width: width)
+        if let titleLines { style.titleLines = titleLines }
+        guard let columns else { return style }
         let metrics = Theme.current.metrics
         let itemWidth = ((width - metrics.gutter * Float(columns - 1)) / Float(columns)).rounded(.down)
-        var style = CardStyle.grid(aspect: aspect, width: width)
         style.itemWidth = itemWidth
         style.artworkSize = Size(width: itemWidth, height: (itemWidth * aspect).rounded())
         return style

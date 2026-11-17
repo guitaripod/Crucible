@@ -258,8 +258,24 @@ package enum WebSubscriptionImport {
         return found
     }
 
+    /// The followed channels as an OPML list of their feeds, which feed readers and other YouTube apps take in.
+    package static func opml(_ channels: [WebChannel]) -> Data {
+        func escaped(_ text: String) -> String {
+            text.replacingOccurrences(of: "&", with: "&amp;").replacingOccurrences(of: "\"", with: "&quot;").replacingOccurrences(of: "<", with: "&lt;")
+                .replacingOccurrences(of: ">", with: "&gt;")
+        }
+        var lines = ["<?xml version=\"1.0\" encoding=\"UTF-8\"?>", "<opml version=\"1.1\">", "<body>", "<outline text=\"YouTube Subscriptions\" title=\"YouTube Subscriptions\">"]
+        for channel in channels {
+            let name = escaped(channel.title)
+            let feed = escaped(WebFeed.address(channelID: channel.id)?.absoluteString ?? "")
+            lines.append("<outline text=\"\(name)\" title=\"\(name)\" type=\"rss\" xmlUrl=\"\(feed)\" htmlUrl=\"\(escaped(channel.url))\" />")
+        }
+        lines += ["</outline>", "</body>", "</opml>", ""]
+        return Data(lines.joined(separator: "\n").utf8)
+    }
+
     /// The first YouTube channel ID in `text`: "UC" and the twenty-two characters after it.
-    static func channelID(in text: String) -> String? {
+    package static func channelID(in text: String) -> String? {
         let allowed = Set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-")
         var search = Substring(text)
         while let start = search.range(of: "UC") {
