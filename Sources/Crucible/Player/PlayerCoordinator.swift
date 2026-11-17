@@ -943,7 +943,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         playerVC = nil
         isPresenting = false
         windowTabBar?.updateWindowTitle()
-        if let finalPosition, session.hasFinished(at: finalPosition) {
+        if let finalPosition, session.hasFinished(at: finalPosition), !request.isExtra {
             PlaybackOffer.offerAfterFinishing(over: presentingVC)
         }
     }
