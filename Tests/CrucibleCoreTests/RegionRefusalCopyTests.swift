@@ -8,6 +8,6 @@ struct RegionRefusalCopyTests {
     }
 
     @Test func previouslyOnShowsTheNeutralRegionLine() {
-        #expect(DescribedRecap.failure(.unavailableInRegion) == "Not available in your region.")
+        #expect(DescribedRecapCopy.failure(.unavailableInRegion) == "Not available in your region.")
     }
 }
