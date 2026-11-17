@@ -9,6 +9,8 @@ license=('GPL-3.0-only')
 depends=('vulkan-icd-loader' 'wayland' 'libxkbcommon' 'libxkbcommon-x11' 'libxcb' 'pango' 'cairo' 'fontconfig' 'libjpeg-turbo' 'libpng' 'libwebp' 'librsvg' 'giflib'
          'libsecret' 'qrencode' 'systemd-libs' 'ffmpeg' 'libass' 'shaderc' 'lcms2' 'libplacebo' 'pipewire' 'xdg-utils' 'sqlite' 'curl' 'openssl' 'libxml2' 'sdl3')
 optdepends=('noto-fonts-emoji: emoji in comments, reactions and titles drawn in colour'
+            'yt-dlp: YouTube and other web video'
+            'deno: lets yt-dlp read YouTube'
             'noto-fonts-cjk: Chinese, Japanese and Korean titles and names')
 makedepends=('git' 'meson' 'ninja' 'patchelf' 'imagemagick' 'vulkan-headers' 'swift-language' 'cargo')
 conflicts=('crucible-git')

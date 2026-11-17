@@ -13,6 +13,7 @@ Design for a Linux client that looks and behaves like the Apple TV app, on a des
 | D3 | Language | 2026-11-15: Swift (§2) |
 | D4 | Primary input | 2026-11-15: mouse and keyboard first. Gamepad, remote-style keys and the TV are a plus, never at the desk's expense (§5.4) |
 | D5 | Glass | 2026-11-15: Kiln draws Liquid Glass, not a blur stand-in (§5.7) |
+| D6 | Web video | 2026-11-17: the Linux client plays YouTube and whatever else yt-dlp reads, as a destination beside the libraries, built on open tools (yt-dlp, mpv, SponsorBlock) and never on a site's API or account. It exists on Linux only: none of its code or words is in any target or catalog the Apple apps build from (§14) |
 
 The bar is the best media client on any desktop: nothing ships that looks or feels worse than the Apple TV app it mirrors.
 
@@ -187,6 +188,7 @@ Reduce Transparency (the desktop setting, read through the portal) turns every v
 
 - **Menu and shortcuts**, taken from the iPad's `AppCommand` and `AppMenu` with Ctrl for Command: a menu button in the tab bar (and F10) opens Go, View, Media and Settings, each item showing its shortcut. Ctrl+1 to 4 (tabs), Ctrl+F or `/` (search), Alt+Left and Alt+Right (back and forward), Ctrl+R (refresh), Ctrl+plus and minus (poster size), Ctrl+N (new window), Ctrl+comma (settings), F11 (fullscreen), and in the player Space or K, J and L, Left and Right, S (skip intro or credits), N (next episode), F (fullscreen), M (mute), Up and Down (volume) and Escape. Ctrl+? shows the full list, as the iPad's Command-key overlay does.
 - **Windows:** several windows share one connection, as on the iPad (`SceneDelegate.launchLeader`); each restores its tab and screen, and a title opens in a new window from its context menu or by middle click.
+- **Only on Linux:** web video, the YouTube destination and Open Link (§14).
 - **Not on Linux:** Top Shelf, widgets, the Live Activity and downloads. Downloads can follow later; the others have no Linux equivalent worth building.
 
 ## 7. Playback
@@ -355,3 +357,55 @@ Feature parity is tracked row by row in `linux/PARITY.md` (audited 2026-11-15; `
 | GRDB's Linux support is contributor-maintained and not in GRDB's CI | Crucible's Linux CI runs the statistics tests |
 | An engine is more code than a toolkit | It is bounded by the design system's twenty components, and the gallery plus golden images keep it honest |
 | Inter's line heights differ from SF Pro's | Tokens keep point sizes; parity captures catch layout shifts |
+| A site changes and web video stops playing | Crucible carries no site's protocol: yt-dlp is the viewer's own, found on `PATH`, and updating it is the fix. A refused stream falls to the next best one, and Settings › Web Video shows the yt-dlp in use (§14) |
+| Web video reaching a store build, where a site's terms and the stores' rules forbid it | Its code is in Linux-only targets, its words in `Web.xcstrings`, which no Apple project lists; the Apple apps have no web video and are not meant to get any (§14.1) |
+
+## 14. Web video
+
+The Linux client is free and open, so it can do what mpv and yt-dlp have long done on a desktop: play a site's video in a proper player. YouTube is a destination in the sidebar and the tab bar; any other link plays through Open Link. Playing a site's video outside its own player is against most sites' terms, YouTube's among them, which is why this stays a Linux feature of a free client and is said plainly in Settings where an account comes into it.
+
+### 14.1 Where it lives
+
+| Piece | Where | What it holds |
+| --- | --- | --- |
+| `CrucibleWeb` | `linux/Sources/CrucibleWeb`, a Linux-only library with no UI | The yt-dlp runner, what yt-dlp says of a video or a list, the stream picker, a channel's feed, SponsorBlock, links, the viewer's library and its imports |
+| Screens | `linux/Sources/CrucibleApp/Web` | The YouTube destination, a channel's page, lists, card menus, Open Link, Settings › Web Video, `WebService` (yt-dlp's answers kept, the subscriptions feed, captions) |
+| Player | `PlayerScreen+Web.swift` | The web source: it hands the player the same `ResolvedStream` a Plex title has, so chapters, skips, menus, Stream Info and Match Content need no second implementation |
+| Words | `linux/Sources/CrucibleApp/Resources/Web.xcstrings` | Every string of the above in the sixteen languages, loaded after `Localizable.xcstrings` (`LocalizationCatalog.add`). The shared catalog, which the Apple apps ship, carries none of them |
+
+Nothing here is declared outside `linuxClient()` in `Package.swift`, and `Sources/` gained one Linux-only function (`LocalizationCatalog.add`).
+
+### 14.2 Facts that shape it
+
+| Fact | Source | Consequence |
+| --- | --- | --- |
+| One `yt-dlp -J` run takes about 2.3 s for a YouTube video, 0.5 s of it Python starting | Measured on arch, yt-dlp 2026.11.16 | One run per video, shared by every asker and kept 90 minutes (`WebService.video`); at most three runs at once (`YtDlpGate`); lists and feeds never open each video |
+| YouTube refuses some single-file streams for about four seconds after they were read (`available_at`); its segmented streams are served at once | Measured: HTTP 403 until then on one of two test videos | The picker ranks a stream that is ready before one that is held back, so playback starts with the segmented picture when the single file would mean waiting, and waits only when nothing else has the quality |
+| A site hands out the same picture in more than one way | yt-dlp lists both families | A stream that fails is left out and the next best plays (`WebSession.failed`); only then is yt-dlp asked again |
+| YouTube's WebVTT of automatic captions repeats every line as the words arrive; its SRT shows each line once; machine-translated captions answer 429 without an account | Measured | SRT first; automatic captions are offered only in the video's own language. Caption files are fetched into the cache and added from there, so mpv's command never waits on the network |
+| A channel's newest uploads are public at `youtube.com/feeds/videos.xml?channel_id=` and mark Shorts by their link | The feed itself | The subscriptions row is a hundred small requests, eight at a time, and no yt-dlp run; Shorts can be hidden without opening a video |
+| yt-dlp's wiki puts a guest at about 300 videos an hour and warns that an account used with it can be restricted or closed | yt-dlp wiki, Extractors | Nothing is fetched per card. Signing in is off by default, optional, through the browser's cookies, and the warning is shown before it turns on |
+| yt-dlp rounds frame rates (59.94 reads as 60) | Its JSON | Match Content engages on the site's rate, then again on the rate mpv measures once the file is open |
+
+### 14.3 Playback
+
+`WebFormatPicker` chooses as a web player's automatic quality would for a home screen: the tallest picture within the viewer's limit, the higher frame rate, HDR only on a screen that shows it, AV1 before VP9 before H.264, the original language, surround only when the sound output takes it (passthrough is set). A picture and a sound that come apart are joined for mpv as one title with an `edl://` address, as mpv's own yt-dlp hook does. The player's menu gains Quality; Audio lists the languages a video is dubbed in; Subtitles lists the publisher's tracks and the automatic one in the video's language.
+
+SponsorBlock is asked by the first four characters of the video ID's SHA-256, so it never learns which video is watched. Its stretches become the player's skip markers: skipped once on their own with Undo by default, offered as a button, or off (Settings). Scrub previews are cut from the site's storyboard sheets, a still uploaded straight from its rows of a sheet.
+
+### 14.4 The viewer's library
+
+Followed channels, Watch Later and progress are one file, `web/library.json` in the app's data folder, written a moment after each change and before quitting. No site hears of any of it. Subscriptions come in from Google Takeout, OPML, NewPipe, FreeTube and Invidious, and go out as OPML. With a browser's cookies set, the account's recommendations, Watch Later and liked videos become rows and chips, its channels can be followed in one step, and a finished video can be noted in its history.
+
+### 14.5 What leaves the machine
+
+| To | What | When |
+| --- | --- | --- |
+| The site (through yt-dlp) | The video, list or search asked for | On opening one. Search's words go to YouTube only when the viewer chooses Search YouTube |
+| `youtube.com/feeds` | A followed channel's ID | When the subscriptions feed is read, at most every fifteen minutes |
+| The site's image hosts | Thumbnail and storyboard addresses | As cards and the scrubber draw them. `WebArtwork` marks these addresses and fetches them apart from the server's artwork, so the Plex headers never go with them, whatever their host or path |
+| SponsorBlock | Four characters of a hash | Per video, unless Sponsor Segments is off |
+
+### 14.6 Testing
+
+`CrucibleWebTests` (24 tests) reads fixtures cut from real yt-dlp answers with every stream address replaced, since those carry the address of the machine that asked. `CRUCIBLE_PLAY_LINK=<address>` plays one link in a bare player for headless checks, and `linux/scripts/mock-session.sh` shows the destination beside the mock library.

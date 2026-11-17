@@ -16,6 +16,9 @@ reach CrucibleCore's package-level API. Design and plan: `../docs/LINUX.md`.
   Steam Input's own gamepad templates. On a Steam Deck, `linux/scripts/steamdeck.sh install` builds against SteamOS's
   own packages in a container and installs over SSH, `linux/scripts/steam-library.py` adds it to the running Steam with
   its artwork, and `linux/scripts/steamdeck-bench.py` measures it in Game Mode (`../docs/LINUX.md` §9.1).
+- `CrucibleWeb`: web video through yt-dlp, Linux only (`../docs/LINUX.md` §14): the runner, the stream picker, a
+  channel's feed, SponsorBlock and the viewer's own library. Its screens are in `Sources/CrucibleApp/Web`, and
+  `CRUCIBLE_PLAY_LINK=<address>` plays one link in a bare player.
 - `crucible-gallery`: every component with fixture content, in a window (keys 1 to 5 switch pages) or captured to PNG.
 - `kiln-spike`: the P0 spike, an FP16 scRGB window with a glass tab bar over a moving HDR scene, printing timings.
 - `Spikes/vulkan-video`: libmpv's `gpu-next` Vulkan render API on a Kiln-style device, with zero-copy decode.
