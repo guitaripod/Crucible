@@ -1,0 +1,1771 @@
+{
+ "id": "h6fcK_fRYaI",
+ "title": "The Egg - A Short Story",
+ "description": "The Egg\n\nStory by Andy Weir\nAnimated by kurzgesagt\n\nA big thanks to Andy Weir for allowing us to use his story.\nThe original was released here: http://www.galactanet.com/oneoff/theegg_mod.html\nVisit his website here: http://www.andyweirauthor.com/\n\nIf you want to support us, please check out those b",
+ "webpage_url": "https://www.youtube.com/watch?v=h6fcK_fRYaI",
+ "original_url": "https://www.youtube.com/watch?v=h6fcK_fRYaI",
+ "extractor_key": "Youtube",
+ "channel": "Kurzgesagt \u2013 In a Nutshell",
+ "channel_id": "UCsXVk37bltHxD1rDPwtNM8Q",
+ "channel_url": "https://www.youtube.com/channel/UCsXVk37bltHxD1rDPwtNM8Q",
+ "uploader": "Kurzgesagt \u2013 In a Nutshell",
+ "uploader_id": "@kurzgesagt",
+ "uploader_url": "https://www.youtube.com/@kurzgesagt",
+ "channel_follower_count": 25800000,
+ "channel_is_verified": true,
+ "duration": 486,
+ "view_count": 36537546,
+ "like_count": 2051229,
+ "comment_count": 184000,
+ "timestamp": 1567341002,
+ "upload_date": "20190901",
+ "thumbnail": "https://i.ytimg.com/vi_webp/h6fcK_fRYaI/maxresdefault.webp",
+ "live_status": "not_live",
+ "is_live": false,
+ "age_limit": 0,
+ "language": "en",
+ "chapters": [
+  {
+   "title": "Intro",
+   "start_time": 0.0,
+   "end_time": 41.0
+  },
+  {
+   "title": "The Conversation",
+   "start_time": 41.0,
+   "end_time": 402.0
+  },
+  {
+   "title": "Credits",
+   "start_time": 402.0,
+   "end_time": 486.0
+  }
+ ],
+ "heatmap": [],
+ "formats": [
+  {
+   "format_id": "sb3",
+   "format_note": "storyboard",
+   "ext": "mhtml",
+   "protocol": "mhtml",
+   "acodec": "none",
+   "vcodec": "none",
+   "url": "https://i.ytimg.com/sb/h6fcK_fRYaI/storyboard3_L0/default.jpg",
+   "width": 48,
+   "height": 27,
+   "fps": 0.205761316872428,
+   "rows": 10,
+   "columns": 10,
+   "fragments": [
+    {
+     "url": "https://i.ytimg.com/sb/h6fcK_fRYaI/storyboard3_L0/default.jpg",
+     "duration": 486.0
+    }
+   ],
+   "tbr": null,
+   "vbr": 0,
+   "abr": 0,
+   "filesize_approx": null,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "sb2",
+   "format_note": "storyboard",
+   "ext": "mhtml",
+   "protocol": "mhtml",
+   "acodec": "none",
+   "vcodec": "none",
+   "url": "https://i.ytimg.com/sb/h6fcK_fRYaI/storyboard3_L1/M$M.jpg",
+   "width": 80,
+   "height": 45,
+   "fps": 0.2037037037037037,
+   "rows": 10,
+   "columns": 10,
+   "fragments": [
+    {
+     "url": "https://i.ytimg.com/sb/h6fcK_fRYaI/storyboard3_L1/M0.jpg",
+     "duration": 486.0
+    }
+   ],
+   "tbr": null,
+   "vbr": 0,
+   "abr": 0,
+   "filesize_approx": null,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "sb1",
+   "format_note": "storyboard",
+   "ext": "mhtml",
+   "protocol": "mhtml",
+   "acodec": "none",
+   "vcodec": "none",
+   "url": "https://i.ytimg.com/sb/h6fcK_fRYaI/storyboard3_L2/M$M.jpg",
+   "width": 160,
+   "height": 90,
+   "fps": 0.2037037037037037,
+   "rows": 5,
+   "columns": 5,
+   "fragments": [
+    {
+     "url": "https://i.ytimg.com/sb/h6fcK_fRYaI/storyboard3_L2/M0.jpg",
+     "duration": 122.72727272727273
+    },
+    {
+     "url": "https://i.ytimg.com/sb/h6fcK_fRYaI/storyboard3_L2/M1.jpg",
+     "duration": 122.72727272727273
+    },
+    {
+     "url": "https://i.ytimg.com/sb/h6fcK_fRYaI/storyboard3_L2/M2.jpg",
+     "duration": 122.72727272727273
+    },
+    {
+     "url": "https://i.ytimg.com/sb/h6fcK_fRYaI/storyboard3_L2/M3.jpg",
+     "duration": 117.81818181818181
+    }
+   ],
+   "tbr": null,
+   "vbr": 0,
+   "abr": 0,
+   "filesize_approx": null,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "sb0",
+   "format_note": "storyboard",
+   "ext": "mhtml",
+   "protocol": "mhtml",
+   "acodec": "none",
+   "vcodec": "none",
+   "url": "https://i.ytimg.com/sb/h6fcK_fRYaI/storyboard3_L3/M$M.jpg",
+   "width": 320,
+   "height": 180,
+   "fps": 0.2037037037037037,
+   "rows": 3,
+   "columns": 3,
+   "fragments": [
+    {
+     "url": "https://i.ytimg.com/sb/h6fcK_fRYaI/storyboard3_L3/M0.jpg",
+     "duration": 44.18181818181818
+    },
+    {
+     "url": "https://i.ytimg.com/sb/h6fcK_fRYaI/storyboard3_L3/M1.jpg",
+     "duration": 44.18181818181818
+    },
+    {
+     "url": "https://i.ytimg.com/sb/h6fcK_fRYaI/storyboard3_L3/M2.jpg",
+     "duration": 44.18181818181818
+    },
+    {
+     "url": "https://i.ytimg.com/sb/h6fcK_fRYaI/storyboard3_L3/M3.jpg",
+     "duration": 44.18181818181818
+    },
+    {
+     "url": "https://i.ytimg.com/sb/h6fcK_fRYaI/storyboard3_L3/M4.jpg",
+     "duration": 44.18181818181818
+    },
+    {
+     "url": "https://i.ytimg.com/sb/h6fcK_fRYaI/storyboard3_L3/M5.jpg",
+     "duration": 44.18181818181818
+    },
+    {
+     "url": "https://i.ytimg.com/sb/h6fcK_fRYaI/storyboard3_L3/M6.jpg",
+     "duration": 44.18181818181818
+    },
+    {
+     "url": "https://i.ytimg.com/sb/h6fcK_fRYaI/storyboard3_L3/M7.jpg",
+     "duration": 44.18181818181818
+    },
+    {
+     "url": "https://i.ytimg.com/sb/h6fcK_fRYaI/storyboard3_L3/M8.jpg",
+     "duration": 44.18181818181818
+    },
+    {
+     "url": "https://i.ytimg.com/sb/h6fcK_fRYaI/storyboard3_L3/M9.jpg",
+     "duration": 44.18181818181818
+    },
+    {
+     "url": "https://i.ytimg.com/sb/h6fcK_fRYaI/storyboard3_L3/M10.jpg",
+     "duration": 44.18181818181818
+    }
+   ],
+   "tbr": null,
+   "vbr": 0,
+   "abr": 0,
+   "filesize_approx": null,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "233",
+   "format_note": "Default, low",
+   "ext": "mp4",
+   "protocol": "m3u8_native",
+   "vcodec": "none",
+   "url": "https://media.example/videoplayback?itag=233",
+   "tbr": null,
+   "vbr": 0,
+   "abr": null,
+   "language": "en",
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "234",
+   "format_note": "Default, high",
+   "ext": "mp4",
+   "protocol": "m3u8_native",
+   "vcodec": "none",
+   "url": "https://media.example/videoplayback?itag=234",
+   "tbr": null,
+   "vbr": 0,
+   "abr": null,
+   "language": "en",
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "139-drc",
+   "format_note": "low, DRC",
+   "ext": "m4a",
+   "protocol": "https",
+   "acodec": "mp4a.40.5",
+   "vcodec": "none",
+   "url": "https://media.example/videoplayback?itag=139-drc",
+   "width": null,
+   "height": null,
+   "fps": null,
+   "tbr": 48.795,
+   "vbr": 0,
+   "abr": 48.795,
+   "asr": 22050,
+   "dynamic_range": null,
+   "audio_channels": 2,
+   "language": "en",
+   "language_preference": -1,
+   "filesize": 2965117,
+   "filesize_approx": 2965101,
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "249-drc",
+   "format_note": "low, DRC",
+   "ext": "webm",
+   "protocol": "https",
+   "acodec": "opus",
+   "vcodec": "none",
+   "url": "https://media.example/videoplayback?itag=249-drc",
+   "width": null,
+   "height": null,
+   "fps": null,
+   "tbr": 53.259,
+   "vbr": 0,
+   "abr": 53.259,
+   "asr": 48000,
+   "dynamic_range": null,
+   "audio_channels": 2,
+   "language": "en",
+   "language_preference": -1,
+   "filesize": 3235634,
+   "filesize_approx": 3235624,
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "250-drc",
+   "format_note": "low, DRC",
+   "ext": "webm",
+   "protocol": "https",
+   "acodec": "opus",
+   "vcodec": "none",
+   "url": "https://media.example/videoplayback?itag=250-drc",
+   "width": null,
+   "height": null,
+   "fps": null,
+   "tbr": 69.846,
+   "vbr": 0,
+   "abr": 69.846,
+   "asr": 48000,
+   "dynamic_range": null,
+   "audio_channels": 2,
+   "language": "en",
+   "language_preference": -1,
+   "filesize": 4243364,
+   "filesize_approx": 4243327,
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "139",
+   "format_note": "low",
+   "ext": "m4a",
+   "protocol": "https",
+   "acodec": "mp4a.40.5",
+   "vcodec": "none",
+   "url": "https://media.example/videoplayback?itag=139",
+   "width": null,
+   "height": null,
+   "fps": null,
+   "tbr": 48.795,
+   "vbr": 0,
+   "abr": 48.795,
+   "asr": 22050,
+   "dynamic_range": null,
+   "audio_channels": 2,
+   "language": "en",
+   "language_preference": -1,
+   "filesize": 2965117,
+   "filesize_approx": 2965101,
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "249",
+   "format_note": "low",
+   "ext": "webm",
+   "protocol": "https",
+   "acodec": "opus",
+   "vcodec": "none",
+   "url": "https://media.example/videoplayback?itag=249",
+   "width": null,
+   "height": null,
+   "fps": null,
+   "tbr": 53.162,
+   "vbr": 0,
+   "abr": 53.162,
+   "asr": 48000,
+   "dynamic_range": null,
+   "audio_channels": 2,
+   "language": "en",
+   "language_preference": -1,
+   "filesize": 3229743,
+   "filesize_approx": 3229731,
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "250",
+   "format_note": "low",
+   "ext": "webm",
+   "protocol": "https",
+   "acodec": "opus",
+   "vcodec": "none",
+   "url": "https://media.example/videoplayback?itag=250",
+   "width": null,
+   "height": null,
+   "fps": null,
+   "tbr": 69.751,
+   "vbr": 0,
+   "abr": 69.751,
+   "asr": 48000,
+   "dynamic_range": null,
+   "audio_channels": 2,
+   "language": "en",
+   "language_preference": -1,
+   "filesize": 4237608,
+   "filesize_approx": 4237556,
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "140-drc",
+   "format_note": "medium, DRC",
+   "ext": "m4a",
+   "protocol": "https",
+   "acodec": "mp4a.40.2",
+   "vcodec": "none",
+   "url": "https://media.example/videoplayback?itag=140-drc",
+   "width": null,
+   "height": null,
+   "fps": null,
+   "tbr": 129.484,
+   "vbr": 0,
+   "abr": 129.484,
+   "asr": 44100,
+   "dynamic_range": null,
+   "audio_channels": 2,
+   "language": "en",
+   "language_preference": -1,
+   "filesize": 7867183,
+   "filesize_approx": 7867172,
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "251-drc",
+   "format_note": "medium, DRC",
+   "ext": "webm",
+   "protocol": "https",
+   "acodec": "opus",
+   "vcodec": "none",
+   "url": "https://media.example/videoplayback?itag=251-drc",
+   "width": null,
+   "height": null,
+   "fps": null,
+   "tbr": 136.993,
+   "vbr": 0,
+   "abr": 136.993,
+   "asr": 48000,
+   "dynamic_range": null,
+   "audio_channels": 2,
+   "language": "en",
+   "language_preference": -1,
+   "filesize": 8322721,
+   "filesize_approx": 8322684,
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "140",
+   "format_note": "medium",
+   "ext": "m4a",
+   "protocol": "https",
+   "acodec": "mp4a.40.2",
+   "vcodec": "none",
+   "url": "https://media.example/videoplayback?itag=140",
+   "width": null,
+   "height": null,
+   "fps": null,
+   "tbr": 129.484,
+   "vbr": 0,
+   "abr": 129.484,
+   "asr": 44100,
+   "dynamic_range": null,
+   "audio_channels": 2,
+   "language": "en",
+   "language_preference": 10,
+   "filesize": 7867183,
+   "filesize_approx": 7867172,
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "251",
+   "format_note": "medium",
+   "ext": "webm",
+   "protocol": "https",
+   "acodec": "opus",
+   "vcodec": "none",
+   "url": "https://media.example/videoplayback?itag=251",
+   "width": null,
+   "height": null,
+   "fps": null,
+   "tbr": 136.854,
+   "vbr": 0,
+   "abr": 136.854,
+   "asr": 48000,
+   "dynamic_range": null,
+   "audio_channels": 2,
+   "language": "en",
+   "language_preference": 10,
+   "filesize": 8314265,
+   "filesize_approx": 8314239,
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "602",
+   "ext": "mp4",
+   "protocol": "m3u8_native",
+   "acodec": "none",
+   "vcodec": "vp09.00.10.08",
+   "url": "https://media.example/videoplayback?itag=602",
+   "width": 256,
+   "height": 144,
+   "fps": 13.0,
+   "tbr": 87.026,
+   "vbr": 87.026,
+   "abr": 0,
+   "dynamic_range": "SDR",
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "269",
+   "ext": "mp4",
+   "protocol": "m3u8_native",
+   "acodec": "none",
+   "vcodec": "avc1.4D400C",
+   "url": "https://media.example/videoplayback?itag=269",
+   "width": 256,
+   "height": 144,
+   "fps": 25.0,
+   "tbr": 169.327,
+   "vbr": 169.327,
+   "abr": 0,
+   "dynamic_range": "SDR",
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "160",
+   "format_note": "144p",
+   "ext": "mp4",
+   "protocol": "https",
+   "acodec": "none",
+   "vcodec": "avc1.4D400C",
+   "url": "https://media.example/videoplayback?itag=160",
+   "width": 256,
+   "height": 144,
+   "fps": 25,
+   "tbr": 38.953,
+   "vbr": 38.953,
+   "abr": 0,
+   "asr": null,
+   "dynamic_range": "SDR",
+   "audio_channels": null,
+   "language": null,
+   "language_preference": -1,
+   "filesize": 2366424,
+   "filesize_approx": 2366394,
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "603",
+   "ext": "mp4",
+   "protocol": "m3u8_native",
+   "acodec": "none",
+   "vcodec": "vp09.00.11.08",
+   "url": "https://media.example/videoplayback?itag=603",
+   "width": 256,
+   "height": 144,
+   "fps": 25.0,
+   "tbr": 137.955,
+   "vbr": 137.955,
+   "abr": 0,
+   "dynamic_range": "SDR",
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "278",
+   "format_note": "144p",
+   "ext": "webm",
+   "protocol": "https",
+   "acodec": "none",
+   "vcodec": "vp9",
+   "url": "https://media.example/videoplayback?itag=278",
+   "width": 256,
+   "height": 144,
+   "fps": 25,
+   "tbr": 56.103,
+   "vbr": 56.103,
+   "abr": 0,
+   "asr": null,
+   "dynamic_range": "SDR",
+   "audio_channels": null,
+   "language": null,
+   "language_preference": -1,
+   "filesize": 3408271,
+   "filesize_approx": 3408257,
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "394",
+   "format_note": "144p",
+   "ext": "mp4",
+   "protocol": "https",
+   "acodec": "none",
+   "vcodec": "av01.0.00M.08",
+   "url": "https://media.example/videoplayback?itag=394",
+   "width": 256,
+   "height": 144,
+   "fps": 25,
+   "tbr": 44.205,
+   "vbr": 44.205,
+   "abr": 0,
+   "asr": null,
+   "dynamic_range": "SDR",
+   "audio_channels": null,
+   "language": null,
+   "language_preference": -1,
+   "filesize": 2685468,
+   "filesize_approx": 2685453,
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "229",
+   "ext": "mp4",
+   "protocol": "m3u8_native",
+   "acodec": "none",
+   "vcodec": "avc1.4D4015",
+   "url": "https://media.example/videoplayback?itag=229",
+   "width": 426,
+   "height": 240,
+   "fps": 25.0,
+   "tbr": 310.174,
+   "vbr": 310.174,
+   "abr": 0,
+   "dynamic_range": "SDR",
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "133",
+   "format_note": "240p",
+   "ext": "mp4",
+   "protocol": "https",
+   "acodec": "none",
+   "vcodec": "avc1.4D4015",
+   "url": "https://media.example/videoplayback?itag=133",
+   "width": 426,
+   "height": 240,
+   "fps": 25,
+   "tbr": 72.793,
+   "vbr": 72.793,
+   "abr": 0,
+   "asr": null,
+   "dynamic_range": "SDR",
+   "audio_channels": null,
+   "language": null,
+   "language_preference": -1,
+   "filesize": 4422217,
+   "filesize_approx": 4422174,
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "604",
+   "ext": "mp4",
+   "protocol": "m3u8_native",
+   "acodec": "none",
+   "vcodec": "vp09.00.20.08",
+   "url": "https://media.example/videoplayback?itag=604",
+   "width": 426,
+   "height": 240,
+   "fps": 25.0,
+   "tbr": 207.37,
+   "vbr": 207.37,
+   "abr": 0,
+   "dynamic_range": "SDR",
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "242",
+   "format_note": "240p",
+   "ext": "webm",
+   "protocol": "https",
+   "acodec": "none",
+   "vcodec": "vp9",
+   "url": "https://media.example/videoplayback?itag=242",
+   "width": 426,
+   "height": 240,
+   "fps": 25,
+   "tbr": 76.263,
+   "vbr": 76.263,
+   "abr": 0,
+   "asr": null,
+   "dynamic_range": "SDR",
+   "audio_channels": null,
+   "language": null,
+   "language_preference": -1,
+   "filesize": 4633032,
+   "filesize_approx": 4632977,
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "395",
+   "format_note": "240p",
+   "ext": "mp4",
+   "protocol": "https",
+   "acodec": "none",
+   "vcodec": "av01.0.00M.08",
+   "url": "https://media.example/videoplayback?itag=395",
+   "width": 426,
+   "height": 240,
+   "fps": 25,
+   "tbr": 54.409,
+   "vbr": 54.409,
+   "abr": 0,
+   "asr": null,
+   "dynamic_range": "SDR",
+   "audio_channels": null,
+   "language": null,
+   "language_preference": -1,
+   "filesize": 3305384,
+   "filesize_approx": 3305346,
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "230",
+   "ext": "mp4",
+   "protocol": "m3u8_native",
+   "acodec": "none",
+   "vcodec": "avc1.4D401E",
+   "url": "https://media.example/videoplayback?itag=230",
+   "width": 640,
+   "height": 360,
+   "fps": 25.0,
+   "tbr": 602.468,
+   "vbr": 602.468,
+   "abr": 0,
+   "dynamic_range": "SDR",
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "134",
+   "format_note": "360p",
+   "ext": "mp4",
+   "protocol": "https",
+   "acodec": "none",
+   "vcodec": "avc1.4D401E",
+   "url": "https://media.example/videoplayback?itag=134",
+   "width": 640,
+   "height": 360,
+   "fps": 25,
+   "tbr": 140.968,
+   "vbr": 140.968,
+   "abr": 0,
+   "asr": null,
+   "dynamic_range": "SDR",
+   "audio_channels": null,
+   "language": null,
+   "language_preference": -1,
+   "filesize": 8563824,
+   "filesize_approx": 8563805,
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "18",
+   "format_note": "360p",
+   "ext": "mp4",
+   "protocol": "https",
+   "acodec": "mp4a.40.2",
+   "vcodec": "avc1.42001E",
+   "url": "https://media.example/videoplayback?itag=18",
+   "width": 640,
+   "height": 360,
+   "fps": 25,
+   "tbr": 270.026,
+   "vbr": null,
+   "abr": null,
+   "asr": 44100,
+   "dynamic_range": "SDR",
+   "audio_channels": 2,
+   "language": "en",
+   "language_preference": -1,
+   "filesize": null,
+   "filesize_approx": 16406205,
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "605",
+   "ext": "mp4",
+   "protocol": "m3u8_native",
+   "acodec": "none",
+   "vcodec": "vp09.00.21.08",
+   "url": "https://media.example/videoplayback?itag=605",
+   "width": 640,
+   "height": 360,
+   "fps": 25.0,
+   "tbr": 474.904,
+   "vbr": 474.904,
+   "abr": 0,
+   "dynamic_range": "SDR",
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "243",
+   "format_note": "360p",
+   "ext": "webm",
+   "protocol": "https",
+   "acodec": "none",
+   "vcodec": "vp9",
+   "url": "https://media.example/videoplayback?itag=243",
+   "width": 640,
+   "height": 360,
+   "fps": 25,
+   "tbr": 141.782,
+   "vbr": 141.782,
+   "abr": 0,
+   "asr": null,
+   "dynamic_range": "SDR",
+   "audio_channels": null,
+   "language": null,
+   "language_preference": -1,
+   "filesize": 8613275,
+   "filesize_approx": 8613256,
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "396",
+   "format_note": "360p",
+   "ext": "mp4",
+   "protocol": "https",
+   "acodec": "none",
+   "vcodec": "av01.0.01M.08",
+   "url": "https://media.example/videoplayback?itag=396",
+   "width": 640,
+   "height": 360,
+   "fps": 25,
+   "tbr": 88.188,
+   "vbr": 88.188,
+   "abr": 0,
+   "asr": null,
+   "dynamic_range": "SDR",
+   "audio_channels": null,
+   "language": null,
+   "language_preference": -1,
+   "filesize": 5357446,
+   "filesize_approx": 5357421,
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "231",
+   "ext": "mp4",
+   "protocol": "m3u8_native",
+   "acodec": "none",
+   "vcodec": "avc1.4D401E",
+   "url": "https://media.example/videoplayback?itag=231",
+   "width": 854,
+   "height": 480,
+   "fps": 25.0,
+   "tbr": 820.194,
+   "vbr": 820.194,
+   "abr": 0,
+   "dynamic_range": "SDR",
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "135",
+   "format_note": "480p",
+   "ext": "mp4",
+   "protocol": "https",
+   "acodec": "none",
+   "vcodec": "avc1.4D401E",
+   "url": "https://media.example/videoplayback?itag=135",
+   "width": 854,
+   "height": 480,
+   "fps": 25,
+   "tbr": 237.247,
+   "vbr": 237.247,
+   "abr": 0,
+   "asr": null,
+   "dynamic_range": "SDR",
+   "audio_channels": null,
+   "language": null,
+   "language_preference": -1,
+   "filesize": 14412788,
+   "filesize_approx": 14412755,
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "606",
+   "ext": "mp4",
+   "protocol": "m3u8_native",
+   "acodec": "none",
+   "vcodec": "vp09.00.30.08",
+   "url": "https://media.example/videoplayback?itag=606",
+   "width": 854,
+   "height": 480,
+   "fps": 25.0,
+   "tbr": 706.959,
+   "vbr": 706.959,
+   "abr": 0,
+   "dynamic_range": "SDR",
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "244",
+   "format_note": "480p",
+   "ext": "webm",
+   "protocol": "https",
+   "acodec": "none",
+   "vcodec": "vp9",
+   "url": "https://media.example/videoplayback?itag=244",
+   "width": 854,
+   "height": 480,
+   "fps": 25,
+   "tbr": 177.91,
+   "vbr": 177.91,
+   "abr": 0,
+   "asr": null,
+   "dynamic_range": "SDR",
+   "audio_channels": null,
+   "language": null,
+   "language_preference": -1,
+   "filesize": 10808059,
+   "filesize_approx": 10808032,
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "397",
+   "format_note": "480p",
+   "ext": "mp4",
+   "protocol": "https",
+   "acodec": "none",
+   "vcodec": "av01.0.04M.08",
+   "url": "https://media.example/videoplayback?itag=397",
+   "width": 854,
+   "height": 480,
+   "fps": 25,
+   "tbr": 134.023,
+   "vbr": 134.023,
+   "abr": 0,
+   "asr": null,
+   "dynamic_range": "SDR",
+   "audio_channels": null,
+   "language": null,
+   "language_preference": -1,
+   "filesize": 8141924,
+   "filesize_approx": 8141897,
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "232",
+   "ext": "mp4",
+   "protocol": "m3u8_native",
+   "acodec": "none",
+   "vcodec": "avc1.4D401F",
+   "url": "https://media.example/videoplayback?itag=232",
+   "width": 1280,
+   "height": 720,
+   "fps": 25.0,
+   "tbr": 1214.606,
+   "vbr": 1214.606,
+   "abr": 0,
+   "dynamic_range": "SDR",
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "136",
+   "format_note": "720p",
+   "ext": "mp4",
+   "protocol": "https",
+   "acodec": "none",
+   "vcodec": "avc1.4D401F",
+   "url": "https://media.example/videoplayback?itag=136",
+   "width": 1280,
+   "height": 720,
+   "fps": 25,
+   "tbr": 364.565,
+   "vbr": 364.565,
+   "abr": 0,
+   "asr": null,
+   "dynamic_range": "SDR",
+   "audio_channels": null,
+   "language": null,
+   "language_preference": -1,
+   "filesize": 22147343,
+   "filesize_approx": 22147323,
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "609",
+   "ext": "mp4",
+   "protocol": "m3u8_native",
+   "acodec": "none",
+   "vcodec": "vp09.00.31.08",
+   "url": "https://media.example/videoplayback?itag=609",
+   "width": 1280,
+   "height": 720,
+   "fps": 25.0,
+   "tbr": 1240.253,
+   "vbr": 1240.253,
+   "abr": 0,
+   "dynamic_range": "SDR",
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "247",
+   "format_note": "720p",
+   "ext": "webm",
+   "protocol": "https",
+   "acodec": "none",
+   "vcodec": "vp9",
+   "url": "https://media.example/videoplayback?itag=247",
+   "width": 1280,
+   "height": 720,
+   "fps": 25,
+   "tbr": 279.015,
+   "vbr": 279.015,
+   "abr": 0,
+   "asr": null,
+   "dynamic_range": "SDR",
+   "audio_channels": null,
+   "language": null,
+   "language_preference": -1,
+   "filesize": 16950188,
+   "filesize_approx": 16950161,
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "398",
+   "format_note": "720p",
+   "ext": "mp4",
+   "protocol": "https",
+   "acodec": "none",
+   "vcodec": "av01.0.05M.08",
+   "url": "https://media.example/videoplayback?itag=398",
+   "width": 1280,
+   "height": 720,
+   "fps": 25,
+   "tbr": 209.91,
+   "vbr": 209.91,
+   "abr": 0,
+   "asr": null,
+   "dynamic_range": "SDR",
+   "audio_channels": null,
+   "language": null,
+   "language_preference": -1,
+   "filesize": 12752069,
+   "filesize_approx": 12752032,
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "270",
+   "ext": "mp4",
+   "protocol": "m3u8_native",
+   "acodec": "none",
+   "vcodec": "avc1.640028",
+   "url": "https://media.example/videoplayback?itag=270",
+   "width": 1920,
+   "height": 1080,
+   "fps": 25.0,
+   "tbr": 3089.058,
+   "vbr": 3089.058,
+   "abr": 0,
+   "dynamic_range": "SDR",
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "137",
+   "format_note": "1080p",
+   "ext": "mp4",
+   "protocol": "https",
+   "acodec": "none",
+   "vcodec": "avc1.640028",
+   "url": "https://media.example/videoplayback?itag=137",
+   "width": 1920,
+   "height": 1080,
+   "fps": 25,
+   "tbr": 949.113,
+   "vbr": 949.113,
+   "abr": 0,
+   "asr": null,
+   "dynamic_range": "SDR",
+   "audio_channels": null,
+   "language": null,
+   "language_preference": -1,
+   "filesize": 57658662,
+   "filesize_approx": 57658614,
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "614",
+   "ext": "mp4",
+   "protocol": "m3u8_native",
+   "acodec": "none",
+   "vcodec": "vp09.00.40.08",
+   "url": "https://media.example/videoplayback?itag=614",
+   "width": 1920,
+   "height": 1080,
+   "fps": 25.0,
+   "tbr": 1960.624,
+   "vbr": 1960.624,
+   "abr": 0,
+   "dynamic_range": "SDR",
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "248",
+   "format_note": "1080p",
+   "ext": "webm",
+   "protocol": "https",
+   "acodec": "none",
+   "vcodec": "vp9",
+   "url": "https://media.example/videoplayback?itag=248",
+   "width": 1920,
+   "height": 1080,
+   "fps": 25,
+   "tbr": 430.158,
+   "vbr": 430.158,
+   "abr": 0,
+   "asr": null,
+   "dynamic_range": "SDR",
+   "audio_channels": null,
+   "language": null,
+   "language_preference": -1,
+   "filesize": 26132125,
+   "filesize_approx": 26132098,
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "399",
+   "format_note": "1080p",
+   "ext": "mp4",
+   "protocol": "https",
+   "acodec": "none",
+   "vcodec": "av01.0.08M.08",
+   "url": "https://media.example/videoplayback?itag=399",
+   "width": 1920,
+   "height": 1080,
+   "fps": 25,
+   "tbr": 327.848,
+   "vbr": 327.848,
+   "abr": 0,
+   "asr": null,
+   "dynamic_range": "SDR",
+   "audio_channels": null,
+   "language": null,
+   "language_preference": -1,
+   "filesize": 19916813,
+   "filesize_approx": 19916766,
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "620",
+   "ext": "mp4",
+   "protocol": "m3u8_native",
+   "acodec": "none",
+   "vcodec": "vp09.00.50.08",
+   "url": "https://media.example/videoplayback?itag=620",
+   "width": 2560,
+   "height": 1440,
+   "fps": 25.0,
+   "tbr": 6540.17,
+   "vbr": 6540.17,
+   "abr": 0,
+   "dynamic_range": "SDR",
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "271",
+   "format_note": "1440p",
+   "ext": "webm",
+   "protocol": "https",
+   "acodec": "none",
+   "vcodec": "vp9",
+   "url": "https://media.example/videoplayback?itag=271",
+   "width": 2560,
+   "height": 1440,
+   "fps": 25,
+   "tbr": 1201.271,
+   "vbr": 1201.271,
+   "abr": 0,
+   "asr": null,
+   "dynamic_range": "SDR",
+   "audio_channels": null,
+   "language": null,
+   "language_preference": -1,
+   "filesize": 72977219,
+   "filesize_approx": 72977213,
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "400",
+   "format_note": "1440p",
+   "ext": "mp4",
+   "protocol": "https",
+   "acodec": "none",
+   "vcodec": "av01.0.12M.08",
+   "url": "https://media.example/videoplayback?itag=400",
+   "width": 2560,
+   "height": 1440,
+   "fps": 25,
+   "tbr": 937.93,
+   "vbr": 937.93,
+   "abr": 0,
+   "asr": null,
+   "dynamic_range": "SDR",
+   "audio_channels": null,
+   "language": null,
+   "language_preference": -1,
+   "filesize": 56979274,
+   "filesize_approx": 56979247,
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "625",
+   "ext": "mp4",
+   "protocol": "m3u8_native",
+   "acodec": "none",
+   "vcodec": "vp09.00.50.08",
+   "url": "https://media.example/videoplayback?itag=625",
+   "width": 3840,
+   "height": 2160,
+   "fps": 25.0,
+   "tbr": 15422.431,
+   "vbr": 15422.431,
+   "abr": 0,
+   "dynamic_range": "SDR",
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "313",
+   "format_note": "2160p",
+   "ext": "webm",
+   "protocol": "https",
+   "acodec": "none",
+   "vcodec": "vp9",
+   "url": "https://media.example/videoplayback?itag=313",
+   "width": 3840,
+   "height": 2160,
+   "fps": 25,
+   "tbr": 3413.083,
+   "vbr": 3413.083,
+   "abr": 0,
+   "asr": null,
+   "dynamic_range": "SDR",
+   "audio_channels": null,
+   "language": null,
+   "language_preference": -1,
+   "filesize": 207344845,
+   "filesize_approx": 207344792,
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "401",
+   "format_note": "2160p",
+   "ext": "mp4",
+   "protocol": "https",
+   "acodec": "none",
+   "vcodec": "av01.0.12M.08",
+   "url": "https://media.example/videoplayback?itag=401",
+   "width": 3840,
+   "height": 2160,
+   "fps": 25,
+   "tbr": 1871.226,
+   "vbr": 1871.226,
+   "abr": 0,
+   "asr": null,
+   "dynamic_range": "SDR",
+   "audio_channels": null,
+   "language": null,
+   "language_preference": -1,
+   "filesize": 113677021,
+   "filesize_approx": 113676979,
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "140-1",
+   "format_note": "Deutsch, medium",
+   "ext": "m4a",
+   "protocol": "https",
+   "acodec": "mp4a.40.2",
+   "vcodec": "none",
+   "url": "https://media.example/videoplayback?itag=140-de",
+   "width": null,
+   "height": null,
+   "fps": null,
+   "tbr": 129.484,
+   "vbr": 0,
+   "abr": 129.484,
+   "asr": 44100,
+   "dynamic_range": null,
+   "audio_channels": 2,
+   "language": "de",
+   "language_preference": -1,
+   "filesize": 7867183,
+   "filesize_approx": 7867172,
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  },
+  {
+   "format_id": "251-1",
+   "format_note": "Deutsch, medium",
+   "ext": "webm",
+   "protocol": "https",
+   "acodec": "opus",
+   "vcodec": "none",
+   "url": "https://media.example/videoplayback?itag=251-de",
+   "width": null,
+   "height": null,
+   "fps": null,
+   "tbr": 136.854,
+   "vbr": 0,
+   "abr": 136.854,
+   "asr": 48000,
+   "dynamic_range": null,
+   "audio_channels": 2,
+   "language": "de",
+   "language_preference": -1,
+   "filesize": 8314265,
+   "filesize_approx": 8314239,
+   "has_drm": false,
+   "http_headers": {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "Accept-Language": "en-us,en;q=0.5"
+   }
+  }
+ ],
+ "subtitles": {
+  "de": [
+   {
+    "ext": "json3",
+    "name": "German",
+    "url": "https://media.example/timedtext?lang=de&fmt=json3"
+   },
+   {
+    "ext": "srv1",
+    "name": "German",
+    "url": "https://media.example/timedtext?lang=de&fmt=srv1"
+   },
+   {
+    "ext": "srv2",
+    "name": "German",
+    "url": "https://media.example/timedtext?lang=de&fmt=srv2"
+   },
+   {
+    "ext": "srv3",
+    "name": "German",
+    "url": "https://media.example/timedtext?lang=de&fmt=srv3"
+   },
+   {
+    "ext": "ttml",
+    "name": "German",
+    "url": "https://media.example/timedtext?lang=de&fmt=ttml"
+   },
+   {
+    "ext": "srt",
+    "name": "German",
+    "url": "https://media.example/timedtext?lang=de&fmt=srt"
+   },
+   {
+    "ext": "vtt",
+    "name": "German",
+    "url": "https://media.example/timedtext?lang=de&fmt=vtt"
+   }
+  ],
+  "fi": [
+   {
+    "ext": "json3",
+    "name": "Finnish",
+    "url": "https://media.example/timedtext?lang=fi&fmt=json3"
+   },
+   {
+    "ext": "srv1",
+    "name": "Finnish",
+    "url": "https://media.example/timedtext?lang=fi&fmt=srv1"
+   },
+   {
+    "ext": "srv2",
+    "name": "Finnish",
+    "url": "https://media.example/timedtext?lang=fi&fmt=srv2"
+   },
+   {
+    "ext": "srv3",
+    "name": "Finnish",
+    "url": "https://media.example/timedtext?lang=fi&fmt=srv3"
+   },
+   {
+    "ext": "ttml",
+    "name": "Finnish",
+    "url": "https://media.example/timedtext?lang=fi&fmt=ttml"
+   },
+   {
+    "ext": "srt",
+    "name": "Finnish",
+    "url": "https://media.example/timedtext?lang=fi&fmt=srt"
+   },
+   {
+    "ext": "vtt",
+    "name": "Finnish",
+    "url": "https://media.example/timedtext?lang=fi&fmt=vtt"
+   }
+  ]
+ },
+ "automatic_captions": {
+  "en-orig": [
+   {
+    "ext": "json3",
+    "name": "English (Original)",
+    "url": "https://media.example/timedtext?lang=en-orig&fmt=json3"
+   },
+   {
+    "ext": "srv1",
+    "name": "English (Original)",
+    "url": "https://media.example/timedtext?lang=en-orig&fmt=srv1"
+   },
+   {
+    "ext": "srv2",
+    "name": "English (Original)",
+    "url": "https://media.example/timedtext?lang=en-orig&fmt=srv2"
+   },
+   {
+    "ext": "srv3",
+    "name": "English (Original)",
+    "url": "https://media.example/timedtext?lang=en-orig&fmt=srv3"
+   },
+   {
+    "ext": "ttml",
+    "name": "English (Original)",
+    "url": "https://media.example/timedtext?lang=en-orig&fmt=ttml"
+   },
+   {
+    "ext": "srt",
+    "name": "English (Original)",
+    "url": "https://media.example/timedtext?lang=en-orig&fmt=srt"
+   },
+   {
+    "ext": "vtt",
+    "name": "English (Original)",
+    "url": "https://media.example/timedtext?lang=en-orig&fmt=vtt"
+   }
+  ],
+  "en": [
+   {
+    "ext": "json3",
+    "name": "English",
+    "url": "https://media.example/timedtext?lang=en&fmt=json3"
+   },
+   {
+    "ext": "srv1",
+    "name": "English",
+    "url": "https://media.example/timedtext?lang=en&fmt=srv1"
+   },
+   {
+    "ext": "srv2",
+    "name": "English",
+    "url": "https://media.example/timedtext?lang=en&fmt=srv2"
+   },
+   {
+    "ext": "srv3",
+    "name": "English",
+    "url": "https://media.example/timedtext?lang=en&fmt=srv3"
+   },
+   {
+    "ext": "ttml",
+    "name": "English",
+    "url": "https://media.example/timedtext?lang=en&fmt=ttml"
+   },
+   {
+    "ext": "srt",
+    "name": "English",
+    "url": "https://media.example/timedtext?lang=en&fmt=srt"
+   },
+   {
+    "ext": "vtt",
+    "name": "English",
+    "url": "https://media.example/timedtext?lang=en&fmt=vtt"
+   }
+  ],
+  "de": [
+   {
+    "ext": "vtt",
+    "name": null,
+    "url": "https://media.example/timedtext?lang=de&fmt=vtt",
+    "protocol": "m3u8_native"
+   },
+   {
+    "ext": "json3",
+    "name": "German",
+    "url": "https://media.example/timedtext?lang=de&fmt=json3"
+   },
+   {
+    "ext": "srv1",
+    "name": "German",
+    "url": "https://media.example/timedtext?lang=de&fmt=srv1"
+   },
+   {
+    "ext": "srv2",
+    "name": "German",
+    "url": "https://media.example/timedtext?lang=de&fmt=srv2"
+   },
+   {
+    "ext": "srv3",
+    "name": "German",
+    "url": "https://media.example/timedtext?lang=de&fmt=srv3"
+   },
+   {
+    "ext": "ttml",
+    "name": "German",
+    "url": "https://media.example/timedtext?lang=de&fmt=ttml"
+   },
+   {
+    "ext": "srt",
+    "name": "German",
+    "url": "https://media.example/timedtext?lang=de&fmt=srt"
+   },
+   {
+    "ext": "vtt",
+    "name": "German",
+    "url": "https://media.example/timedtext?lang=de&fmt=vtt"
+   }
+  ],
+  "fi": [
+   {
+    "ext": "vtt",
+    "name": null,
+    "url": "https://media.example/timedtext?lang=fi&fmt=vtt",
+    "protocol": "m3u8_native"
+   },
+   {
+    "ext": "json3",
+    "name": "Finnish",
+    "url": "https://media.example/timedtext?lang=fi&fmt=json3"
+   },
+   {
+    "ext": "srv1",
+    "name": "Finnish",
+    "url": "https://media.example/timedtext?lang=fi&fmt=srv1"
+   },
+   {
+    "ext": "srv2",
+    "name": "Finnish",
+    "url": "https://media.example/timedtext?lang=fi&fmt=srv2"
+   },
+   {
+    "ext": "srv3",
+    "name": "Finnish",
+    "url": "https://media.example/timedtext?lang=fi&fmt=srv3"
+   },
+   {
+    "ext": "ttml",
+    "name": "Finnish",
+    "url": "https://media.example/timedtext?lang=fi&fmt=ttml"
+   },
+   {
+    "ext": "srt",
+    "name": "Finnish",
+    "url": "https://media.example/timedtext?lang=fi&fmt=srt"
+   },
+   {
+    "ext": "vtt",
+    "name": "Finnish",
+    "url": "https://media.example/timedtext?lang=fi&fmt=vtt"
+   }
+  ],
+  "sv": [
+   {
+    "ext": "vtt",
+    "name": null,
+    "url": "https://media.example/timedtext?lang=sv&fmt=vtt",
+    "protocol": "m3u8_native"
+   },
+   {
+    "ext": "json3",
+    "name": "Swedish",
+    "url": "https://media.example/timedtext?lang=sv&fmt=json3"
+   },
+   {
+    "ext": "srv1",
+    "name": "Swedish",
+    "url": "https://media.example/timedtext?lang=sv&fmt=srv1"
+   },
+   {
+    "ext": "srv2",
+    "name": "Swedish",
+    "url": "https://media.example/timedtext?lang=sv&fmt=srv2"
+   },
+   {
+    "ext": "srv3",
+    "name": "Swedish",
+    "url": "https://media.example/timedtext?lang=sv&fmt=srv3"
+   },
+   {
+    "ext": "ttml",
+    "name": "Swedish",
+    "url": "https://media.example/timedtext?lang=sv&fmt=ttml"
+   },
+   {
+    "ext": "srt",
+    "name": "Swedish",
+    "url": "https://media.example/timedtext?lang=sv&fmt=srt"
+   },
+   {
+    "ext": "vtt",
+    "name": "Swedish",
+    "url": "https://media.example/timedtext?lang=sv&fmt=vtt"
+   }
+  ]
+ }
+}
