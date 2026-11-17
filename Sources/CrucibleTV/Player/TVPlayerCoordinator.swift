@@ -338,7 +338,7 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         case .failed(let message):
             presentFailure(message, retry: { [weak self] in self?.retryFromPlayhead() })
         case .finished:
-            finishedAnItem = true
+            finishedAnItem = finishedAnItem || !request.isExtra
             offerWhatsNext()
         case .sleepTimerFired:
             carriedSleepTimer = nil
