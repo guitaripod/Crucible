@@ -125,17 +125,10 @@ final class TVLibraryWelcomeViewController: TVDemoModalViewController {
         return stack
     }
 
-    // MARK: - Content
-
     /// Lays out what the plan says now. Called again whenever the store or Trakt answer, it changes text in place and keeps the
     /// focus where it is, unless the focused button went away.
     private func render() {
-        let plan = WelcomePlan(
-            status: ProAccess.shared.status,
-            isStoreBacked: ProAccess.shared.isStoreBacked,
-            proWeek: ProAccess.shared.proWeekPhase,
-            trakt: TraktAccount.shared.status
-        )
+        let plan = WelcomePlan.current()
         standingIcon.image = UIImage(systemName: plan.standingSymbol)
         standingTitle.text = plan.standingTitle
         standingMessage.text = plan.standingMessage
@@ -178,8 +171,6 @@ final class TVLibraryWelcomeViewController: TVDemoModalViewController {
         traktBadge.isHidden = action != nil
         traktCard.accessibilityLabel = [traktTitle.text, traktMessage.text].compactMap { $0 }.joined(separator: ". ")
     }
-
-    // MARK: - Views
 
     private func makeStandingBlock() -> UIView {
         standingIcon.contentMode = .center
@@ -283,8 +274,6 @@ final class TVLibraryWelcomeViewController: TVDemoModalViewController {
             stack.trailingAnchor.constraint(equalTo: traktCard.trailingAnchor, constant: -Theme.Space.l),
         ])
     }
-
-    // MARK: - Actions
 
     private func startWatching() {
         presentingViewController?.dismiss(animated: TVMotion.animationsEnabled)
