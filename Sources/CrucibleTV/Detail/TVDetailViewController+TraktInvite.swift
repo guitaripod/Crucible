@@ -41,14 +41,14 @@ extension TVDetailViewController {
         cell.host(panel)
     }
 
-    /// Trakt connected, disconnected or signed Crucible out while the page exists: a page on screen reads itself again so the
-    /// scores and the community come or go; one under another screen does so when it comes back.
+    /// Trakt's account changed while the page exists. A page on screen lays the invitation out again on every change, since the
+    /// account may only now have loaded, and reads itself again when the status changed, so the scores and the community come or
+    /// go; a page under another screen does both when it comes back.
     func traktAccountChanged() {
         let status = TraktAccount.shared.status
-        guard status != shownTraktStatus else { return }
-        shownTraktStatus = status
+        defer { shownTraktStatus = status }
         guard viewIfLoaded?.window != nil else { return }
-        reload()
+        if status != shownTraktStatus { reload() }
         refreshCommunity()
     }
 
