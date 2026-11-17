@@ -35,6 +35,22 @@ package struct WebWatch: Sendable, Codable, Hashable {
     }
 }
 
+/// A video saved to this machine.
+package struct WebDownload: Sendable, Codable, Hashable, Identifiable {
+    package var entry: WebEntry
+    /// Where the file is.
+    package var path: String
+    package var downloadedAt: Date
+
+    package var id: String { entry.id }
+
+    package init(entry: WebEntry, path: String, downloadedAt: Date = Date()) {
+        self.entry = entry
+        self.path = path
+        self.downloadedAt = downloadedAt
+    }
+}
+
 /// The viewer's own web library, kept in one file on this machine and nowhere else: the channels they follow, what they
 /// saved for later, and where they are in what they watched. No site hears of any of it.
 package final class WebLibrary: @unchecked Sendable {
@@ -45,6 +61,7 @@ package final class WebLibrary: @unchecked Sendable {
         var subscriptions: [WebChannel] = []
         var watchLater: [WebEntry] = []
         var history: [WebWatch] = []
+        var downloads: [WebDownload]?
     }
 
     private let file: URL
@@ -132,6 +149,30 @@ package final class WebLibrary: @unchecked Sendable {
 
     package func removeFromWatchLater(_ id: String) {
         change { $0.watchLater.removeAll { $0.id == id } }
+    }
+
+    // MARK: Downloads
+
+    /// The videos saved to this machine whose files are still there, the newest first.
+    package var downloads: [WebDownload] {
+        (lock.withLock { contents.downloads } ?? []).filter { FileManager.default.fileExists(atPath: $0.path) }
+    }
+
+    package func download(of id: String) -> WebDownload? {
+        downloads.first { $0.id == id }
+    }
+
+    package func noteDownload(_ download: WebDownload) {
+        change { contents in
+            var kept = (contents.downloads ?? []).filter { $0.id != download.id }
+            kept.insert(download, at: 0)
+            contents.downloads = kept
+        }
+    }
+
+    /// Forgets a download; its file is the caller's to remove.
+    package func forgetDownload(_ id: String) {
+        change { $0.downloads?.removeAll { $0.id == id } }
     }
 
     // MARK: History

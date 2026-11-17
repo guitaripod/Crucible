@@ -64,32 +64,33 @@ package struct YtDlp: Sendable {
         _ = try await run(["--mark-watched", "--simulate", "--no-playlist", "--", address], timeout: .seconds(45))
     }
 
-    /// Saves the video at `address` into `folder` in the streams `format` names (yt-dlp's selector), with its
-    /// thumbnail, chapters and subtitles inside the file, and returns the file's path.
-    package func download(_ address: String, format: String, into folder: URL) async throws -> String {
+    /// Saves the video at `address` into `folder` as one Matroska file, its picture no taller than `maximumHeight`, with
+    /// its chapters, its description and the publisher's subtitles inside the file, and returns the file's path. A
+    /// download does not take one of the few places kept for questions, which it would hold for as long as it runs.
+    package func download(_ address: String, maximumHeight: Int?, into folder: URL) async throws -> String {
         let template = folder.appendingPathComponent("%(title).150B [%(id)s].%(ext)s").path
-        let arguments = ["--no-playlist", "--no-progress", "--quiet", "--print", "after_move:filepath", "-f", format, "--merge-output-format", "mkv",
-                         "--embed-chapters", "--embed-metadata", "--embed-thumbnail", "--embed-subs", "--sub-langs", "all,-live_chat", "-o", template,
-                         "--", address]
-        let output = try await run(arguments, timeout: .seconds(6 * 3600))
+        var arguments = ["--no-playlist", "--quiet", "--print", "after_move:filepath", "-f", "bv*+ba/b", "--merge-output-format", "mkv",
+                         "--embed-chapters", "--embed-metadata", "--embed-subs", "--sub-langs", "all,-live_chat", "--no-overwrites", "-o", template]
+        if let maximumHeight { arguments += ["-S", "res:\(maximumHeight)"] }
+        let output = try await run(arguments + ["--", address], timeout: .seconds(6 * 3600), gated: false)
         let path = String(decoding: output, as: UTF8.self).split(separator: "\n").last.map(String.init) ?? ""
         guard !path.isEmpty else { throw YtDlpError.malformed }
         return path
     }
 
     /// Runs yt-dlp with `arguments` and returns what it printed, or the reason it gave for failing.
-    private func run(_ arguments: [String], timeout: Duration, signedIn: Bool = true) async throws -> Data {
+    private func run(_ arguments: [String], timeout: Duration, signedIn: Bool = true, gated: Bool = true) async throws -> Data {
         var full = ["--no-warnings", "--no-progress", "--socket-timeout", "20"]
         if signedIn, let cookiesBrowser, !cookiesBrowser.isEmpty { full += ["--cookies-from-browser", cookiesBrowser] }
         full += arguments
-        await YtDlpGate.shared.enter()
+        if gated { await YtDlpGate.shared.enter() }
         let outcome: Result<WebProcess.Output, any Error>
         do {
             outcome = .success(try await WebProcess.run(executable, arguments: full, timeout: timeout))
         } catch {
             outcome = .failure(error)
         }
-        await YtDlpGate.shared.leave()
+        if gated { await YtDlpGate.shared.leave() }
         switch outcome {
         case .success(let output):
             guard output.status == 0 else { throw YtDlpError(standardError: output.standardError) }

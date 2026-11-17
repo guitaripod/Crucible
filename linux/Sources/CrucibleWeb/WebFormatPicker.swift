@@ -3,7 +3,8 @@ import Foundation
 /// A picture quality a viewer picks between: "2160p60 HDR", "1080p".
 package struct WebQuality: Hashable, Sendable, Comparable {
     package let height: Int
-    /// Frames a second, rounded; rates up to 30 count as the ordinary one.
+    /// Frames a second, rounded; every rate up to 30 counts as 30, so a video's 15, 24, 25 and 30 frame streams of one
+    /// height are one quality.
     package let frameRate: Int
     package let isHDR: Bool
 
@@ -15,7 +16,8 @@ package struct WebQuality: Hashable, Sendable, Comparable {
 
     init?(_ format: WebFormat) {
         guard format.hasVideo, let height = format.height, height > 0 else { return nil }
-        self.init(height: height, frameRate: Int((format.frameRate ?? 0).rounded()), isHDR: format.isHDR)
+        let rate = Int((format.frameRate ?? 0).rounded())
+        self.init(height: height, frameRate: rate > 30 ? rate : 30, isHDR: format.isHDR)
     }
 
     package var isHighFrameRate: Bool { frameRate > 30 }
@@ -47,9 +49,12 @@ package struct WebPlaybackPreferences: Sendable, Equatable {
     package var audioLanguage: String?
     /// Streams that failed to play in this sitting, which are not picked again.
     package var excluded: Set<String>
+    /// Whether only the sound is wanted (a talk or music listened to while doing something else), with no picture fetched.
+    package var soundOnly: Bool
 
     package init(maximumHeight: Int? = nil, codec: Codec = .automatic, allowsHDR: Bool = true, prefersSurround: Bool = false, audioLanguage: String? = nil,
-                 excluded: Set<String> = []) {
+                 excluded: Set<String> = [], soundOnly: Bool = false) {
+        self.soundOnly = soundOnly
         self.maximumHeight = maximumHeight
         self.codec = codec
         self.allowsHDR = allowsHDR
@@ -112,6 +117,7 @@ package enum WebFormatPicker {
 
     /// The streams to play at `now`: `quality` when the viewer chose one, else the best within the preferences.
     package static func pick(from video: WebVideo, preferences: WebPlaybackPreferences, quality: WebQuality? = nil, now: Date = Date()) -> WebSelection? {
+        if preferences.soundOnly, let sound = sound(of: video, preferences: preferences, now: now) { return WebSelection(video: nil, audio: sound) }
         let pictures = video.formats.filter { $0.hasVideo && !preferences.excluded.contains($0.id) }
         let chosen = quality.flatMap { wanted in best(among: pictures.filter { WebQuality($0) == wanted }, preferences: preferences, now: now) }
             ?? automatic(among: pictures, preferences: preferences, now: now)

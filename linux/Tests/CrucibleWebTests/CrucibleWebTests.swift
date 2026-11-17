@@ -77,6 +77,14 @@ enum Fixture {
         #expect(dubbed.readyAt == read.addingTimeInterval(4))
     }
 
+    @Test func picksOnlyTheSoundWhenAsked() throws {
+        let video = try Fixture.video("video-4k")
+        let selection = try #require(WebFormatPicker.pick(from: video, preferences: WebPlaybackPreferences(soundOnly: true)))
+        #expect(selection.video == nil)
+        #expect(selection.audio?.id == "251")
+        #expect(WebPlaybackPlan(selection)?.location == "https://media.example/videoplayback?itag=251")
+    }
+
     @Test func leavesOutStreamsThatFailed() throws {
         let video = try Fixture.video("video-captions")
         let read = try #require(video.extracted)
@@ -108,6 +116,7 @@ enum Fixture {
         #expect(qualities.map(\.label).contains("720p"))
         #expect(qualities.map(\.label).contains("720p60"))
         #expect(qualities.last?.label == "144p")
+        #expect(Set(qualities.map(\.label)).count == qualities.count)
         let chosen = WebQuality(height: 1440, frameRate: 60, isHDR: false)
         #expect(WebFormatPicker.pick(from: video, preferences: WebPlaybackPreferences(), quality: chosen)?.video?.id == "400")
     }
@@ -308,6 +317,14 @@ enum Fixture {
         #expect(!WebLibrary.isFinished(position: 100, duration: 0))
         library.removeFromHistory(entry.id)
         #expect(library.history.isEmpty)
+        let saved = file.deletingLastPathComponent().appendingPathComponent("video.mkv")
+        try? FileManager.default.createDirectory(at: saved.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try? Data("x".utf8).write(to: saved)
+        library.noteDownload(WebDownload(entry: entry, path: saved.path))
+        #expect(library.download(of: entry.id)?.path == saved.path)
+        try? FileManager.default.removeItem(at: saved)
+        #expect(library.downloads.isEmpty)
+        library.forgetDownload(entry.id)
         library.flush()
     }
 
