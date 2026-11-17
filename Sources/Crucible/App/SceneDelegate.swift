@@ -290,7 +290,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     /// A sign-in that just finished hands over to the launch screen with a dissolve, so the welcome's crystal becomes the launch
     /// screen's instead of cutting to it.
     private func dissolve(_ window: UIWindow, to root: UIViewController) {
-        UIView.transition(with: window, duration: 0.35, options: [.transitionCrossDissolve, .curveEaseInOut]) {
+        let duration = UIAccessibility.isReduceMotionEnabled ? 0 : 0.35
+        UIView.transition(with: window, duration: duration, options: [.transitionCrossDissolve, .curveEaseInOut]) {
             window.rootViewController = root
         }
     }

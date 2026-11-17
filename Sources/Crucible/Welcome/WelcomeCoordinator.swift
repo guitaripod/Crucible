@@ -14,6 +14,9 @@ final class WelcomeCoordinator {
     private static let storeGrace: Duration = .milliseconds(1_500)
     /// A beat for Home to settle under the launch screen's dissolve before the sheet rises over it.
     private static let settle: Duration = .milliseconds(450)
+    /// How long the welcome waits for something already open over Home (a pairing question from the link that opened the app, a
+    /// notification's screen) to close before it gives up until the next launch.
+    private static let patience: Duration = .seconds(120)
 
     private var isPresenting = false
 
@@ -23,18 +26,29 @@ final class WelcomeCoordinator {
         Task { [weak self, weak tabBar] in
             await Self.waitForStore()
             try? await Task.sleep(for: Self.settle)
+            let isFree = await Self.waitUntilUnobstructed(tabBar)
             guard let self else { return }
             isPresenting = false
-            guard let tabBar else { return }
+            guard let tabBar, isFree else {
+                MidgarLog.notice("Welcome held back until the next launch: the window stayed busy", category: .lifecycle)
+                return
+            }
             present(over: tabBar)
         }
     }
 
-    private func present(over tabBar: TabBarController) {
-        guard tabBar.view.window != nil, tabBar.presentedViewController == nil, WelcomeLedger.shared.isWelcomeOwed else {
-            MidgarLog.notice("Welcome held back: the window is busy", category: .lifecycle)
-            return
+    /// Waits while something covers Home, and reports whether Home came free in time and is still on screen.
+    private static func waitUntilUnobstructed(_ tabBar: TabBarController?) async -> Bool {
+        let deadline = ContinuousClock.now + patience
+        while let tabBar, tabBar.view.window != nil, ContinuousClock.now < deadline {
+            if tabBar.presentedViewController == nil { return true }
+            try? await Task.sleep(for: .milliseconds(500))
         }
+        return false
+    }
+
+    private func present(over tabBar: TabBarController) {
+        guard tabBar.view.window != nil, tabBar.presentedViewController == nil, WelcomeLedger.shared.isWelcomeOwed else { return }
         WelcomeLedger.shared.welcomeWasShown()
         let serverName = ServerBootstrap.connection()?.serverName ?? ""
         let welcome = WelcomeViewController(serverName: serverName, api: tabBar.api)
