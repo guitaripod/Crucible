@@ -29,10 +29,12 @@ package struct TraktInvite: Equatable, Sendable {
         }
     }
 
-    /// The invitation for the viewer watching now, read from the shared account and ledger.
+    /// The invitation for the viewer watching now, read from the shared account and ledger; none before the account has loaded,
+    /// when a connected viewer still reads as disconnected.
     @MainActor
     package static func current(titleName: String, account: TraktAccount = .shared, ledger: WelcomeLedger = .shared) -> TraktInvite? {
-        due(status: account.status, dismissed: ledger.isTraktInviteDismissed, titleName: titleName)
+        guard account.hasLoaded else { return nil }
+        return due(status: account.status, dismissed: ledger.isTraktInviteDismissed, titleName: titleName)
     }
 
     package static let notNow = String(localized: "Not Now")

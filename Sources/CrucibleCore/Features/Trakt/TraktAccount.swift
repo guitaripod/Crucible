@@ -107,13 +107,26 @@ package final class TraktAccount {
 
     /// Reads what is saved for the viewer watching now. Call at launch and after a Home profile switch.
     package func load() async {
+        await readSaved()
+        if !hasLoaded {
+            hasLoaded = true
+            notify()
+        }
+        if isConnected { await refreshProfile() }
+    }
+
+    /// Whether `load()` has read what is saved for the viewer at least once. Until then `status` is only the starting guess, so
+    /// nothing offers to connect a viewer who may well be connected.
+    package private(set) var hasLoaded = false
+
+    /// The status the saved token and choices give, without asking Trakt.
+    private func readSaved() async {
         choices = defaults.data(forKey: choicesKey).flatMap { try? JSONDecoder().decode(TraktChoices.self, from: $0) } ?? TraktChoices()
         guard TraktConfig.isAvailable else { return set(.unavailable) }
         if HomeProfiles.active?.isRestricted == true { return set(.restricted) }
         guard await tokens.isConnected else { return set(.disconnected) }
         let cached = defaults.data(forKey: profileKey).flatMap { try? JSONDecoder().decode(TraktProfile.self, from: $0) }
         set(.connected(cached))
-        await refreshProfile()
     }
 
     /// Fetches who the token belongs to; a refused token turns the status into a request to connect again.

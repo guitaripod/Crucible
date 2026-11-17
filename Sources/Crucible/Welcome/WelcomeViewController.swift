@@ -89,8 +89,7 @@ final class WelcomeViewController: DemoSheetViewController {
     }
 
     private var plan: WelcomePlan {
-        let access = ProAccess.shared
-        return WelcomePlan(status: access.status, isStoreBacked: access.isStoreBacked, proWeek: access.proWeekPhase, trakt: TraktAccount.shared.status)
+        WelcomePlan.current()
     }
 
     /// Lays the two cards out for the plan as it stands now; an answer that changes nothing leaves them as they are.

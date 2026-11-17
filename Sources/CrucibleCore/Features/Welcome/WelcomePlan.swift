@@ -46,6 +46,16 @@ package struct WelcomePlan: Equatable, Sendable {
         )
     }
 
+    /// The plan for the viewer watching now. Trakt's part waits for the account to load, so a viewer whose Trakt token survived a
+    /// reinstall is never invited to connect what is already connected.
+    @MainActor
+    package static func current(access: ProAccess = .shared, account: TraktAccount = .shared) -> WelcomePlan {
+        WelcomePlan(
+            standing: standing(status: access.status, isStoreBacked: access.isStoreBacked, proWeek: access.proWeekPhase),
+            trakt: account.hasLoaded ? traktStep(account.status) : nil
+        )
+    }
+
     package static func standing(status: ProStatus, isStoreBacked: Bool, proWeek: ProWeek.Phase) -> Standing {
         guard isStoreBacked else { return .included }
         switch status {

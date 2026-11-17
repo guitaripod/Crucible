@@ -172,3 +172,34 @@ struct TraktInviteTests {
         #expect(invite?.message.contains("  ") == false)
     }
 }
+
+extension SavedSessionSuites {
+    /// Points Trakt at a stand-in address, as the demo does, so this build without Trakt's client ID can load an account; it runs
+    /// beside the demo's suites, which set the same address, one at a time.
+    @MainActor
+    @Suite(.serialized)
+    struct TraktInviteLoadTests {
+        private func account() -> TraktAccount {
+            let store = TraktTokenStore(keychain: .memory(), owner: { "invite" })
+            let client = TraktClient(transport: TraktScript().transport, tokens: store, sleep: { _ in }, clientID: { "client" })
+            return TraktAccount(tokens: store, defaults: UserDefaults(suiteName: "invite-\(UUID().uuidString)")!, client: client)
+        }
+
+        @Test func nothingIsOfferedUntilTheAccountHasLoaded() async {
+            TraktConfig.setOverride(URL(string: "http://127.0.0.1:9"))
+            defer { TraktConfig.setOverride(nil) }
+            let account = account()
+            let ledger = WelcomeLedger(defaults: UserDefaults(suiteName: "invite-ledger-\(UUID().uuidString)")!)
+            #expect(account.status == .disconnected)
+            #expect(TraktInvite.current(titleName: "Arrival", account: account, ledger: ledger) == nil)
+            #expect(WelcomePlan.current(account: account).trakt == nil)
+            var heard = 0
+            _ = account.observe { heard += 1 }
+            await account.load()
+            #expect(account.hasLoaded)
+            #expect(heard == 1)
+            #expect(TraktInvite.current(titleName: "Arrival", account: account, ledger: ledger)?.kind == .connect)
+            #expect(WelcomePlan.current(account: account).trakt == .invite)
+        }
+    }
+}
