@@ -52,8 +52,7 @@ final class WelcomeSheetView: View {
 
     /// Lays the plan out again for the account and the store as they are now.
     private func render() {
-        let access = ProAccess.shared
-        let plan = WelcomePlan(status: access.status, isStoreBacked: access.isStoreBacked, proWeek: access.proWeekPhase, trakt: TraktAccount.shared.status)
+        let plan = WelcomePlan.current()
         standing.apply(symbol: Symbol(plan.standingSymbol), brand: nil, title: plan.standingTitle, detail: plan.standingMessage)
         if highlights.isEmpty {
             highlights = WelcomeCopy.freeHighlights(includingDownloads: false).map { highlight in
