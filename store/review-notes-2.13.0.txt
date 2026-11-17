@@ -1,0 +1,30 @@
+WHAT'S NEW IN 2.13.0 (iPhone and iPad; follows 2.12.0 on the store)
+- Mini player: closing the player, or swiping it down, keeps the picture playing in a small player above the tab bar, with title, progress, play or pause; tap it to return, and the next episode plays on in it.
+- Translation: Trakt's comments, What People Say and Plex descriptions translate as they load or on request. Each carries "Translated from …" and Show Original, every comment's menu has Translate, and the composer offers Translate to English because Trakt accepts English only.
+- First launch: after a new install (never after an update, never in the demo) a sheet over Home says where the person stands with Crucible Pro and what Trakt adds, with Connect Trakt or Not Now.
+- Title pages, filmographies, collections, playlists and Trakt's comment lists load behind a skeleton drawn in their own shape instead of a spinner. Where Trakt is not connected, a title's Community place invites Connect Trakt or Not Now.
+- Everything stays in step: returning re-reads Home and every open page, another device pausing or stopping updates them live, marks and finished plays reach every screen and window, and playback starts where the server has the title now.
+- Fixed: an iPad crash when the Pro unlock card in a show's comment rail was measured in top nav bar mode; a trailer watched to its end counted as a finished title toward the Pro week, the Pro offer and the rating ask; a Trakt invitation on a page restored at launch while Trakt was connected; skeleton and large-text layout edges.
+- Mark Watched and Mark Unwatched now work on Recently Watched cards.
+
+Crucible is a client for the user's own Plex Media Server and has no content of its own. Plex needs a Plex Pass or Remote Watch Pass to stream away from home, so I cannot give App Review a working account and server. The demo runs a fictional Plex server inside the app (Guideline 2.1(a)): no account, server or network needed.
+
+START THE DEMO
+Welcome screen > "Try the demo" > "Start exploring". Account types and settings are under You.
+
+ACCOUNT TYPES
+1. Server owner ("Demo"): everything unlocked plus owner tools (Manage in a title's long-press menu and a library's header, Stop Stream in Server Activity, Server Dashboard under You).
+2. Plex Home member with a PIN: You > Switch Profile > Sam, PIN 1234.
+3. Managed profile: Kids, no PIN. Switch Profile > Demo returns.
+4. Free install: You > Preview Free Version locks What to Watch, Write a Recap, every Trakt comment, What People Say, member pages, Statistics past Week, the library filter, the Year in Review poster and Top Shelf; the locks open the paywall.
+
+WHERE THE NEW THINGS ARE
+- Mini player: play a title, then close the player (or swipe it down); it keeps playing above the tab bar, and a tap returns.
+- Translation: needs a simulator or device whose system supports Translation. With the demo's Trakt stand-in connected (You > Settings > Integrations > Trakt > Connect), open Movies > Halcyon, scroll to the community: Translate is in a comment's menu. Plex descriptions carry Translate on a title's page.
+- Welcome sheet: shown once after a new install, so the demo path skips it.
+
+CRUCIBLE PRO
+com.guitaripod.crucible.pro.lifetime, non-consumable, $17.99 (rises to $39.99 on December 7, 2026); com.guitaripod.crucible.pro.yearly, auto-renewable, $7.99 a year ($14.99 for new subscribers from December 7, 2026), no free trial. Both approved; universal purchase covers Apple TV. Playback is never gated.
+
+OTHER NOTES
+Local network access reaches servers on the home network; App Transport Security allows arbitrary loads because Plex servers on private addresses use HTTP or self-signed HTTPS. No third-party SDK. Data: an anonymous Midgar ID for purchases and, only when the person asks Crucible's AI, what the privacy policy and App Privacy answers describe; what they write in Trakt Community goes to their own Trakt account. Crucible uses Trakt but is not endorsed or certified by Trakt.
