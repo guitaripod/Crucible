@@ -6,8 +6,8 @@ import Foundation
 import Kiln
 
 enum CrucibleLinux {
-    static let version = "0.18.2"
-    static let build = "33"
+    static let version = "0.19.0"
+    static let build = "34"
 }
 
 /// Crucible for Linux.
