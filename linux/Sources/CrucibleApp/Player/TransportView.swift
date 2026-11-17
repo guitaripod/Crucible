@@ -115,7 +115,6 @@ final class TransportView: View {
     /// trails a drag by a seek.
     private var scrubFraction: Float = 0
     private var lastScrubX: Float = 0
-    private var pointer: Point?
     private var hovered: Button?
     private var pressed: Button?
     /// How far the volume slider has grown under the pointer or a drag, 0 to 1.
@@ -328,7 +327,6 @@ final class TransportView: View {
     // MARK: Pointer
 
     override func pointerMoved(to point: Point) {
-        pointer = point
         onPointerActivity?(true)
         guard !scrubbing, !draggingVolume else { return }
         if isDesk {
@@ -387,7 +385,6 @@ final class TransportView: View {
 
     override func pointerExited() {
         hoverFraction = nil
-        pointer = nil
         if !draggingVolume { setVolumeHovered(false) }
         onPointerActivity?(false)
         setHovered(nil)
@@ -487,20 +484,23 @@ final class TransportView: View {
         setNeedsDisplay()
     }
 
-    /// The wheel over the mute button or the volume slider turns the volume (5% a notch); anywhere else it goes on to the
-    /// player, which seeks.
-    override func scrolled(_ event: ScrollEvent) -> Bool {
-        guard isDesk, let pointer, volumeBand.contains(pointer) || deskFrame(of: .mute).contains(pointer) else { return false }
+    /// Whether the wheel at `point` turns the volume: over the desk's mute button or volume slider. The player decides
+    /// where each run of the wheel goes, since one may start on the picture and carry on over the transport it brings up.
+    func turnsVolume(at point: Point) -> Bool {
+        isDesk && (volumeBand.contains(point) || deskFrame(of: .mute).contains(point))
+    }
+
+    /// Turns the volume by a wheel's notches (5% each) or a touchpad's glide.
+    func turnVolume(_ event: ScrollEvent) {
         let step = event.isDiscrete ? Double(-event.notchesY + event.notchesX) * 5 : Double(-event.dy + event.dx) * 0.2
-        guard step != 0 else { return true }
+        guard step != 0 else { return }
         let exact = min(max((wheelVolume ?? volume) + step, 0), maximumVolume)
         wheelVolume = exact
         volumeSetAt = Window.now()
-        guard exact.rounded() != volume else { return true }
+        guard exact.rounded() != volume else { return }
         volume = exact.rounded()
         onVolume?(volume)
         setNeedsDisplay()
-        return true
     }
 
     static func clock(_ seconds: Double) -> String {

@@ -723,6 +723,8 @@ final class PlayerScreen: View {
     /// Where the pointer last moved over the player, and where it rested when the chrome hid, in window points.
     private var lastPointer: Point?
     private var restingPointer: Point?
+    /// What the wheel's current run drives (the volume, or else the playhead) and when its last event came.
+    var wheelRun: (turnsVolume: Bool, at: Double)?
 
     override func pointerMoved(to point: Point) {
         if isMini {
@@ -853,7 +855,14 @@ final class PlayerScreen: View {
         return true
     }
 
+    /// The wheel or a touchpad seeks (5 s a notch), except a run that began over the shown transport's volume slider or mute
+    /// button, which turns the volume and keeps the transport up while it does (`wheelTurnsVolume`).
     override func scrolled(_ event: ScrollEvent) -> Bool {
+        if wheelTurnsVolume(event) {
+            transport.turnVolume(event)
+            showChrome(autoHide: true, rest: Self.chromeRestOnBar)
+            return true
+        }
         let step: Double = event.isDiscrete ? Double(-event.notchesY + event.notchesX) * 5 : Double(-event.dy + event.dx) * 0.1
         guard step != 0 else { return true }
         viewerActed()

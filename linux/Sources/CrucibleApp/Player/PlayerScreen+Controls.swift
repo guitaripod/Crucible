@@ -208,6 +208,28 @@ extension PlayerScreen {
         }
     }
 
+    /// Whether `event` turns the volume rather than seeking. A run of wheel notches or a touchpad glide keeps what its first
+    /// event chose (the volume when it began over the shown transport's volume slider or mute button) until the fingers
+    /// lift or the wheel rests half a second, so the transport fading out under a volume change, or a seek bringing it up
+    /// under the pointer, never turns one into the other halfway.
+    func wheelTurnsVolume(_ event: ScrollEvent) -> Bool {
+        guard !isMini else {
+            wheelRun = nil
+            return false
+        }
+        let now = Window.now()
+        let turnsVolume: Bool
+        if let wheelRun, now - wheelRun.at < 0.5 {
+            turnsVolume = wheelRun.turnsVolume
+        } else if transport.alpha > 0.01, let pointer = window?.pointerLocation {
+            turnsVolume = transport.turnsVolume(at: transport.convert(pointer, from: nil))
+        } else {
+            turnsVolume = false
+        }
+        wheelRun = event.ended ? nil : (turnsVolume, now)
+        return turnsVolume
+    }
+
     func setVolumeBoost(_ on: Bool) {
         tweaks.taste.volumeBoost = on
         player?.maximumVolume = on ? 200 : 100
