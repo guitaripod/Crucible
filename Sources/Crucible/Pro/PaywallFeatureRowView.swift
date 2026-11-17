@@ -6,7 +6,12 @@ import UIKit
 /// own numbers when the sheet has them. The row for the feature that opened the paywall is tinted so the reason for the sheet is
 /// visible at a glance.
 final class PaywallFeatureRowView: UIView {
-    init(feature: ProFeature, summary line: String, isHighlighted: Bool) {
+    convenience init(feature: ProFeature, summary line: String, isHighlighted: Bool) {
+        self.init(symbol: feature.symbol, title: feature.title, summary: line, isHighlighted: isHighlighted)
+    }
+
+    /// A row of the same look for anything that is not a Pro feature, such as what the free app does on the welcome.
+    init(symbol: String, title titleText: String, summary line: String, isHighlighted: Bool = false) {
         super.init(frame: .zero)
 
         let well = UIView()
@@ -15,7 +20,7 @@ final class PaywallFeatureRowView: UIView {
         well.layer.cornerCurve = .continuous
         well.translatesAutoresizingMaskIntoConstraints = false
 
-        let icon = UIImageView(image: UIImage(systemName: feature.symbol, withConfiguration: UIImage.SymbolConfiguration(pointSize: 18, weight: .medium)))
+        let icon = UIImageView(image: UIImage(systemName: symbol, withConfiguration: UIImage.SymbolConfiguration(pointSize: 18, weight: .medium)))
         icon.tintColor = isHighlighted ? Theme.Color.onAccent : Theme.Color.accentText
         icon.contentMode = .center
         icon.translatesAutoresizingMaskIntoConstraints = false
@@ -28,7 +33,7 @@ final class PaywallFeatureRowView: UIView {
         ])
 
         let title = UILabel()
-        title.text = feature.title
+        title.text = titleText
         title.font = Theme.Font.headline
         title.textColor = Theme.Color.label
         let summary = UILabel()
@@ -62,7 +67,7 @@ final class PaywallFeatureRowView: UIView {
         layer.cornerCurve = .continuous
 
         isAccessibilityElement = true
-        accessibilityLabel = feature.title
+        accessibilityLabel = titleText
         accessibilityValue = line
     }
 

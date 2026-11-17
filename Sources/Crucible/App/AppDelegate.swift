@@ -18,6 +18,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         #if DEBUG
         PhoneDebugSession.bootstrapIfRequested()
         #endif
+        WelcomeLedger.shared.settleAtLaunch()
         ProAccess.shared.configureForLaunch(store: nil)
         HostedBrain.configureForLaunch()
         Intelligence.configureForLaunch()
@@ -29,11 +30,17 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         Self.followAppActivity()
         PreferenceSetting.didChange = { setting in Self.preferenceChanged(setting) }
         UNUserNotificationCenter.current().delegate = self
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
+        if !WelcomeLedger.shared.isWelcomeOwed { Self.askForNotifications() }
         if #available(iOS 26.0, *) {
             installMainMenu()
         }
         return true
+    }
+
+    /// Asks for permission to send notifications; the system answers at once when it was already given or refused. A new install asks
+    /// when its welcome closes instead of at launch, over the sign-in screen, before the viewer has seen anything worth hearing about.
+    static func askForNotifications() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
     }
 
     /// The route monitor looks again when the app comes back to the front, and rests while it is away.

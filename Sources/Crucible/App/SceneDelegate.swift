@@ -279,8 +279,20 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         gate.onSwitchServer = { [weak self] in self?.switchServerFromLaunchFailure() }
         gate.switchTitle = DemoMode.shared.isActive ? DemoPhoneCopy.leaveTitle : String(localized: "Switch Server")
         endMainAppPlayback()
-        window?.rootViewController = gate
+        guard isShowingServerSetup, let window else {
+            window?.rootViewController = gate
+            return gate
+        }
+        dissolve(window, to: gate)
         return gate
+    }
+
+    /// A sign-in that just finished hands over to the launch screen with a dissolve, so the welcome's crystal becomes the launch
+    /// screen's instead of cutting to it.
+    private func dissolve(_ window: UIWindow, to root: UIViewController) {
+        UIView.transition(with: window, duration: 0.35, options: [.transitionCrossDissolve, .curveEaseInOut]) {
+            window.rootViewController = root
+        }
     }
 
     private func buildMainApp(_ payload: LaunchPayload) -> TabBarController {
@@ -315,6 +327,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             if let tabBar = root as? TabBarController {
                 DemoCoordinator.shared.mainAppDidAppear(tabBar)
                 NotificationCoordinator.shared.mainAppDidAppear(tabBar)
+                WelcomeCoordinator.shared.mainAppDidAppear(tabBar)
             }
             #if DEBUG
             PhoneDebugSession.openIfRequested(over: root)

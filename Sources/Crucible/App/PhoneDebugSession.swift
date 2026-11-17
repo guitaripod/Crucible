@@ -21,7 +21,8 @@ enum PhoneDebugSession {
     #if DEBUG
     private static let mockMachineIdentifier = "9c1f0e2a7b3d4e5f8a6b1c2d3e4f5a6b"
 
-    /// With `CRUCIBLE_FRESH=1` first forgets the account, the server, the demo and its tour, so every launch starts as a new install.
+    /// With `CRUCIBLE_FRESH=1` first forgets the account, the server, the demo and its tour, so every launch starts as a new install;
+    /// the welcome is owed only with `CRUCIBLE_WELCOME=1`, which also stages it on its own over a saved session.
     /// With `CRUCIBLE_PHONE_MOCK=<url>` then signs in to the mock Plex server as Marcus, the way the Apple TV tests do, for what the
     /// built-in demo cannot show (a Plex Home); `CRUCIBLE_PLEXTV` points plex.tv at the same mock.
     @MainActor
@@ -31,6 +32,9 @@ enum PhoneDebugSession {
             AccountSessionReset.signOut(.phone)
             forgetDemo()
             MidgarLog.notice("Debug session: fresh install state", category: .lifecycle)
+        }
+        if environment["CRUCIBLE_FRESH"] == "1" || environment["CRUCIBLE_WELCOME"] == "1" {
+            WelcomeLedger.shared.stageFreshInstall(owesWelcome: environment["CRUCIBLE_WELCOME"] == "1")
         }
         if let value = environment["CRUCIBLE_PHONE_MOCK"], let base = URL(string: value) {
             forgetDemo()
