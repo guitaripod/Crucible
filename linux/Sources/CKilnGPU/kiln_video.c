@@ -25,7 +25,7 @@ struct kiln_video {
 };
 
 enum { OBSERVE_POSITION = 1, OBSERVE_DURATION, OBSERVE_PAUSE, OBSERVE_BUFFERING, OBSERVE_CACHE, OBSERVE_WIDTH, OBSERVE_HEIGHT,
-       OBSERVE_SEEKING, OBSERVE_HWDEC, OBSERVE_VOLUME, OBSERVE_MUTE, OBSERVE_EOF };
+       OBSERVE_SEEKING, OBSERVE_HWDEC, OBSERVE_MUTE, OBSERVE_EOF };
 
 static void signal_wakeup(kiln_video *v) {
     uint64_t one = 1;
@@ -131,7 +131,6 @@ kiln_video *kiln_video_create(kiln_gpu *g, char *error, size_t error_size) {
     mpv_observe_property(v->mpv, OBSERVE_HEIGHT, "dheight", MPV_FORMAT_INT64);
     mpv_observe_property(v->mpv, OBSERVE_SEEKING, "seeking", MPV_FORMAT_FLAG);
     mpv_observe_property(v->mpv, OBSERVE_HWDEC, "hwdec-current", MPV_FORMAT_STRING);
-    mpv_observe_property(v->mpv, OBSERVE_VOLUME, "volume", MPV_FORMAT_DOUBLE);
     mpv_observe_property(v->mpv, OBSERVE_MUTE, "mute", MPV_FORMAT_FLAG);
     mpv_observe_property(v->mpv, OBSERVE_EOF, "eof-reached", MPV_FORMAT_FLAG);
     return v;
@@ -162,7 +161,6 @@ static void apply_property(kiln_video_state *state, mpv_event_property *property
     case OBSERVE_HEIGHT: state->height = (int) *(int64_t *) property->data; break;
     case OBSERVE_SEEKING: state->seeking = *(int *) property->data; break;
     case OBSERVE_HWDEC: snprintf(state->hwdec, sizeof state->hwdec, "%s", *(char **) property->data); break;
-    case OBSERVE_VOLUME: state->volume = *(double *) property->data; break;
     case OBSERVE_MUTE: state->muted = *(int *) property->data; break;
     }
 }

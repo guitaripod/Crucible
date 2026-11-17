@@ -23,7 +23,6 @@ typedef struct {
     double position;
     double duration;
     double cache_seconds;
-    double volume;
     bool paused;
     bool buffering;
     bool seeking;

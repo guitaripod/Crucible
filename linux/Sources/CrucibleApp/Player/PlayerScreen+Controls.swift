@@ -230,24 +230,22 @@ extension PlayerScreen {
         return turnsVolume
     }
 
+    /// Lets the volume go to 200%; the player brings a volume past 100% back to it when the boost goes off.
     func setVolumeBoost(_ on: Bool) {
         tweaks.taste.volumeBoost = on
         player?.maximumVolume = on ? 200 : 100
-        if !on, let player, player.state.volume > 100 { player.setVolume(100) }
         applyAudioFilters()
         saveTaste()
         say(on ? String(localized: "Volume Boost On", comment: "Player message") : String(localized: "Volume Boost Off", comment: "Player message"),
             symbol: "speaker.wave.3")
     }
 
-    /// The sound's filters: the dialogue chain, and a limiter while the volume may go past the file's own. Any filter needs
-    /// the sound decoded, so passthrough to a receiver pauses while one runs.
+    /// The sound's filters: the dialogue chain, which the player follows with Volume Boost's gain and limiter while it is on.
+    /// Any filter needs the sound decoded, so passthrough to a receiver pauses while one runs.
     func applyAudioFilters() {
-        var filters: [String] = []
-        if tweaks.taste.dialogue != .off { filters.append(tweaks.taste.dialogue.filter) }
-        if tweaks.taste.volumeBoost { filters.append("lavfi=[alimiter=limit=0.95:level=0]") }
-        player?.set("af", filters.joined(separator: ","))
-        player?.set("audio-spdif", filters.isEmpty ? spdifCodecs.joined(separator: ",") : "")
+        guard let player else { return }
+        player.audioFilters = tweaks.taste.dialogue == .off ? [] : [tweaks.taste.dialogue.filter]
+        player.set("audio-spdif", player.filtersSound ? "" : spdifCodecs.joined(separator: ","))
     }
 
     // MARK: Picture

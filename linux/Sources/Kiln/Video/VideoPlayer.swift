@@ -158,12 +158,68 @@ public final class VideoPlayer {
         command(["seek", String(format: "%.3f", seconds), "relative+exact"])
     }
 
-    /// The loudest the volume goes, in percent: 100 plays the file as it is, more amplifies it (mpv's volume-max).
+    /// The loudest the volume goes, in percent: 100 plays the file as it is, more amplifies it. mpv applies its own volume
+    /// after the audio filters, where nothing holds the peaks it lifts past full scale, so mpv's stops at 100% and the rest
+    /// is a gain in the filters ahead of a limiter (`boostFilters`).
     public var maximumVolume: Double = 100 {
-        didSet { set("volume-max", String(format: "%.0f", maximumVolume)) }
+        didSet {
+            guard maximumVolume != oldValue else { return }
+            if volume > maximumVolume {
+                setVolume(maximumVolume)
+            } else {
+                applyAudioFilters()
+            }
+        }
     }
 
-    public func setVolume(_ volume: Double) { set("volume", String(format: "%.0f", min(max(volume, 0), maximumVolume))) }
+    /// The sound's own filters, in mpv's `af` syntax; the volume boost's gain and limiter follow them while the volume may
+    /// pass 100%.
+    public var audioFilters: [String] = [] {
+        didSet { applyAudioFilters() }
+    }
+
+    /// Whether the sound runs through any filter, so it has to be decoded here rather than passed through to a receiver.
+    public var filtersSound: Bool { !audioFilters.isEmpty || maximumVolume > 100 }
+
+    /// The volume asked for, in percent, which `state` reports: mpv plays up to 100% of it, the boost's gain the rest.
+    private var volume: Double = 100
+    /// The `af` list mpv was last given, so a volume change that leaves the boost's gain as it was rebuilds nothing.
+    private var appliedAudioFilters: String?
+
+    public func setVolume(_ volume: Double) {
+        let level = min(max(volume, 0), maximumVolume).rounded()
+        self.volume = level
+        set("volume", String(format: "%.0f", min(level, 100)))
+        applyAudioFilters()
+        guard state.volume != level else { return }
+        state.volume = level
+        onStateChange?(state)
+    }
+
+    /// Hands mpv the sound's filters and, while the volume may pass 100%, the boost after them. mpv rebuilds only the
+    /// filters whose settings changed, and the gain holds no samples, so a volume drag rebuilds it at every step without a
+    /// gap or a click; a seek rebuilds every filter from this list, so the gain lives in it rather than being sent to the
+    /// running filter, which would lose it at the next seek.
+    private func applyAudioFilters() {
+        var filters = audioFilters
+        if maximumVolume > 100 { filters += Self.boostFilters(volume: volume) }
+        let list = filters.joined(separator: ",")
+        guard list != appliedAudioFilters, set("af", list) >= 0 else { return }
+        appliedAudioFilters = list
+    }
+
+    /// Volume Boost's filters for `volume` percent: the gain past 100% on the cubic curve mpv's own volume follows below it
+    /// (so a step sounds alike either side of 100%, and 200% is 8 times the amplitude), then a lookahead limiter holding the
+    /// peaks at -1 dBFS with a release that adapts to dense passages, where clipping would flatten the voices and leave
+    /// their echo as loud as they are.
+    nonisolated static func boostFilters(volume: Double) -> [String] {
+        let gain = pow(max(volume, 100) / 100, 3)
+        return ["@boost:lavfi=[volume=\(String(format: "%.4f", gain))]",
+                "@limiter:lavfi=[alimiter=limit=\(limiterCeiling):attack=5:release=150:asc=1:level=0]"]
+    }
+
+    /// The level the boost's limiter holds the peaks at: -1 dBFS, room for the overshoot between samples.
+    nonisolated static let limiterCeiling = 0.891
 
     public func setMuted(_ muted: Bool) { set("mute", muted ? "yes" : "no") }
 
@@ -232,7 +288,7 @@ public final class VideoPlayer {
             next.position = raw.position
             next.duration = raw.duration
             next.cachedSeconds = raw.cache_seconds
-            next.volume = raw.volume
+            next.volume = volume
             next.isPaused = raw.paused
             next.isBuffering = raw.buffering
             next.isSeeking = raw.seeking
