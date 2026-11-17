@@ -24,6 +24,14 @@ struct WelcomeLedgerTests {
         #expect(!ledger.isWelcomeOwed)
     }
 
+    @Test func anUpdateWhoseViewerHadSignedOutIsWelcomedLikeANewInstall() {
+        let store = defaults()
+        store.set(3, forKey: "libraryColumns")
+        let ledger = WelcomeLedger(defaults: store)
+        ledger.settleAtLaunch()
+        #expect(ledger.isWelcomeOwed)
+    }
+
     @Test func theFirstLaunchDecidesOnceAndASavedServerLaterChangesNothing() {
         let store = defaults()
         let ledger = WelcomeLedger(defaults: store)
@@ -124,7 +132,7 @@ struct WelcomePlanTests {
         #expect(open.freeHighlights(includingDownloads: true).isEmpty)
     }
 
-    @Test func everyStandingHasItsOwnWords() {
+    @Test func everyStandingHasItsOwnMessageAndATitle() {
         let standings: [WelcomePlan.Standing] = [
             .checking, .freeWeekAhead, .free, .proWeek(endsAt: now), .trial(endsAt: now), .trial(endsAt: nil),
             .pro(familyShared: false), .pro(familyShared: true), .included,

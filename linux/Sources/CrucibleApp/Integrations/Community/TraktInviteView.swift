@@ -69,8 +69,6 @@ final class TraktInviteView: View {
         return moving
     }
 
-    // MARK: Layout
-
     private var metrics: Metrics { Theme.current.metrics }
     private var inset: Float { metrics.tv(40) }
     private var markSide: Float { metrics.tv(88) }

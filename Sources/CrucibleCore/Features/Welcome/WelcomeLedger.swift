@@ -3,6 +3,8 @@ import Foundation
 /// What Crucible remembers about a viewer's first steps on this device: whether the welcome is still owed, and whether the viewer put
 /// the Trakt invitation on title pages away. It lives in the defaults alone, so deleting the app, or anything else that clears its
 /// data, makes the next library a first one again, while an update from a version that had no welcome counts as already welcomed.
+/// Earlier versions leave nothing behind a sign-out that tells them apart from a new install (the keychain outlives a reinstall), so
+/// an update that finds no server saved, because its viewer had signed out, welcomes the next library they open like a new one.
 package final class WelcomeLedger: @unchecked Sendable {
     package static let shared = WelcomeLedger()
 

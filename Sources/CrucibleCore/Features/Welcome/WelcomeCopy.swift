@@ -106,8 +106,6 @@ package enum WelcomeCopy {
         return highlights
     }
 
-    // MARK: - Trakt
-
     package static let traktInviteTitle = String(localized: "See what everyone thinks", comment: "Title of the invitation to connect Trakt")
     package static let traktInviteMessage = String(localized: "Connect Trakt for its score beside IMDb and Rotten Tomatoes on every title, with reviews and what people say. Everything you watch is checked off on Trakt by itself.", comment: "Welcome invitation to connect Trakt")
     package static let traktConnectedTitle = String(localized: "Trakt is connected", comment: "Welcome line when Trakt is already connected")
