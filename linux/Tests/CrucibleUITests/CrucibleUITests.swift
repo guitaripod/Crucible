@@ -146,6 +146,101 @@ enum SharedGPU {
         #expect(shelf.card(for: "a") == nil)
     }
 
+    @Test func aFlowWrapsWhereTheNextItemWouldPassTheEdge() {
+        let flow = FlowLayout(leading: 10, width: 100, spacing: 10, lineSpacing: 5)
+        let placed = flow.place([Size(width: 40, height: 20), Size(width: 40, height: 30), Size(width: 40, height: 20), Size(width: 300, height: 10)])
+        #expect(placed.origins == [Point(x: 10, y: 0), Point(x: 60, y: 0), Point(x: 10, y: 35), Point(x: 10, y: 60)])
+        #expect(placed.height == 70)
+        #expect(flow.place([]).height == 0)
+    }
+
+    @Test func aChipRowWrapsOntoLinesInsteadOfScrollingSideways() {
+        let row = ChipRowView()
+        row.setChips((0..<14).map { ChipRowView.Chip(id: "\($0)", title: "Chip number \($0)") })
+        window.contentView.addSubview(row)
+        let metrics = Theme.current.metrics
+        let single = row.sizeThatFits(Size(width: 6000, height: 100)).height
+        let height = row.sizeThatFits(Size(width: 640, height: 100)).height
+        #expect(height > single)
+        row.frame = Rect(x: 0, y: 0, width: 640, height: height)
+        window.render()
+        let frames = row.subviews.compactMap { $0 as? ButtonView }.map(\.frame)
+        #expect(frames.count == 14)
+        #expect(frames.allSatisfy { $0.maxX <= 640 - metrics.sideMargin + 0.5 && $0.minX >= metrics.sideMargin })
+        #expect(Set(frames.map(\.y)).count > 1)
+        #expect(row.subviews.contains { $0 is ScrollView } == false)
+        row.removeFromSuperview()
+    }
+
+    @Test func aWrappingShelfShowsTwoLinesUntilShowAllOpensTheRest() throws {
+        let shelf = ShelfView(header: SectionHeader(title: "Cast & Crew"), style: .person)
+        shelf.wraps = true
+        shelf.setItems((0..<60).map { CardItem(id: "\($0)", title: "Person \($0)") })
+        window.contentView.addSubview(shelf)
+        let collapsed = shelf.height(for: 1280)
+        shelf.frame = Rect(x: 0, y: 0, width: 1280, height: collapsed)
+        window.render()
+        let cards = (0..<60).compactMap { shelf.card(for: "\($0)") }
+        let shown = cards.filter { !$0.isHidden }
+        #expect(shown.count > 2 && shown.count < 60)
+        #expect(Set(shown.map(\.frame.y)).count == 2)
+        #expect(shown.allSatisfy { $0.frame.maxX <= 1280 })
+        let button = try #require(shelf.seeAllButton as? ButtonView)
+        #expect(button.title == "Show All")
+        button.onPress?()
+        window.render()
+        let opened = shelf.height(for: 1280)
+        #expect(opened > collapsed)
+        #expect(cards.allSatisfy { !$0.isHidden })
+        #expect((shelf.seeAllButton as? ButtonView)?.title == "Show Less")
+        shelf.frame = Rect(x: 0, y: 0, width: 1280, height: opened)
+        window.render()
+        #expect(shelf.scroller.maximumOffset == 0)
+        (shelf.seeAllButton as? ButtonView)?.onPress?()
+        #expect(shelf.height(for: 1280) == collapsed)
+        shelf.removeFromSuperview()
+    }
+
+    @Test func aWrappingShelfWithNoCollapsedLinesShowsEveryCard() {
+        let shelf = ShelfView(header: SectionHeader(title: "Season 1"), style: .episode)
+        shelf.wraps = true
+        shelf.collapsedLines = nil
+        shelf.setItems((0..<40).map { CardItem(id: "\($0)", title: "Episode \($0)") })
+        window.contentView.addSubview(shelf)
+        shelf.frame = Rect(x: 0, y: 0, width: 1280, height: shelf.height(for: 1280))
+        window.render()
+        #expect((0..<40).allSatisfy { shelf.card(for: "\($0)")?.isHidden == false })
+        #expect(shelf.seeAllButton == nil)
+        #expect(shelf.card(for: "39")!.frame.maxY <= shelf.height(for: 1280))
+        shelf.removeFromSuperview()
+    }
+
+    @Test func aWrappingShelfWithFewCardsHasNoShowAllAndKeepsItsSeeAll() {
+        let shelf = ShelfView(header: SectionHeader(title: "Cast & Crew", hasSeeAll: true), style: .person)
+        shelf.wraps = true
+        shelf.setItems((0..<4).map { CardItem(id: "\($0)", title: "Person \($0)") })
+        window.contentView.addSubview(shelf)
+        shelf.frame = Rect(x: 0, y: 0, width: 1280, height: shelf.height(for: 1280))
+        window.render()
+        #expect((shelf.seeAllButton as? ButtonView)?.title == "See All")
+        shelf.removeFromSuperview()
+    }
+
+    @Test func genreTilesFillTheWidthInLinesInsteadOfScrollingSideways() {
+        let grid = GradientTileGridView()
+        grid.setTiles((0..<30).map { GradientTileGridView.Tile(id: "\($0)", title: "Genre \($0)", top: .white, bottom: .black) })
+        window.contentView.addSubview(grid)
+        let height = grid.sizeThatFits(Size(width: 1280, height: 100)).height
+        grid.frame = Rect(x: 0, y: 0, width: 1280, height: height)
+        window.render()
+        let frames = grid.subviews.map(\.frame)
+        #expect(frames.count == 30)
+        #expect(Set(frames.map(\.y)).count > 1)
+        #expect(frames.allSatisfy { $0.maxX <= 1280 - Theme.current.metrics.sideMargin + 0.5 })
+        #expect(frames.map(\.maxY).max()! <= height)
+        grid.removeFromSuperview()
+    }
+
     @Test func theHeroGivesWayLineByLineWhenItRunsOutOfRoom() {
         let hero = HeroInfoView()
         window.contentView.addSubview(hero)

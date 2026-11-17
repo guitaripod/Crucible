@@ -346,7 +346,8 @@ public final class ButtonView: View {
     }
 }
 
-/// A row of chips (filters, seasons, recent searches) that scrolls sideways and keeps the focused chip in view.
+/// A row of chips (filters, seasons, recent searches) that wraps onto further lines where the width ends, so every chip is in
+/// reach of a mouse without scrolling sideways.
 @MainActor
 public final class ChipRowView: View {
     public struct Chip: Hashable, Sendable {
@@ -371,15 +372,8 @@ public final class ChipRowView: View {
     public var onSelect: ((Chip) -> Void)?
     /// A right click or the Menu key on a chip, with where to anchor a menu; nil leaves chips without one.
     public var onContextMenu: ((Chip, Point?) -> Void)?
-    public let scroller = ScrollView(axis: .horizontal)
     private var chips: [Chip] = []
     private var buttons: [String: ButtonView] = [:]
-
-    public override init(frame: Rect = .zero) {
-        super.init(frame: frame)
-        scroller.showsIndicator = false
-        addSubview(scroller)
-    }
 
     public override var remembersFocus: Bool { true }
     public override var preferredFocusView: View? {
@@ -407,7 +401,7 @@ public final class ChipRowView: View {
                 let frame = button.frameInWindow
                 self.onContextMenu?(chip, point ?? Point(x: frame.minX, y: frame.maxY))
             }
-            if button.superview == nil { scroller.addSubview(button) }
+            if button.superview == nil { addSubview(button) }
             next[chip.id] = button
         }
         for (id, button) in buttons where next[id] == nil { button.removeFromSuperview() }
@@ -415,22 +409,31 @@ public final class ChipRowView: View {
         setNeedsLayout()
     }
 
+    private var padding: Float { Theme.current.metrics.tv(48) }
+
+    private func flow(width: Float) -> FlowLayout {
+        let metrics = Theme.current.metrics
+        return FlowLayout(leading: metrics.sideMargin, width: width - metrics.sideMargin * 2, spacing: metrics.tv(24), lineSpacing: metrics.tv(16))
+    }
+
+    private var buttonsInOrder: [ButtonView] { chips.compactMap { buttons[$0.id] } }
+
+    /// Each chip's size, which is its own: a chip is as wide as its title.
+    private func chipSizes() -> [Size] {
+        let limit = Size(width: 1000, height: Theme.current.metrics.chipHeight)
+        return buttonsInOrder.map { $0.sizeThatFits(limit) }
+    }
+
     public override func sizeThatFits(_ size: Size) -> Size {
-        Size(width: size.width, height: Theme.current.metrics.chipHeight + Theme.current.metrics.tv(48))
+        let placed = flow(width: size.width).place(chipSizes())
+        return Size(width: size.width, height: max(placed.height, Theme.current.metrics.chipHeight) + padding)
     }
 
     public override func layoutSubviews() {
-        let metrics = Theme.current.metrics
-        scroller.frame = bounds
-        scroller.revealInsets = EdgeInsets(leading: metrics.sideMargin, trailing: metrics.sideMargin)
-        var x = metrics.sideMargin
-        let y = (frame.height - metrics.chipHeight) / 2
-        for chip in chips {
-            guard let button = buttons[chip.id] else { continue }
-            let size = button.sizeThatFits(Size(width: 1000, height: metrics.chipHeight))
-            button.frame = Rect(x: x, y: y, width: size.width, height: size.height)
-            x += size.width + metrics.tv(24)
+        let sizes = chipSizes()
+        let placed = flow(width: frame.width).place(sizes)
+        for (index, button) in buttonsInOrder.enumerated() {
+            button.frame = Rect(x: placed.origins[index].x, y: padding / 2 + placed.origins[index].y, width: sizes[index].width, height: sizes[index].height)
         }
-        scroller.contentLength = x - metrics.tv(24) + metrics.sideMargin
     }
 }

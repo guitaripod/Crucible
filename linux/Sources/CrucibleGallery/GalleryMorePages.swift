@@ -7,7 +7,7 @@ import Kiln
 @MainActor
 final class GalleryTiles: View {
     let genresTitle = SectionTitleView(title: "Browse Genres")
-    let genres = GradientTileRowView()
+    let genres = GradientTileGridView()
     let cast = ShelfView(header: SectionHeader(title: "Cast Without Photos"), style: .person)
     let marksTitle = SectionTitleView(title: "Brand Marks")
     let marks: [BrandMarkView]
@@ -36,7 +36,7 @@ final class GalleryTiles: View {
         addSubview(page)
         marks.forEach(addSubview)
         [glyph, rail, letters].forEach(addSubview)
-        genres.setTiles(Self.genrePairs.map { .init(id: $0.0, title: $0.0, top: Color(hex: $0.2), bottom: Color(hex: $0.1)) })
+        genres.setTiles(Self.genrePairs.prefix(3).map { .init(id: $0.0, title: $0.0, top: Color(hex: $0.2), bottom: Color(hex: $0.1)) })
         cast.setItems(Self.castGradients.enumerated().map { index, person in
             var card = CardItem(id: "cast.\(index)", title: person.0, subtitle: ["Director", "Captain Vale", "Writer", "Mara", "Composer", "Ines"][index],
                                 placeholderSymbol: "person")

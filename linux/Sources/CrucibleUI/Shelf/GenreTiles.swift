@@ -26,10 +26,11 @@ public final class SectionTitleView: View {
     }
 }
 
-/// A row of gradient tiles that scrolls sideways (Search's Browse genres, `TVGenreCell`): each tile its title on a gradient
-/// of its own colours, lifting under focus or the pointer.
+/// A grid of gradient tiles (Search's Browse genres, `TVGenreCell`): each tile its title on a gradient of its own colours,
+/// lifting under focus or the pointer. As many fit across as the width allows, sharing it, and the rest wrap onto further
+/// lines, so a mouse reaches every genre without scrolling sideways.
 @MainActor
-public final class GradientTileRowView: View {
+public final class GradientTileGridView: View {
     public struct Tile: Hashable, Sendable {
         public var id: String
         public var title: String
@@ -45,15 +46,8 @@ public final class GradientTileRowView: View {
     }
 
     public var onActivate: ((Tile) -> Void)?
-    public let scroller = ScrollView(axis: .horizontal)
     private var tiles: [Tile] = []
     private var views: [String: GradientTileView] = [:]
-
-    public override init(frame: Rect = .zero) {
-        super.init(frame: frame)
-        scroller.showsIndicator = false
-        addSubview(scroller)
-    }
 
     public override var remembersFocus: Bool { true }
     public override var preferredFocusView: View? { tiles.first.flatMap { views[$0.id] } }
@@ -65,7 +59,7 @@ public final class GradientTileRowView: View {
             let view = views[tile.id] ?? GradientTileView(tile: tile)
             view.tile = tile
             view.onActivate = { [weak self] tile in self?.onActivate?(tile) }
-            if view.superview == nil { scroller.addSubview(view) }
+            if view.superview == nil { addSubview(view) }
             next[tile.id] = view
         }
         for (id, view) in views where next[id] == nil { view.removeFromSuperview() }
@@ -73,38 +67,54 @@ public final class GradientTileRowView: View {
         setNeedsLayout()
     }
 
-    private var tileSize: Size {
+    private var preferredTileSize: Size {
         let metrics = Theme.current.metrics
         return Size(width: metrics.tv(340) * metrics.cardZoom, height: metrics.tv(190) * metrics.cardZoom)
     }
 
+    /// The columns that fit across `width` and the tile size that shares the width among them, in the preferred shape.
+    private func grid(width: Float) -> (columns: Int, tile: Size) {
+        let metrics = Theme.current.metrics
+        let room = max(width - metrics.sideMargin * 2, 1)
+        let preferred = preferredTileSize
+        let columns = max(1, Int(((room + metrics.gutter) / (preferred.width + metrics.gutter)).rounded(.down)))
+        let tileWidth = ((room - metrics.gutter * Float(columns - 1)) / Float(columns)).rounded(.down)
+        return (columns, Size(width: tileWidth, height: (tileWidth * preferred.height / preferred.width).rounded()))
+    }
+
+    private var lineSpacing: Float { Theme.current.metrics.tv(32) }
+
     public override func sizeThatFits(_ size: Size) -> Size {
         let metrics = Theme.current.metrics
-        return Size(width: size.width, height: metrics.shelfTopInset + tileSize.height + metrics.shelfBottomInset * 0.6)
+        guard !tiles.isEmpty else { return Size(width: size.width, height: 0) }
+        let layout = grid(width: size.width)
+        let lines = (tiles.count + layout.columns - 1) / layout.columns
+        let height = Float(lines) * layout.tile.height + Float(lines - 1) * lineSpacing
+        return Size(width: size.width, height: metrics.shelfTopInset + height + metrics.shelfBottomInset * 0.6)
     }
 
     public override func layoutSubviews() {
         let metrics = Theme.current.metrics
-        scroller.frame = bounds
-        scroller.revealInsets = EdgeInsets(leading: metrics.sideMargin, trailing: metrics.sideMargin)
-        var x = metrics.sideMargin
-        for tile in tiles {
-            views[tile.id]?.frame = Rect(origin: Point(x: x, y: metrics.shelfTopInset), size: tileSize)
-            x += tileSize.width + metrics.gutter
+        let layout = grid(width: frame.width)
+        for (index, tile) in tiles.enumerated() {
+            let line = index / layout.columns
+            let column = index % layout.columns
+            views[tile.id]?.frame = Rect(x: metrics.sideMargin + Float(column) * (layout.tile.width + metrics.gutter),
+                                         y: metrics.shelfTopInset + Float(line) * (layout.tile.height + lineSpacing),
+                                         width: layout.tile.width, height: layout.tile.height)
         }
-        scroller.contentLength = x - metrics.gutter + metrics.sideMargin
     }
 }
 
 /// One gradient tile.
 @MainActor
 private final class GradientTileView: View {
-    var tile: GradientTileRowView.Tile { didSet { if tile != oldValue { setNeedsDisplay() } } }
-    var onActivate: ((GradientTileRowView.Tile) -> Void)?
+    var tile: GradientTileGridView.Tile { didSet { if tile != oldValue { setNeedsDisplay() } } }
+    var onActivate: ((GradientTileGridView.Tile) -> Void)?
     private var lift = Animated(0)
     private var press = Animated(0)
 
-    init(tile: GradientTileRowView.Tile) {
+    init(tile: GradientTileGridView.Tile) {
         self.tile = tile
         super.init()
     }

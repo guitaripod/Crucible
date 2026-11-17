@@ -41,6 +41,9 @@ final class MediaDetailScreen: DetailScreen {
             guard let self, let extra = self.model?.extras.first(where: { "extra.\($0.id)" == card.id }) else { return }
             self.rootView?.play(item: extra, api: self.api, from: 0)
         }
+        cast.wraps = true
+        extras.wraps = true
+        related.wraps = true
         cast.onActivate = { [weak self] card in
             guard let self, let person = self.person(card.id) else { return }
             self.openPerson(person)

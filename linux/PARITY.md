@@ -14,8 +14,8 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | You, profiles, history, statistics and manage | 84 | 0 | 0 | 3 |
 | Settings and integrations | 67 | 0 | 0 | 2 |
 | Design system | 97 | 0 | 0 | 0 |
-| Linux-only requirements (docs/LINUX.md) | 102 | 1 | 0 | 0 |
-| **All** | 685 | 1 | 0 | 16 |
+| Linux-only requirements (docs/LINUX.md) | 103 | 1 | 0 | 0 |
+| **All** | 686 | 1 | 0 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -725,6 +725,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `settings-screen-catalogue` (S) Settings screen lists the shared catalogue's Linux categories, with choices as menus and switches flipping in place _Apple TV: docs/LINUX.md §6 Settings_
 - [x] `linux-card-context-menu` (S) Right click and the Menu key open a title's context menu: Play or Resume, Play from the Beginning, Mark Watched or Unwatched, Go to Details _Apple TV: docs/LINUX.md §5.4 Pointer_
 - [x] `linux-shelf-shift-wheel` (S) Shelves scroll sideways under Shift with the wheel, and show edge arrows on hover for mice without a horizontal axis _Apple TV: docs/LINUX.md §5.4 Scrolling_
+- [x] `linux-rows-wrap-for-mouse` (S) Rows a mouse should see whole wrap onto further lines instead of scrolling sideways: a title page's action buttons, filter, season and search chips, Search's genre tiles, and a title page's Cast & Crew, Extras and More Like This (two lines, then Show All) and episodes _Apple TV: docs/LINUX.md §5.4 Scrolling_
 - [x] `linux-scroll-momentum-rubber-band` (S) Wheel and touchpad scroll with momentum and rubber banding at the ends, with overlay indicators that appear while scrolling and on hover _Apple TV: docs/LINUX.md §5.4 Scrolling_
 - [x] `linux-tab-reading-order-focus` (S) Tab and Shift+Tab walk controls in reading order, wrapping at the ends _Apple TV: docs/LINUX.md §5.4 Keyboard_
 - [x] `linux-enter-activates` (S) Enter selects the focused control _Apple TV: docs/LINUX.md §5.4 Keyboard_

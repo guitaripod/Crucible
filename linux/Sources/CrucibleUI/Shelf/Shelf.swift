@@ -16,12 +16,19 @@ public struct SectionHeader: Hashable, Sendable {
 
 /// A horizontal row of cards under a header (`TVShelf`): it scrolls sideways under a horizontal swipe, Shift with the
 /// wheel, or the edge arrows that appear on hover for mice without a horizontal axis, and keeps the focused card in view.
-/// Focus returns to the card it left when it comes back to the shelf.
+/// Focus returns to the card it left when it comes back to the shelf. A shelf that `wraps` is a grid of as many cards per
+/// line as fit instead, with nothing to scroll sideways: it shows `collapsedLines` lines (all of them when that is nil), and
+/// Show All in the header opens the rest.
 @MainActor
 public final class ShelfView: View {
     public var header: SectionHeader? { didSet { if header != oldValue { rebuildHeader() } } }
     public private(set) var items: [CardItem] = []
     public var style: CardStyle { didSet { if style != oldValue { setNeedsLayout() } } }
+    /// Lays the cards out in lines that wrap at the width, for a list a mouse should see whole rather than scroll.
+    public var wraps = false { didSet { if wraps != oldValue { relayoutPage() } } }
+    /// The lines a wrapping shelf shows until it is opened; nil shows every line.
+    public var collapsedLines: Int? = 2 { didSet { if collapsedLines != oldValue { relayoutPage() } } }
+    public private(set) var isExpanded = false
 
     public var onActivate: ((CardItem) -> Void)?
     public var onFocus: ((CardItem) -> Void)?
@@ -95,6 +102,7 @@ public final class ShelfView: View {
         cards = next
         order = newItems.map(\.id)
         setNeedsLayout()
+        if wraps { superview?.setNeedsLayout() }
     }
 
     public func card(for id: String) -> CardView? { cards[id] }
@@ -114,28 +122,90 @@ public final class ShelfView: View {
     private func rebuildHeader() {
         headerLabel.text = header?.title ?? ""
         secondaryLabel.text = header?.secondaryText ?? ""
-        if header?.hasSeeAll == true {
+        updateSeeAll()
+        setNeedsLayout()
+    }
+
+    /// The header's trailing button: Show All or Show Less on a wrapping shelf with more cards than its first lines hold,
+    /// otherwise See All when the header asks for one.
+    private func updateSeeAll() {
+        if isCollapsible {
+            seeAll.title = isExpanded ? Strings.text("Show Less") : Strings.text("Show All")
+            seeAll.symbol = isExpanded ? "chevron.up" : "chevron.down"
+            seeAll.onPress = { [weak self] in self?.toggleExpanded() }
+        } else if header?.hasSeeAll == true {
+            seeAll.title = Strings.text("See All")
+            seeAll.symbol = "chevron.right"
             seeAll.onPress = { [weak self] in self?.onSeeAll?() }
-            if seeAll.superview == nil { addSubview(seeAll) }
         } else {
             seeAll.removeFromSuperview()
+            return
         }
+        if seeAll.superview == nil { addSubview(seeAll) }
+    }
+
+    private func toggleExpanded() {
+        isExpanded.toggle()
+        relayoutPage()
+    }
+
+    /// The shelf's height changed with its lines, so the page that stacks it lays out again.
+    private func relayoutPage() {
+        updateSeeAll()
         setNeedsLayout()
+        superview?.setNeedsLayout()
+    }
+
+    private var lastWidth: Float = 0
+
+    /// Whether this shelf wraps and holds more cards than its collapsed lines show.
+    private var isCollapsible: Bool {
+        guard wraps, let collapsedLines else { return false }
+        return order.count > columns(width: lastWidth) * collapsedLines
+    }
+
+    private func columns(width: Float) -> Int {
+        let metrics = Theme.current.metrics
+        return max(1, Int(((width - metrics.sideMargin * 2 + metrics.gutter) / (style.itemWidth + metrics.gutter)).rounded(.down)))
+    }
+
+    /// The lines the cards fill across `width`, as many as show now.
+    private func lines(width: Float) -> Int {
+        let columns = columns(width: width)
+        return (visibleCount(columns: columns) + columns - 1) / columns
+    }
+
+    /// How many cards show with `columns` to a line: all of them when open or when no lines are held back.
+    private func visibleCount(columns: Int) -> Int {
+        guard !isExpanded, let collapsedLines else { return order.count }
+        return min(order.count, columns * collapsedLines)
     }
 
     private var headerHeight: Float { header == nil ? 0 : Theme.current.metrics.shelfHeaderHeight }
 
     /// The height this shelf takes: header, top room, cards, bottom room.
-    public var preferredHeight: Float {
+    public var preferredHeight: Float { height(for: lastWidth) }
+
+    /// The height this shelf takes across `width`: one row of cards, or the lines of a wrapping shelf.
+    public func height(for width: Float) -> Float {
         let metrics = Theme.current.metrics
-        return headerHeight + metrics.shelfTopInset + style.itemSize.height + metrics.shelfBottomInset
+        guard wraps else { return headerHeight + metrics.shelfTopInset + style.itemSize.height + metrics.shelfBottomInset }
+        let count = max(lines(width: width), 1)
+        return headerHeight + metrics.shelfTopInset + Float(count) * style.itemSize.height + Float(count - 1) * lineSpacing + metrics.shelfBottomInset
     }
 
-    public override func sizeThatFits(_ size: Size) -> Size { Size(width: size.width, height: preferredHeight) }
+    private var lineSpacing: Float { Theme.current.metrics.tv(32) }
+
+    public override func sizeThatFits(_ size: Size) -> Size {
+        lastWidth = size.width
+        return Size(width: size.width, height: height(for: size.width))
+    }
 
     public override func layoutSubviews() {
         let metrics = Theme.current.metrics
         let margin = metrics.sideMargin
+        lastWidth = frame.width
+        updateSeeAll()
         headerLabel.font = Theme.current.type.headline
         headerLabel.color = Theme.current.palette.label
         secondaryLabel.font = Theme.current.type.callout
@@ -155,17 +225,22 @@ public final class ShelfView: View {
                                 height: size.height)
         }
         let cardsTop = headerHeight
-        let rowHeight = metrics.shelfTopInset + style.itemSize.height + metrics.shelfBottomInset
+        let rowHeight = height(for: frame.width) - headerHeight
         scroller.frame = Rect(x: 0, y: cardsTop, width: frame.width, height: rowHeight)
         scroller.revealInsets = EdgeInsets(leading: margin, trailing: margin)
-        var cardX = margin
-        for id in order {
-            guard let card = cards[id] else { continue }
-            card.style = style
-            card.frame = Rect(x: cardX, y: metrics.shelfTopInset, width: style.itemWidth, height: style.itemSize.height)
-            cardX += style.itemWidth + metrics.gutter
+        if wraps {
+            layoutWrapped(width: frame.width)
+        } else {
+            var cardX = margin
+            for id in order {
+                guard let card = cards[id] else { continue }
+                card.style = style
+                card.isHidden = false
+                card.frame = Rect(x: cardX, y: metrics.shelfTopInset, width: style.itemWidth, height: style.itemSize.height)
+                cardX += style.itemWidth + metrics.gutter
+            }
+            scroller.contentLength = cardX - metrics.gutter + margin
         }
-        scroller.contentLength = cardX - metrics.gutter + margin
         scroller.snapInterval = style.itemWidth + metrics.gutter
         scroller.wheelStep = style.itemWidth + metrics.gutter
         let arrowSize = metrics.tv(72)
@@ -173,6 +248,23 @@ public final class ShelfView: View {
         leadingArrow.frame = Rect(x: margin * 0.25, y: arrowY, width: arrowSize, height: arrowSize)
         trailingArrow.frame = Rect(x: frame.width - margin * 0.25 - arrowSize, y: arrowY, width: arrowSize, height: arrowSize)
         updateArrows()
+    }
+
+    /// Places the cards in lines across `width`, hiding those past the lines a collapsed shelf shows, with nothing to scroll.
+    private func layoutWrapped(width: Float) {
+        let metrics = Theme.current.metrics
+        lastWidth = width
+        let columns = columns(width: width)
+        let visible = visibleCount(columns: columns)
+        for (index, id) in order.enumerated() {
+            guard let card = cards[id] else { continue }
+            card.style = style
+            card.isHidden = index >= visible
+            card.frame = Rect(x: metrics.sideMargin + Float(index % columns) * (style.itemWidth + metrics.gutter),
+                              y: metrics.shelfTopInset + Float(index / columns) * (style.itemSize.height + lineSpacing),
+                              width: style.itemWidth, height: style.itemSize.height)
+        }
+        scroller.contentLength = width
     }
 
     /// Scrolls a page of cards sideways (the edge arrows).
@@ -187,8 +279,8 @@ public final class ShelfView: View {
     private var hovering = false
 
     private func updateArrows() {
-        let showLeading = hovering && scroller.offset > 1
-        let showTrailing = hovering && scroller.offset < scroller.maximumOffset - 1
+        let showLeading = hovering && !wraps && scroller.offset > 1
+        let showTrailing = hovering && !wraps && scroller.offset < scroller.maximumOffset - 1
         leadingArrow.setShown(showLeading)
         trailingArrow.setShown(showTrailing)
     }

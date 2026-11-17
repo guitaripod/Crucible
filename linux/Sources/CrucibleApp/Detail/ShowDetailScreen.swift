@@ -82,6 +82,10 @@ final class ShowDetailScreen: DetailScreen {
             guard let key = self?.model?.selectedSeasonKey else { return }
             self?.loadSeason(key)
         }
+        cast.wraps = true
+        episodes.wraps = true
+        episodes.collapsedLines = nil
+        related.wraps = true
         cast.onActivate = { [weak self] card in
             guard let self, let person = self.person(card.id) else { return }
             self.openPerson(person)

@@ -18,19 +18,13 @@ struct DetailAction {
     var behaviour: Behaviour
 }
 
-/// A title page's actions: Play first in the accent, the rest glass, scrolling sideways past the window's edge. A rebuild
-/// keeps each button (and the focus on it) by its id, so a refresh after playback never moves the focus.
+/// A title page's actions: Play first in the accent, the rest glass, wrapping onto further lines where the window ends so
+/// every one is in reach of a mouse. A rebuild keeps each button (and the focus on it) by its id, so a refresh after
+/// playback never moves the focus.
 @MainActor
 final class DetailActionRow: View {
-    private let scroller = ScrollView(axis: .horizontal)
     private var actions: [DetailAction] = []
     private var buttons: [String: ButtonView] = [:]
-
-    override init(frame: Rect = .zero) {
-        super.init(frame: frame)
-        scroller.showsIndicator = false
-        addSubview(scroller)
-    }
 
     override var remembersFocus: Bool { true }
     override var preferredFocusView: View? { actions.first.flatMap { buttons[$0.id] } }
@@ -55,7 +49,7 @@ final class DetailActionRow: View {
                 guard let self, let button else { return }
                 self.perform(action, from: button)
             }
-            if button.superview == nil { scroller.addSubview(button) }
+            if button.superview == nil { addSubview(button) }
             next[action.id] = button
         }
         for (id, button) in buttons where next[id] == nil { button.removeFromSuperview() }
@@ -75,22 +69,31 @@ final class DetailActionRow: View {
         }
     }
 
+    private func flow(width: Float) -> FlowLayout {
+        let metrics = Theme.current.metrics
+        return FlowLayout(leading: metrics.sideMargin, width: width - metrics.sideMargin * 2, spacing: metrics.tv(28), lineSpacing: metrics.tv(24))
+    }
+
+    private var padding: Float { Theme.current.metrics.tv(48) }
+
+    private var buttonsInOrder: [ButtonView] { actions.compactMap { buttons[$0.id] } }
+
+    /// Each button's size, which is its own: a button is as wide as its title.
+    private func buttonSizes() -> [Size] {
+        let limit = Size(width: 1200, height: Theme.current.metrics.primaryControlHeight)
+        return buttonsInOrder.map { $0.sizeThatFits(limit) }
+    }
+
     override func sizeThatFits(_ size: Size) -> Size {
-        Size(width: size.width, height: Theme.current.metrics.primaryControlHeight + Theme.current.metrics.tv(48))
+        let placed = flow(width: size.width).place(buttonSizes())
+        return Size(width: size.width, height: placed.height + padding)
     }
 
     override func layoutSubviews() {
-        let metrics = Theme.current.metrics
-        scroller.frame = bounds
-        scroller.revealInsets = EdgeInsets(leading: metrics.sideMargin, trailing: metrics.sideMargin)
-        var x = metrics.sideMargin
-        let y = (frame.height - metrics.primaryControlHeight) / 2
-        for action in actions {
-            guard let button = buttons[action.id] else { continue }
-            let size = button.sizeThatFits(Size(width: 1200, height: metrics.primaryControlHeight))
-            button.frame = Rect(x: x, y: y, width: size.width, height: size.height)
-            x += size.width + metrics.tv(28)
+        let sizes = buttonSizes()
+        let placed = flow(width: frame.width).place(sizes)
+        for (index, button) in buttonsInOrder.enumerated() {
+            button.frame = Rect(x: placed.origins[index].x, y: padding / 2 + placed.origins[index].y, width: sizes[index].width, height: sizes[index].height)
         }
-        scroller.contentLength = x - metrics.tv(28) + metrics.sideMargin
     }
 }

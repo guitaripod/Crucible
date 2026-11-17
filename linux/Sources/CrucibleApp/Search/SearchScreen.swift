@@ -24,7 +24,7 @@ final class SearchScreen: ScreenView {
     private let recentsTitle = SectionTitleView(title: SearchSection.recent.title ?? "")
     private let recents = ChipRowView()
     private let genresTitle = SectionTitleView(title: SearchSection.browse.title ?? "")
-    private let genres = GradientTileRowView()
+    private let genres = GradientTileGridView()
     private let scopes = ChipRowView()
     private let top = TopResultView()
     private let state = StateView()
@@ -189,7 +189,7 @@ final class SearchScreen: ScreenView {
             genreList = Dictionary(content.genres.map { ($0.title, $0) }, uniquingKeysWith: { first, _ in first })
             genres.setTiles(content.genres.map { genre in
                 let pair = GenrePalette.pair(for: genre.title)
-                return GradientTileRowView.Tile(id: genre.title, title: genre.title, top: Color(hex: pair.end), bottom: Color(hex: pair.start))
+                return GradientTileGridView.Tile(id: genre.title, title: genre.title, top: Color(hex: pair.end), bottom: Color(hex: pair.start))
             })
             sections += [genresTitle, genres]
         }
