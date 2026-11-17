@@ -20,7 +20,9 @@ enum LinuxSetup {
         AppInfo.override = (CrucibleLinux.version, CrucibleLinux.build)
     }
 
-    /// Reads `Localizable.xcstrings` for the desktop's languages (`LANGUAGE`, then `LANG`), English otherwise.
+    /// Reads `Localizable.xcstrings` for the desktop's languages (`LANGUAGE`, then `LANG`), English otherwise, and then
+    /// `Web.xcstrings`, web video's strings, which live in a catalog of the Linux client's own so the Apple apps, which
+    /// have no web video, never carry them.
     private static func loadStrings() {
         guard let url = Bundle.module.url(forResource: "Localizable", withExtension: "xcstrings"),
               let data = try? Data(contentsOf: url) else {
@@ -29,6 +31,9 @@ enum LinuxSetup {
         }
         do {
             try LocalizationCatalog.shared.load(xcstrings: data, preferredLanguages: preferredLanguages())
+            if let web = Bundle.module.url(forResource: "Web", withExtension: "xcstrings") {
+                try LocalizationCatalog.shared.add(xcstrings: Data(contentsOf: web))
+            }
         } catch {
             MidgarLog.error("The string catalog did not load: \(error)", category: .lifecycle)
         }

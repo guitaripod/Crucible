@@ -106,6 +106,22 @@ package final class LocalizationCatalog: @unchecked Sendable {
         lock.unlock()
     }
 
+    /// Adds a second catalog's strings in the language the first one loaded in, English where it lacks that language:
+    /// strings one platform keeps in a catalog of its own, out of the one the Apple apps ship.
+    package func add(xcstrings data: Data) throws {
+        let catalog = try JSONDecoder().decode(Catalog.self, from: data)
+        let chosen = currentLanguage
+        var added: [String: Entry] = [:]
+        for (key, string) in catalog.strings {
+            guard let localization = string.localizations?[chosen] ?? string.localizations?[catalog.sourceLanguage] else { continue }
+            let plural = localization.variations?.plural?.compactMapValues { $0.stringUnit.value } ?? [:]
+            added[key] = Entry(value: localization.stringUnit?.value, plural: plural)
+        }
+        lock.lock()
+        entries.merge(added) { _, new in new }
+        lock.unlock()
+    }
+
     package var currentLanguage: String {
         lock.lock()
         defer { lock.unlock() }
