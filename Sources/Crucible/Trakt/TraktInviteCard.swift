@@ -27,6 +27,7 @@ final class TraktInviteCardContentView: UIView, UIContentView {
     private let messageLabel = UILabel()
     private let connectButton = UIButton(configuration: .filled())
     private let notNowButton = UIButton(configuration: .plain())
+    private let buttons = UIStackView()
 
     init(configuration: TraktInviteCardConfiguration) {
         self.configuration = configuration
@@ -87,12 +88,16 @@ final class TraktInviteCardContentView: UIView, UIContentView {
         let heading = UIStackView(arrangedSubviews: [markWell, titleLabel])
         heading.spacing = Theme.Space.s
         heading.alignment = .center
-        let buttons = UIStackView(arrangedSubviews: [connectButton, notNowButton])
+        buttons.addArrangedSubview(connectButton)
+        buttons.addArrangedSubview(notNowButton)
         buttons.spacing = Theme.Space.xs
-        buttons.alignment = .center
         for button in [connectButton, notNowButton] {
             button.setContentHuggingPriority(.required, for: .horizontal)
             button.setContentCompressionResistancePriority(.required, for: .horizontal)
+        }
+        stackButtonsForTextSize()
+        registerForTraitChanges([UITraitPreferredContentSizeCategory.self]) { (view: TraktInviteCardContentView, _: UITraitCollection) in
+            view.stackButtonsForTextSize()
         }
         let stack = UIStackView(arrangedSubviews: [heading, messageLabel, buttons])
         stack.axis = .vertical
@@ -138,6 +143,13 @@ final class TraktInviteCardContentView: UIView, UIContentView {
         notNow.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 12, bottom: 10, trailing: 12)
         notNow.titleTextAttributesTransformer = Self.font(Theme.Font.subheadline)
         notNowButton.configuration = notNow
+    }
+
+    /// Puts Not Now under Connect Trakt at the accessibility text sizes, where the two no longer fit side by side.
+    private func stackButtonsForTextSize() {
+        let large = traitCollection.preferredContentSizeCategory.isAccessibilityCategory
+        buttons.axis = large ? .vertical : .horizontal
+        buttons.alignment = large ? .leading : .center
     }
 
     private static func font(_ font: UIFont) -> UIConfigurationTextAttributesTransformer {

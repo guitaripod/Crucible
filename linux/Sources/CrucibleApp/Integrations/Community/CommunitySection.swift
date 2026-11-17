@@ -81,7 +81,9 @@ final class CommunitySection {
         let connected = TraktCommunity.shared.isAvailable
         defer { wasConnected = connected }
         if connected {
-            if !wasConnected { onConnected?() }
+            guard !wasConnected else { return }
+            onConnected?()
+            reshapeIfNeeded()
         } else if snapshot != nil {
             adopt(nil)
         } else {
