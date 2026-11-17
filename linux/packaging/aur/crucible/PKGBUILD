@@ -1,6 +1,6 @@
 # Maintainer: guitaripod
 pkgname=crucible
-pkgver=0.18.1
+pkgver=0.18.2
 pkgrel=1
 pkgdesc="Plex client in the Apple TV design, with Liquid Glass and HDR video (Wayland, Vulkan)"
 arch=('x86_64')
