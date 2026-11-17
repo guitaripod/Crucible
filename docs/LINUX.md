@@ -389,13 +389,13 @@ Nothing here is declared outside `linuxClient()` in `Package.swift`, and `Source
 
 ### 14.3 Playback
 
-`WebFormatPicker` chooses as a web player's automatic quality would for a home screen: the tallest picture within the viewer's limit, the higher frame rate, HDR only on a screen that shows it, AV1 before VP9 before H.264, the original language, surround only when the sound output takes it (passthrough is set). A picture and a sound that come apart are joined for mpv as one title with an `edl://` address, as mpv's own yt-dlp hook does. The player's menu gains Quality; Audio lists the languages a video is dubbed in; Subtitles lists the publisher's tracks and the automatic one in the video's language.
+`WebFormatPicker` chooses as a web player's automatic quality would for a home screen: the tallest picture within the viewer's limit, the higher frame rate, HDR only on a screen that shows it, AV1 before VP9 before H.264, the original language, surround only when the sound output takes it (passthrough is set). A picture and a sound that come apart are joined for mpv as one title with an `edl://` address, as mpv's own yt-dlp hook does. The player's menu gains Quality, which ends in Sound Only (no picture is fetched, the thumbnail stands in, and the picture's view is hidden, since mpv takes its video output down for a file without a picture and crashes when asked to draw then); Audio lists the languages a video is dubbed in; Subtitles lists the publisher's tracks and the automatic one in the video's language. mpv reports the file it puts aside for another quality or language as ended, so the player ignores an end that comes between handing mpv a file and that file opening (`WebSession.isReplacing`).
 
 SponsorBlock is asked by the first four characters of the video ID's SHA-256, so it never learns which video is watched. Its stretches become the player's skip markers: skipped once on their own with Undo by default, offered as a button, or off (Settings). Scrub previews are cut from the site's storyboard sheets, a still uploaded straight from its rows of a sheet.
 
 ### 14.4 The viewer's library
 
-Followed channels, Watch Later and progress are one file, `web/library.json` in the app's data folder, written a moment after each change and before quitting. No site hears of any of it. Subscriptions come in from Google Takeout, OPML, NewPipe, FreeTube and Invidious, and go out as OPML. With a browser's cookies set, the account's recommendations, Watch Later and liked videos become rows and chips, its channels can be followed in one step, and a finished video can be noted in its history.
+Followed channels, Watch Later, progress and downloads are one file, `web/library.json` in the app's data folder, written a moment after each change and before quitting. No site hears of any of it. A video's page (View Details) shows its description, its chapters and the top of its comments, which yt-dlp reads in a second, slower run. Download saves a video as one Matroska file with its chapters and the publisher's subtitles into `Crucible` in the viewer's Videos folder, within the quality set in Settings; a downloaded video plays from its file and keeps its place like any other. Subscriptions come in from Google Takeout, OPML, NewPipe, FreeTube and Invidious, and go out as OPML. With a browser's cookies set, the account's recommendations, Watch Later and liked videos become rows and chips, its channels can be followed in one step, and a finished video can be noted in its history.
 
 ### 14.5 What leaves the machine
 
@@ -408,4 +408,4 @@ Followed channels, Watch Later and progress are one file, `web/library.json` in 
 
 ### 14.6 Testing
 
-`CrucibleWebTests` (24 tests) reads fixtures cut from real yt-dlp answers with every stream address replaced, since those carry the address of the machine that asked. `CRUCIBLE_PLAY_LINK=<address>` plays one link in a bare player for headless checks, and `linux/scripts/mock-session.sh` shows the destination beside the mock library.
+`CrucibleWebTests` (25 tests) reads fixtures cut from real yt-dlp answers with every stream address replaced, since those carry the address of the machine that asked. `CRUCIBLE_PLAY_LINK=<address>` plays one link in a bare player for headless checks, and `linux/scripts/mock-session.sh` shows the destination beside the mock library.
