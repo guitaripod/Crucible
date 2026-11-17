@@ -14,14 +14,14 @@ struct AudioPassthroughTests {
         "info": { "props": { "node.name": "alsa_output.usb-Focusrite.pro-output-0", "media.class": "Audio/Sink" },
                   "params": { "Props": [ { "volume": 1.0 } ] } } },
       { "id": 123, "type": "PipeWire:Interface:Node",
-        "info": { "props": { "node.name": "alsa_output.pci-0000_01_00.1.hdmi-stereo", "media.class": "Audio/Sink" },
+        "info": { "props": { "node.name": "alsa_output.pci-0000_01_00.1.hdmi-stereo", "media.class": "Audio/Sink", "audio.channels": 2 },
                   "params": { "Props": [ { "volume": 1.0 }, { "iec958Codecs": [ "PCM", "AC3", "EAC3", "TrueHD" ] } ] } } }
     ]
     """.utf8)
 
-    @Test func theDefaultSinkComesWithItsCodecs() {
+    @Test func theDefaultSinkComesWithItsCodecsAndChannels() {
         let sink = PipeWireSink.defaultSink(inDump: Self.dump)
-        #expect(sink == PipeWireSink(id: 123, name: "alsa_output.pci-0000_01_00.1.hdmi-stereo", codecs: ["PCM", "AC3", "EAC3", "TrueHD"]))
+        #expect(sink == PipeWireSink(id: 123, name: "alsa_output.pci-0000_01_00.1.hdmi-stereo", codecs: ["PCM", "AC3", "EAC3", "TrueHD"], channels: 2))
         #expect(PipeWireSink.defaultSink(inDump: Data("not json".utf8)) == nil)
         #expect(PipeWireSink.defaultSink(inDump: Data("[]".utf8)) == nil)
     }

@@ -28,19 +28,23 @@ extension Preferences {
     }
 }
 
-/// A PipeWire sink as `pw-dump` describes it: its node, its name and the IEC958 codecs it is set to accept.
+/// A PipeWire sink as `pw-dump` describes it: its node, its name, the IEC958 codecs it is set to accept and how many
+/// channels it plays.
 package struct PipeWireSink: Equatable, Sendable {
     package var id: Int
     package var name: String
     package var codecs: [String]
+    package var channels: Int?
 
-    package init(id: Int, name: String, codecs: [String]) {
+    package init(id: Int, name: String, codecs: [String], channels: Int? = nil) {
         self.id = id
         self.name = name
         self.codecs = codecs
+        self.channels = channels
     }
 
-    /// The default audio sink in `pw-dump`'s JSON: the node the default metadata names, with its `iec958Codecs`.
+    /// The default audio sink in `pw-dump`'s JSON: the node the default metadata names, with its `iec958Codecs` and its
+    /// `audio.channels`.
     package static func defaultSink(inDump data: Data) -> PipeWireSink? {
         guard let objects = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else { return nil }
         let defaults = objects.first {
@@ -56,7 +60,8 @@ package struct PipeWireSink: Equatable, Sendable {
                   props["node.name"] as? String == named, let id = object["id"] as? Int else { continue }
             let params = (info["params"] as? [String: Any])?["Props"] as? [[String: Any]] ?? []
             let codecs = params.lazy.compactMap { $0["iec958Codecs"] as? [String] }.first ?? []
-            return PipeWireSink(id: id, name: named, codecs: codecs)
+            let channels = (props["audio.channels"] as? Int).flatMap { $0 > 0 ? $0 : nil }
+            return PipeWireSink(id: id, name: named, codecs: codecs, channels: channels)
         }
         return nil
     }

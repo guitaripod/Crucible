@@ -327,9 +327,11 @@ final class PlayerScreen: View {
     private func checkAudioOutput() {
         let setting = Preferences.audioPassthrough
         Task { [weak self] in
-            let codecs = await AudioOutput.prepare(setting)
-            guard let self, codecs != self.spdifCodecs else { return }
-            self.spdifCodecs = codecs
+            let output = await AudioOutput.prepare(setting)
+            guard let self else { return }
+            self.player?.outputChannels = output.channels
+            guard output.spdif != self.spdifCodecs else { return }
+            self.spdifCodecs = output.spdif
             if self.stream != nil { self.applyAudioFilters() }
         }
     }

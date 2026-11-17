@@ -178,6 +178,13 @@ public final class VideoPlayer {
         didSet { applyAudioFilters() }
     }
 
+    /// How many channels the sound output plays, when known (PipeWire's default sink). A sink with fewer channels than the
+    /// file mixes them down after mpv, where the mix of a boosted 5.1 track would add up past the limiter's ceiling, so the
+    /// boost brings it down to a stereo or mono output's channels ahead of its gain.
+    public var outputChannels: Int? {
+        didSet { if outputChannels != oldValue { applyAudioFilters() } }
+    }
+
     /// Whether the sound runs through any filter, so it has to be decoded here rather than passed through to a receiver.
     public var filtersSound: Bool { !audioFilters.isEmpty || maximumVolume > 100 }
 
@@ -202,20 +209,25 @@ public final class VideoPlayer {
     /// running filter, which would lose it at the next seek.
     private func applyAudioFilters() {
         var filters = audioFilters
-        if maximumVolume > 100 { filters += Self.boostFilters(volume: volume) }
+        if maximumVolume > 100 { filters += Self.boostFilters(volume: volume, outputChannels: outputChannels) }
         let list = filters.joined(separator: ",")
         guard list != appliedAudioFilters, set("af", list) >= 0 else { return }
         appliedAudioFilters = list
     }
 
-    /// Volume Boost's filters for `volume` percent: the gain past 100% on the cubic curve mpv's own volume follows below it
-    /// (so a step sounds alike either side of 100%, and 200% is 8 times the amplitude), then a lookahead limiter holding the
-    /// peaks at -1 dBFS with a release that adapts to dense passages, where clipping would flatten the voices and leave
-    /// their echo as loud as they are.
-    nonisolated static func boostFilters(volume: Double) -> [String] {
+    /// Volume Boost's filters for `volume` percent: a stereo or mono output's downmix, the gain past 100% on the cubic
+    /// curve mpv's own volume follows below it (so a step sounds alike either side of 100%, and 200% is 8 times the
+    /// amplitude), then a lookahead limiter holding the peaks at -1 dBFS with a release that adapts to dense passages, where
+    /// clipping would flatten the voices and leave their echo as loud as they are.
+    nonisolated static func boostFilters(volume: Double, outputChannels: Int?) -> [String] {
+        var filters: [String] = []
+        if let outputChannels, (1...2).contains(outputChannels) {
+            filters.append("@downmix:lavfi=[aformat=channel_layouts=\(outputChannels == 1 ? "mono" : "mono|stereo")]")
+        }
         let gain = pow(max(volume, 100) / 100, 3)
-        return ["@boost:lavfi=[volume=\(String(format: "%.4f", gain))]",
-                "@limiter:lavfi=[alimiter=limit=\(limiterCeiling):attack=5:release=150:asc=1:level=0]"]
+        filters.append("@boost:lavfi=[volume=\(String(format: "%.4f", gain))]")
+        filters.append("@limiter:lavfi=[alimiter=limit=\(limiterCeiling):attack=5:release=150:asc=1:level=0]")
+        return filters
     }
 
     /// The level the boost's limiter holds the peaks at: -1 dBFS, room for the overshoot between samples.

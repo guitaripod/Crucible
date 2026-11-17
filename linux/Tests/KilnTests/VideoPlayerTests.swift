@@ -61,6 +61,28 @@ struct VideoPlayerTests {
         #expect(peak(pass: 1, second: 1) <= Float(VideoPlayer.limiterCeiling) + 0.001, "0.5 at 150% would be 1.69: the limiter holds it")
         #expect(peak(pass: 1, second: 1) > Float(VideoPlayer.limiterCeiling) - 0.05)
     }
+
+    /// A boosted 5.1 track for a stereo output is mixed down ahead of the limiter, so the channels the output's own downmix
+    /// would have added up past full scale are held under the ceiling as well; a 5.1 output keeps all six.
+    @MainActor @Test func volumeBoostMixesSurroundDownForAStereoOutputAheadOfItsLimiter() throws {
+        let surround = (0..<6).map { FloatWAV.tone(amplitudes: [0.5], hertz: 300 + 200 * Float($0)) }
+        for (outputChannels, expected) in [(2, 2), (6, 6)] {
+            let check = try PCMCheck()
+            try FloatWAV.write(surround, to: check.input)
+            var ended = false
+            check.player.onEvent = { if case .ended = $0 { ended = true } }
+            check.player.outputChannels = outputChannels
+            check.player.maximumVolume = 200
+            check.player.setVolume(200)
+            check.player.load(check.input)
+            try check.run { ended }
+            let played = try check.finish()
+            #expect(played.channels == expected)
+            let peak = played.peak(from: FloatWAV.rate / 5, to: FloatWAV.rate * 4 / 5)
+            #expect(peak <= Float(VideoPlayer.limiterCeiling) + 0.001)
+            #expect(peak > Float(VideoPlayer.limiterCeiling) - 0.05)
+        }
+    }
 }
 
 /// A player writing what it plays to a float WAV file through mpv's PCM output, and the file it plays, in a folder of
