@@ -196,42 +196,91 @@ public final class VideoPlayer {
 
     /// The volume asked for, in percent, which `state` reports: mpv plays up to 100% of it, the boost's gain the rest.
     private var volume: Double = 100
-    /// The `af` list mpv was last given, so a volume change that leaves the boost's gain as it was rebuilds nothing.
-    private var appliedAudioFilters: String?
+    /// The `af` list mpv was last given and the boost's gain in it. mpv rebuilds every filter from this list at a seek, a
+    /// track change or a new file.
+    private var writtenFilters: String?
+    private var writtenGain: Double = 1
+    /// The boost's gain in the running filter: the written list's, or a newer one the volume moved it to since.
+    private var runningGain: Double = 1
+    private var restToken = 0
 
+    /// Sets the volume without waiting for mpv, so a slider dragged or a wheel turned past 100% never holds up the
+    /// pictures this thread draws.
     public func setVolume(_ volume: Double) {
         let level = min(max(volume, 0), maximumVolume).rounded()
         self.volume = level
-        set("volume", String(format: "%.0f", min(level, 100)))
+        setLater("volume", String(format: "%.0f", min(level, 100)))
         applyAudioFilters()
         guard state.volume != level else { return }
         state.volume = level
         onStateChange?(state)
     }
 
-    /// Hands mpv the sound's filters and, while the volume may pass 100%, the boost after them. mpv rebuilds only the
-    /// filters whose settings changed, and the gain holds no samples, so a volume drag rebuilds it at every step without a
-    /// gap or a click; a seek rebuilds every filter from this list, so the gain lives in it rather than being sent to the
-    /// running filter, which would lose it at the next seek.
+    /// Brings mpv's filters to the sound's own and, while the volume may pass 100%, the boost after them. A change of the
+    /// boost's gain alone goes to the running filter (`af-command`), which takes it from its next frame, sparing mpv a
+    /// rebuild of the filters at every step of a drag. mpv forgets such a change when it rebuilds the filters from the
+    /// list, so the list catches up once the volume rests half a second, and before anything that rebuilds them sooner.
     private func applyAudioFilters() {
-        var filters = audioFilters
-        if maximumVolume > 100 { filters += Self.boostFilters(volume: volume, outputChannels: outputChannels) }
-        let list = filters.joined(separator: ",")
-        guard list != appliedAudioFilters, set("af", list) >= 0 else { return }
-        appliedAudioFilters = list
+        guard maximumVolume > 100, filterList(gain: writtenGain) == writtenFilters else {
+            writeFilters()
+            return
+        }
+        let gain = Self.boostGain(volume: volume)
+        guard gain != runningGain else { return }
+        runningGain = gain
+        commandLater(["af-command", "boost", "volume", Self.gainText(gain)])
+        restToken += 1
+        let token = restToken
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self, self.restToken == token else { return }
+                self.writeFiltersIfAhead()
+            }
+        }
     }
 
-    /// Volume Boost's filters for `volume` percent: a stereo or mono output's downmix, the gain past 100% on the cubic
-    /// curve mpv's own volume follows below it (so a step sounds alike either side of 100%, and 200% is 8 times the
-    /// amplitude), then a lookahead limiter holding the peaks at -1 dBFS with a release that adapts to dense passages, where
-    /// clipping would flatten the voices and leave their echo as loud as they are.
-    nonisolated static func boostFilters(volume: Double, outputChannels: Int?) -> [String] {
+    /// Hands mpv the whole list for the volume now. mpv rebuilds only the filters whose settings changed, and the gain holds
+    /// no samples, so a new gain in the list takes over without a gap.
+    private func writeFilters() {
+        let gain = Self.boostGain(volume: volume)
+        let list = filterList(gain: gain)
+        if list != writtenFilters {
+            writtenFilters = list
+            writtenGain = gain
+            setLater("af", list)
+        } else if maximumVolume > 100, gain != runningGain {
+            commandLater(["af-command", "boost", "volume", Self.gainText(gain)])
+        }
+        runningGain = gain
+    }
+
+    /// Sends the running gain into the list ahead of a request that may rebuild the filters from it. The list goes without
+    /// waiting, like every change of the filters, so mpv applies them in the order they were made.
+    private func writeFiltersIfAhead() {
+        if runningGain != writtenGain { writeFilters() }
+    }
+
+    private func filterList(gain: Double) -> String {
+        var filters = audioFilters
+        if maximumVolume > 100 { filters += Self.boostFilters(gain: gain, outputChannels: outputChannels) }
+        return filters.joined(separator: ",")
+    }
+
+    /// The boost's gain for `volume` percent: past 100%, the cubic curve mpv's own volume follows below it, so a step sounds
+    /// alike either side of 100%, and 200% is 8 times the amplitude.
+    nonisolated static func boostGain(volume: Double) -> Double { pow(max(volume, 100) / 100, 3) }
+
+    nonisolated static func gainText(_ gain: Double) -> String { String(format: "%.4f", gain) }
+
+    /// Volume Boost's filters: a stereo or mono output's downmix, the gain, then a lookahead limiter holding the peaks at
+    /// -1 dBFS with a release that adapts to dense passages, where clipping would flatten the voices and leave their echo as
+    /// loud as they are.
+    nonisolated static func boostFilters(gain: Double, outputChannels: Int?) -> [String] {
         var filters: [String] = []
         if let outputChannels, (1...2).contains(outputChannels) {
             filters.append("@downmix:lavfi=[aformat=channel_layouts=\(outputChannels == 1 ? "mono" : "mono|stereo")]")
         }
-        let gain = pow(max(volume, 100) / 100, 3)
-        filters.append("@boost:lavfi=[volume=\(String(format: "%.4f", gain))]")
+        filters.append("@boost:lavfi=[volume=\(gainText(gain))]")
         filters.append("@limiter:lavfi=[alimiter=limit=\(limiterCeiling):attack=5:release=150:asc=1:level=0]")
         return filters
     }
@@ -254,20 +303,37 @@ public final class VideoPlayer {
 
     public func stop() { command(["stop"]) }
 
+    /// Runs an mpv command, sending the boost's running gain into the filter list first when it moved on since: a seek or a
+    /// new file rebuilds the filters from that list, and should mpv run the command before the list lands, the list then
+    /// rebuilds the gain alone.
     @discardableResult
     public func command(_ arguments: [String]) -> Int32 {
+        writeFiltersIfAhead()
+        return withCArguments(arguments) { kiln_video_command(handle, $0) }
+    }
+
+    /// Sets an mpv property, sending the boost's running gain into the filter list first when it moved on since, as a change
+    /// of the audio track or output rebuilds the filters from that list.
+    @discardableResult
+    public func set(_ property: String, _ value: String) -> Int32 {
+        writeFiltersIfAhead()
+        return kiln_video_set_property(handle, property, value)
+    }
+
+    private func setLater(_ property: String, _ value: String) {
+        kiln_video_set_property_async(handle, property, value)
+    }
+
+    private func commandLater(_ arguments: [String]) {
+        withCArguments(arguments) { kiln_video_command_async(handle, $0) }
+    }
+
+    private func withCArguments<Result>(_ arguments: [String], _ body: (UnsafeMutablePointer<UnsafePointer<CChar>?>) -> Result) -> Result {
         var pointers = arguments.map { strdup($0) } + [nil]
         defer { pointers.forEach { free($0) } }
         return pointers.withUnsafeMutableBufferPointer { buffer in
-            buffer.baseAddress!.withMemoryRebound(to: UnsafePointer<CChar>?.self, capacity: buffer.count) {
-                kiln_video_command(handle, $0)
-            }
+            buffer.baseAddress!.withMemoryRebound(to: UnsafePointer<CChar>?.self, capacity: buffer.count) { body($0) }
         }
-    }
-
-    @discardableResult
-    public func set(_ property: String, _ value: String) -> Int32 {
-        kiln_video_set_property(handle, property, value)
     }
 
     /// Renders the newest frame into `target` (a renderable FP16 texture); returns whether it drew.

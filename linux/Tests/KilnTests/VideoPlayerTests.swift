@@ -48,7 +48,7 @@ struct VideoPlayerTests {
         try check.run { ends == 2 }
         check.player.maximumVolume = 100
         #expect(check.player.state.volume == 100, "turning the boost off brings the volume back to 100%")
-        #expect(check.player.get("af") == "", "and takes its gain and limiter away")
+        #expect(check.filters { $0.isEmpty } == "", "and takes its gain and limiter away")
         let played = try check.finish()
 
         #expect(played.channels == 2)
@@ -82,6 +82,29 @@ struct VideoPlayerTests {
             #expect(peak <= Float(VideoPlayer.limiterCeiling) + 0.001)
             #expect(peak > Float(VideoPlayer.limiterCeiling) - 0.05)
         }
+    }
+
+    /// A volume change past 100% moves the running filter's gain without rebuilding mpv's filters, so the list keeps the
+    /// gain it had until the volume rests, then catches up; a seek, which rebuilds the filters from the list, sends the
+    /// newest gain into it first.
+    @MainActor @Test func volumeBoostMovesTheRunningGainAndWritesTheListOnceTheVolumeRests() async throws {
+        let check = try PCMCheck()
+        let tone = FloatWAV.tone(amplitudes: [0.1, 0.1, 0.1])
+        try FloatWAV.write([tone, tone], to: check.input)
+        var loaded = false
+        check.player.onEvent = { if case .loaded = $0 { loaded = true } }
+        check.player.maximumVolume = 200
+        check.player.setPaused(true)
+        check.player.load(check.input)
+        try check.run { loaded }
+        check.player.setVolume(150)
+        #expect(check.player.get("af")?.contains("volume=1.0000") == true, "the list waits for the volume to rest")
+        try await Task.sleep(for: .milliseconds(700))
+        #expect(check.filters { $0.contains("volume=3.3750") } != nil, "then catches up")
+        check.player.setVolume(200)
+        check.player.seek(to: 0.5)
+        #expect(check.filters { $0.contains("volume=8.0000") } != nil, "a seek sends the newest gain first")
+        _ = try check.finish()
     }
 }
 
@@ -118,6 +141,17 @@ private final class PCMCheck {
         let deadline = Date().addingTimeInterval(10)
         loop.run(timeoutMilliseconds: 20) { done() || Date() > deadline }
         try #require(done())
+    }
+
+    /// mpv's filter list once it satisfies `wanted`, read for up to two seconds without letting this actor's timers run, so
+    /// only what has already been sent can satisfy it; nil when it never does.
+    func filters(_ wanted: (String) -> Bool) -> String? {
+        let deadline = Date().addingTimeInterval(2)
+        while Date() < deadline {
+            if let list = player.get("af"), wanted(list) { return list }
+            usleep(5000)
+        }
+        return nil
     }
 
     /// Shuts the player down, which completes the file, and reads what it played.

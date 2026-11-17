@@ -27,6 +27,10 @@ struct kiln_video {
 enum { OBSERVE_POSITION = 1, OBSERVE_DURATION, OBSERVE_PAUSE, OBSERVE_BUFFERING, OBSERVE_CACHE, OBSERVE_WIDTH, OBSERVE_HEIGHT,
        OBSERVE_SEEKING, OBSERVE_HWDEC, OBSERVE_MUTE, OBSERVE_EOF };
 
+/** The reply ids of the requests made without waiting: a property set mpv refuses is worth a line on stderr, while an
+ * `af-command` sent before its filter runs fails as a matter of course. */
+enum { REPLY_QUIET = 0, REPLY_REPORTED = 1 };
+
 static void signal_wakeup(kiln_video *v) {
     uint64_t one = 1;
     ssize_t written = write(v->wakeup, &one, sizeof one);
@@ -202,6 +206,10 @@ uint32_t kiln_video_poll(kiln_video *v, kiln_video_state *state) {
             }
             break;
         }
+        case MPV_EVENT_SET_PROPERTY_REPLY:
+            if (event->error < 0 && event->reply_userdata == REPLY_REPORTED)
+                fprintf(stderr, "kiln_video: mpv refused a property: %s\n", mpv_error_string(event->error));
+            break;
         case MPV_EVENT_LOG_MESSAGE: {
             mpv_event_log_message *message = event->data;
             fprintf(stderr, "mpv[%s] %s: %s", message->level, message->prefix, message->text);
@@ -262,6 +270,12 @@ void kiln_video_report_swap(kiln_video *v) { mpv_render_context_report_swap(v->r
 int kiln_video_command(kiln_video *v, const char **arguments) { return mpv_command(v->mpv, arguments); }
 
 int kiln_video_set_property(kiln_video *v, const char *name, const char *value) { return mpv_set_property_string(v->mpv, name, value); }
+
+void kiln_video_set_property_async(kiln_video *v, const char *name, const char *value) {
+    mpv_set_property_async(v->mpv, REPLY_REPORTED, name, MPV_FORMAT_STRING, (void *) &value);
+}
+
+void kiln_video_command_async(kiln_video *v, const char **arguments) { mpv_command_async(v->mpv, REPLY_QUIET, arguments); }
 
 bool kiln_video_get_property(kiln_video *v, const char *name, char *value, size_t size) {
     char *text = mpv_get_property_string(v->mpv, name);

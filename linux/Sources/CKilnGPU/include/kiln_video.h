@@ -54,6 +54,11 @@ void kiln_video_report_swap(kiln_video *video);
 /** Runs an mpv command (`loadfile`, `seek`, `set`, ...) given as a NULL-terminated argument list. */
 int kiln_video_command(kiln_video *video, const char **arguments);
 int kiln_video_set_property(kiln_video *video, const char *name, const char *value);
+/** Sets an mpv property, or runs an mpv command, without waiting for mpv's core thread, which a playing stream can keep
+ * busy for hundreds of milliseconds. mpv runs such requests in the order they were made, but a request that waits can run
+ * before them. A property mpv refuses is reported on stderr. */
+void kiln_video_set_property_async(kiln_video *video, const char *name, const char *value);
+void kiln_video_command_async(kiln_video *video, const char **arguments);
 /** Reads an mpv property as text into `value` (`size` bytes); false when mpv has no such property now. */
 bool kiln_video_get_property(kiln_video *video, const char *name, char *value, size_t size);
 
