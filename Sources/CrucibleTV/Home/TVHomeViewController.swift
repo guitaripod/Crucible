@@ -43,6 +43,8 @@ final class TVHomeViewController: TVScreenViewController {
     private lazy var releasesSlot = makeTaskSlot()
     private var missingNext: [MissingNext] = []
     private var missingNextObserver: UUID?
+    /// Shows or hides the What to Watch tile when Midgar learns whether model calls are made where the device connects from.
+    nonisolated(unsafe) private var regionObserver: NSObjectProtocol?
     private lazy var missingNextSlot = makeTaskSlot()
     private var skipNextAppearanceLoad = true
     private var hasAwaitedFirstSync = false
@@ -64,6 +66,9 @@ final class TVHomeViewController: TVScreenViewController {
     required init?(coder: NSCoder) { fatalError() }
 
     deinit {
+        if let regionObserver {
+            NotificationCenter.default.removeObserver(regionObserver)
+        }
         if let visibilityObserver {
             Task { @MainActor in LibraryVisibility.removeObserver(visibilityObserver) }
         }
@@ -102,6 +107,9 @@ final class TVHomeViewController: TVScreenViewController {
         releases = WatchlistReleases.shared.releases()
         missingNextObserver = UpNextGaps.shared.addObserver { [weak self] in
             self?.missingNextChanged()
+        }
+        regionObserver = NotificationCenter.default.addObserver(forName: MidgarModelRegion.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.applySnapshot(animated: true) }
         }
         render(animated: false)
         followServerState()

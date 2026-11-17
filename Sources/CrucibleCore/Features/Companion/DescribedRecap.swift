@@ -1,4 +1,5 @@
 import Foundation
+import MidgarCore
 
 /// One finished episode as a described Previously On shows it. Only its description is sent.
 package struct DescribedEpisode: Equatable, Sendable, Identifiable {
@@ -116,6 +117,8 @@ package enum DescribedRecapCopy {
             return String(localized: "Couldn't write the recap because Crucible's AI is busy. Try again in a minute.")
         case .declined, .failed:
             return String(localized: "Couldn't write the recap because Crucible's AI is unavailable right now. Try again in a few minutes.")
+        case .unavailableInRegion:
+            return MidgarModelRegion.unavailableMessage
         }
     }
 }

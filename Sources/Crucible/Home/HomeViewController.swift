@@ -57,6 +57,8 @@ final class HomeViewController: UICollectionViewController {
     private var releasesTask: Task<Void, Never>?
     private var missingNext: [MissingNext] = []
     private var missingNextObserver: UUID?
+    /// Shows or hides What to Watch when Midgar learns whether model calls are made where the device connects from.
+    nonisolated(unsafe) private var regionObserver: NSObjectProtocol?
     private var missingNextTask: Task<Void, Never>?
     /// A pull to refresh also looks again for the next episodes the server lacks, once Home has reloaded.
     private var forceGaps = false
@@ -72,6 +74,9 @@ final class HomeViewController: UICollectionViewController {
     required init?(coder: NSCoder) { fatalError() }
 
     deinit {
+        if let regionObserver {
+            NotificationCenter.default.removeObserver(regionObserver)
+        }
         if let visibilityObserver {
             Task { @MainActor in LibraryVisibility.removeObserver(visibilityObserver) }
         }
@@ -130,6 +135,9 @@ final class HomeViewController: UICollectionViewController {
         }
         ledgerObserver = FinishedTitlesLedger.shared.addObserver { [weak self] in
             self?.asksChanged()
+        }
+        regionObserver = NotificationCenter.default.addObserver(forName: MidgarModelRegion.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.configureNavButtons() }
         }
         asks = rateFeed.current()
         followServerState()

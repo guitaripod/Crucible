@@ -1,4 +1,5 @@
 import Foundation
+import MidgarCore
 
 /// The words of What to Watch on iPhone, iPad and Apple TV.
 package enum WatchCopy {
@@ -86,6 +87,8 @@ package enum WatchCopy {
             return String(localized: "Couldn't choose from that. Describe what you want to watch.")
         case .failed:
             return String(localized: "Couldn't choose because Crucible's AI is unavailable right now. Try again in a few minutes.")
+        case .unavailableInRegion:
+            return MidgarModelRegion.unavailableMessage
         }
     }
 
@@ -93,7 +96,7 @@ package enum WatchCopy {
     package static func canRetry(_ failure: WatchFailure) -> Bool {
         switch failure {
         case .libraryUnreachable, .brain(.offline), .brain(.busy), .brain(.failed): return true
-        case .emptyLibrary, .nothingFits, .brain(.unavailable), .brain(.needsPro), .brain(.allowanceUsed), .brain(.declined): return false
+        case .emptyLibrary, .nothingFits, .brain(.unavailable), .brain(.needsPro), .brain(.allowanceUsed), .brain(.declined), .brain(.unavailableInRegion): return false
         }
     }
 }

@@ -17,6 +17,8 @@ package enum HostedBrainError: Error, Equatable, Sendable {
     /// The model would not work with what was sent.
     case declined
     case failed
+    /// Midgar's servers make no model calls in the country the device connects from; the feature hides there.
+    case unavailableInRegion
 }
 
 /// The model behind What to Watch and a Previously On written from episode descriptions. The App Store build supplies

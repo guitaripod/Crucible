@@ -32,7 +32,7 @@ enum OwnModelCopy {
             return String(localized: "Couldn't choose because your model is busy. Try again in a minute.", comment: "What to Watch on Linux when the person's model is busy")
         case .unavailable:
             return String(localized: "Set up your own model in Settings to use What to Watch.", comment: "What to Watch on Linux before a model is set up")
-        case .failed, .needsPro, .allowanceUsed:
+        case .failed, .needsPro, .allowanceUsed, .unavailableInRegion:
             return String(localized: "Couldn't choose because your model gave no usable answer. Check its name in Settings, then try again.", comment: "What to Watch on Linux when the person's model answered with an error or nonsense")
         case .declined:
             return WatchCopy.failure(.brain(.declined))
@@ -56,7 +56,7 @@ enum OwnModelCopy {
             return String(localized: "Couldn't write the recap because your model is busy. Try again in a minute.", comment: "Linux Previously On when the person's model is busy")
         case .unavailable:
             return recapSetup
-        case .failed, .declined, .needsPro, .allowanceUsed:
+        case .failed, .declined, .needsPro, .allowanceUsed, .unavailableInRegion:
             return String(localized: "Couldn't write the recap because your model gave no usable answer. Check its name in Settings, then try again.", comment: "Linux Previously On when the person's model answered with an error or nonsense")
         }
     }

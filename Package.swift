@@ -30,7 +30,7 @@ var products: [Product] = []
 
 var dependencies: [Package.Dependency] = [
     .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.0.0"),
-    .package(url: "https://github.com/guitaripod/MidgarKit.git", exact: "4.7.1"),
+    .package(url: "https://github.com/guitaripod/MidgarKit.git", exact: "4.8.0"),
     .package(url: "https://github.com/apple/swift-crypto.git", "3.0.0"..<"6.0.0"),
 ]
 

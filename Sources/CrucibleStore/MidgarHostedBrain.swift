@@ -1,6 +1,9 @@
 import CrucibleCore
 import Foundation
 import MidgarCore
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// Crucible's hosted model in the App Store build: aliases of Midgar's shared model service, asked as the anonymous
 /// Midgar ID that Crucible Pro is recorded against. The service holds each alias's instructions and reply shape,
@@ -26,6 +29,9 @@ package struct MidgarHostedBrain: HostedBrainProviding {
         return MidgarHostedBrain(identity: MidgarIdentity(httpConfiguration: configuration, bundleID: MidgarProAccess.bundleID))
     }
 
+    /// Steps aside where Midgar's servers make no model calls, so the features hide unless the device's own model answers.
+    package var isReady: Bool { MidgarModelRegion.shared.modelsAvailable }
+
     package func ask(alias: String, input: String, language: String) async throws(HostedBrainError) -> String {
         let question = Question(alias: alias, input: input, language: language, idempotencyKey: UUID().uuidString)
         do {
@@ -35,11 +41,22 @@ package struct MidgarHostedBrain: HostedBrainProviding {
             do {
                 return try await send(question)
             } catch {
-                throw Self.failure(error)
+                throw Self.refused(error)
             }
         } catch {
-            throw Self.failure(error)
+            throw Self.refused(error)
         }
+    }
+
+    /// Asks Midgar again whether model calls are made where the device connects from.
+    package func refreshRegion() async {
+        await MidgarModelRegion.shared.refresh(client: client)
+    }
+
+    /// The person's reason for a failed call, after a refusal for the region is remembered so the features hide.
+    private static func refused(_ error: any Error) -> HostedBrainError {
+        MidgarModelRegion.shared.note(error)
+        return failure(error)
     }
 
     private func send(_ question: Question) async throws -> String {
@@ -58,6 +75,7 @@ package struct MidgarHostedBrain: HostedBrainProviding {
             guard code == dailyLimitCode else { return .busy }
             return .allowanceUsed(resetsAt: now.addingTimeInterval(retryAfter ?? 3_600))
         case .server(let status, let code, _):
+            if MidgarModelRegion.isRefusal(error) { return .unavailableInRegion }
             return status == 422 && code == "content_blocked" ? .declined : .failed
         case .tokenUnavailable(let isTransient): return isTransient ? .offline : .failed
         case .unauthorized, .notFound, .decoding, .invalidRequest, .cancelled: return .failed
@@ -94,10 +112,18 @@ package struct MidgarServices {
         return MidgarServices(pro: MidgarProAccess.live(configuration: configuration, identity: identity), brain: MidgarHostedBrain(identity: identity))
     }
 
-    /// Puts both in place for the launch code that follows.
+    /// Puts both in place for the launch code that follows, and learns whether model calls are made here now and each time
+    /// the app returns.
     @MainActor
     package func install() {
         ProAccess.shared.install(pro)
         HostedBrain.install(brain)
+        let brain = brain
+        Task { await brain.refreshRegion() }
+        #if canImport(UIKit)
+        NotificationCenter.default.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { _ in
+            Task { await brain.refreshRegion() }
+        }
+        #endif
     }
 }
