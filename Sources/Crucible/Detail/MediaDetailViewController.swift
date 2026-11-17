@@ -93,6 +93,7 @@ final class MediaDetailViewController: UICollectionViewController {
             Task { await self?.applySnapshot(animated: true) }
         }
         community.onReconfigure = { [weak self] items in self?.reconfigure(items.map { .community($0) }) }
+        community.onConnected = { [weak self] in self?.loadData() }
         registerForTraitChanges([UITraitPreferredContentSizeCategory.self]) { (controller: MediaDetailViewController, _: UITraitCollection) in
             controller.reconfigure(controller.dataSource.snapshot().itemIdentifiers)
         }

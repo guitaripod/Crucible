@@ -85,6 +85,7 @@ final class ShowDetailViewController: UICollectionViewController {
             Task { await self?.applySnapshot(animated: true) }
         }
         community.onReconfigure = { [weak self] items in self?.reconfigure(items.map { .community($0) }) }
+        community.onConnected = { [weak self] in self?.loadData() }
         configureMultiSelect()
         updateBarButtons()
         followServerState()

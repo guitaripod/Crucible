@@ -15,6 +15,7 @@ final class TraktCommunityDetailBlock {
         case comment(Int)
         case unlock
         case actions
+        case invite
     }
 
     enum Part: Hashable, Sendable {
@@ -32,6 +33,8 @@ final class TraktCommunityDetailBlock {
     var onStructureChange: (() -> Void)?
     /// The page reconfigures these items in place.
     var onReconfigure: (([Item]) -> Void)?
+    /// Trakt was just connected from this page or anywhere else: the page reads itself again, scores included.
+    var onConnected: (() -> Void)?
 
     private var revealed = Set<Int>()
     private var loadTask: Task<Void, Never>?
@@ -40,6 +43,7 @@ final class TraktCommunityDetailBlock {
     private var accountObserver: UUID?
     private var translationObserver: NSObjectProtocol?
     private var barsAnimated = false
+    private var wasConnected = TraktAccount.shared.isConnected
 
     init(api: APIClient, ratingKey: String, host: UIViewController) {
         self.api = api
@@ -52,11 +56,7 @@ final class TraktCommunityDetailBlock {
             MainActor.assumeIsolated { self?.handle(change) }
         }
         proObserver = ProAccess.shared.observe { [weak self] _ in self?.onStructureChange?() }
-        accountObserver = TraktAccount.shared.observe { [weak self] in
-            guard let self, !TraktAccount.shared.isConnected, self.snapshot != nil else { return }
-            self.snapshot = nil
-            self.onStructureChange?()
-        }
+        accountObserver = TraktAccount.shared.observe { [weak self] in self?.accountChanged() }
         translationObserver = NotificationCenter.default.addObserver(forName: .translationChanged, object: nil, queue: .main) { [weak self] note in
             let key = note.object as? String
             MainActor.assumeIsolated { self?.translationChanged(key) }
@@ -106,6 +106,20 @@ final class TraktCommunityDetailBlock {
         loadTask?.cancel()
     }
 
+    /// Trakt connected brings the community in and the page's scores with it; disconnected takes the community away and leaves the
+    /// invitation in its place, or nothing once it was put away.
+    private func accountChanged() {
+        let connected = TraktAccount.shared.isConnected
+        defer { wasConnected = connected }
+        if connected, !wasConnected {
+            onConnected?()
+            load()
+        } else if !connected, snapshot != nil {
+            snapshot = nil
+        }
+        onStructureChange?()
+    }
+
     private var isUnlocked: Bool { TraktCommunity.shared.isUnlocked }
 
     // MARK: - Items
@@ -115,7 +129,15 @@ final class TraktCommunityDetailBlock {
         snapshot != nil && TraktCommunity.shared.isAvailable
     }
 
+    /// The invitation to connect Trakt that stands where the community would be, while Trakt is not connected and the viewer has not
+    /// put it away.
+    var invite: TraktInvite? {
+        guard !TraktCommunity.shared.isAvailable else { return nil }
+        return TraktInvite.current(titleName: titleName)
+    }
+
     func items(in part: Part) -> [Item] {
+        if invite != nil { return part == .actions ? [.invite] : [] }
         guard isVisible, let snapshot else { return [] }
         switch part {
         case .overview:
@@ -178,6 +200,10 @@ final class TraktCommunityDetailBlock {
     // MARK: - Cells
 
     func configure(_ cell: UICollectionViewCell, item: Item) {
+        if item == .invite {
+            configureInvite(cell)
+            return
+        }
         guard let snapshot else { return }
         switch item {
         case .pulse:
@@ -207,7 +233,23 @@ final class TraktCommunityDetailBlock {
             config.onWrite = { [weak self] in self?.write() }
             config.onSeeAll = { [weak self] in self?.seeAll() }
             cell.contentConfiguration = config
+        case .invite:
+            break
         }
+    }
+
+    private func configureInvite(_ cell: UICollectionViewCell) {
+        guard let invite else { return }
+        var config = TraktInviteCardConfiguration(invite: invite)
+        config.onConnect = { [weak self] in
+            guard let self, let host = self.host else { return }
+            TraktInviteSheet.present(from: host, api: self.api)
+        }
+        config.onNotNow = { [weak self] in
+            WelcomeLedger.shared.dismissTraktInvite()
+            self?.onStructureChange?()
+        }
+        cell.contentConfiguration = config
     }
 
     private func commentConfiguration(_ comment: TraktComment) -> TraktCommentConfiguration {
