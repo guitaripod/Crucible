@@ -129,7 +129,8 @@ extension PlayerScreen {
         matchedFullscreen = window?.isFullscreen ?? false
         ScreenAwake.hold(true, in: window)
         let transport = plan.selection.video?.isProgressive == false ? "segments" : "one file"
-        MidgarLog.notice("Playing a web video from \(video.site) at \(plan.selection.quality?.label ?? "sound only") (\(transport)) from \(Int(start)) s",
+        let quality = plan.selection.quality?.label ?? (plan.selection.video == nil ? "sound only" : "its one quality")
+        MidgarLog.notice("Playing a web video from \(video.site) at \(quality) (\(transport)) from \(Int(start)) s",
                          category: .playback)
     }
 

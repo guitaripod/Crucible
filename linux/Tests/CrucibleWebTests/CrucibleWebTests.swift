@@ -204,6 +204,8 @@ enum Fixture {
             == .unavailable("Video unavailable. This video has been removed by the uploader"))
         #expect(YtDlpError(standardError: "ERROR: Unsupported URL: https://example.com/") == .unsupported)
         #expect(YtDlpError(standardError: "ERROR: unable to download video data: HTTP Error 429: Too Many Requests") == .rateLimited)
+        #expect(YtDlpError(standardError: "ERROR: [generic] Unable to download webpage: HTTP Error 404: Not Found (caused by <HTTPError 404: Not Found>)")
+            == .network("Unable to download webpage: HTTP Error 404: Not Found"))
         #expect(YtDlpError(standardError: "") == .failed("yt-dlp failed"))
     }
 

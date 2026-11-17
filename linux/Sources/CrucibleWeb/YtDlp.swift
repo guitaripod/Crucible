@@ -119,7 +119,8 @@ package enum YtDlpError: Error, Equatable, Sendable {
     case malformed
     case failed(String)
 
-    /// Reads the reason from what yt-dlp wrote before it gave up: its last line that starts with "ERROR:".
+    /// Reads the reason from what yt-dlp wrote before it gave up: its last line that starts with "ERROR:", without the
+    /// extractor's name before it and the Python exception after it.
     package init(standardError: String) {
         let lines = standardError.split(whereSeparator: \.isNewline).map(String.init)
         let line = lines.last { $0.hasPrefix("ERROR:") } ?? lines.last ?? ""
@@ -132,6 +133,7 @@ package enum YtDlpError: Error, Equatable, Sendable {
                 message = rest
             }
         }
+        if let cause = message.range(of: " (caused by ") { message = String(message[..<cause.lowerBound]) }
         let lowered = message.lowercased()
         if lowered.contains("not a bot") {
             self = .botCheck
