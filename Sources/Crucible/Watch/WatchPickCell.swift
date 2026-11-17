@@ -38,6 +38,7 @@ final class WatchPickContentView: UIView, UIContentView {
     init(configuration: WatchPickConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         setupViews()
         apply()
     }

@@ -55,6 +55,7 @@ final class SportsStepView: UIView, UIContentView {
     init(configuration: SportsStepConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         build()
         apply()
         registerForTraitChanges([UITraitPreferredContentSizeCategory.self]) { (self: Self, _: UITraitCollection) in self.apply() }

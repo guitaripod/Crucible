@@ -123,6 +123,7 @@ final class EssentialsOfferContentView: UIView, UIContentView {
     init(configuration: EssentialsOfferConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         card.backgroundColor = Theme.Color.surface
         card.layer.cornerRadius = Theme.Radius.m
         card.layer.cornerCurve = .continuous

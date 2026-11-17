@@ -32,6 +32,7 @@ final class SportsResultView: UIView, UIContentView {
     init(configuration: SportsResultConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         stateLabel.font = Theme.Font.badge
         stateLabel.adjustsFontForContentSizeCategory = true
         stateLabel.numberOfLines = 1

@@ -438,6 +438,7 @@ final class TraktUnlockCardContentView: UIView, UIContentView {
     init(configuration: TraktUnlockCardConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         layer.cornerRadius = Theme.Radius.m + 4
         layer.cornerCurve = .continuous
         layer.masksToBounds = true

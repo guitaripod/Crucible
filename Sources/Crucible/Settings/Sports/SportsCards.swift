@@ -34,6 +34,7 @@ final class SportsHeroView: UIView, UIContentView {
     init(configuration: SportsHeroConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         card.backgroundColor = Theme.Color.surface
         card.layer.cornerRadius = Theme.Radius.l
         card.layer.cornerCurve = .continuous
@@ -123,6 +124,7 @@ final class SportsPillView: UIView, UIContentView {
     init(configuration: SportsPillConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         glass.layer.cornerRadius = Theme.Radius.l
         glass.layer.cornerCurve = .continuous
         glass.clipsToBounds = true

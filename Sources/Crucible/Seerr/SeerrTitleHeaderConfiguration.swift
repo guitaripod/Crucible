@@ -33,6 +33,7 @@ final class SeerrTitleHeaderView: UIView, UIContentView {
     init(configuration: SeerrTitleHeaderConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         posterView.contentMode = .scaleAspectFill
         posterView.clipsToBounds = true
         posterView.layer.cornerRadius = Theme.Radius.s

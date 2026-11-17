@@ -354,6 +354,7 @@ final class GuideCommandView: UIView, UIContentView {
     init(configuration: GuideCommandConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         build()
         apply()
     }

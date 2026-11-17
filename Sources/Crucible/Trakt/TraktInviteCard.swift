@@ -32,6 +32,7 @@ final class TraktInviteCardContentView: UIView, UIContentView {
     init(configuration: TraktInviteCardConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         card.layer.cornerRadius = Theme.Radius.m + 4
         card.layer.cornerCurve = .continuous
         card.layer.masksToBounds = true

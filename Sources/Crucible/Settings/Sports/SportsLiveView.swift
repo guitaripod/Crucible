@@ -42,6 +42,7 @@ final class SportsLiveView: UIView, UIContentView {
     init(configuration: SportsLiveConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         build()
         apply()
     }

@@ -483,6 +483,7 @@ final class TraktMemberRowContentView: UIView, UIContentView {
     init(configuration: TraktMemberRowConfiguration) {
         self.configuration = configuration
         super.init(frame: .zero)
+        preferContentHeight()
         name.font = Theme.Font.headline
         name.adjustsFontForContentSizeCategory = true
         name.textColor = Theme.Color.label
