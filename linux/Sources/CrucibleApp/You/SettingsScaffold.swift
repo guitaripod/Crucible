@@ -12,15 +12,19 @@ class SettingsScaffold: ScreenView {
     private let page = PageView()
     private let body = SplitSection()
     private let state = StateView()
+    private let skeleton = SkeletonRowsView()
 
     init(title: String, detail: String? = nil) {
         heading = ScreenTitleView(title: title, detail: detail)
         super.init()
         body.rows = rows
         body.state = state
+        body.skeleton = skeleton
         body.addSubview(rows)
+        body.addSubview(skeleton)
         body.addSubview(state)
         state.isHidden = true
+        skeleton.isHidden = true
         addSubview(page)
         page.setSections([heading, body])
         page.onScroll = { [weak self] offset in
@@ -32,7 +36,10 @@ class SettingsScaffold: ScreenView {
         rows.onContextMenu = { [weak self] item, anchor in self?.rowMenu(item.id, at: anchor) ?? false }
     }
 
-    override var preferredFocusView: View? { state.isHidden ? rows : state }
+    override var preferredFocusView: View? {
+        guard rows.isHidden else { return rows }
+        return state.isHidden ? skeleton : state
+    }
     override var remembersFocus: Bool { true }
 
     /// Keeps the context panel in view while the rows scroll past it, as the Apple TV's column stays put; for a panel that
@@ -60,19 +67,33 @@ class SettingsScaffold: ScreenView {
     /// (`TVSettingsScaffold.presentState`); the focus follows when it was on the side that goes away, and nil while the
     /// rows already show leaves the focus where it is.
     func presentState(_ newState: StateView.State?) {
-        guard newState != nil || !state.isHidden else { return }
+        guard newState != nil || rows.isHidden || !state.isHidden else { return }
         let hadFocus = containsFocus
         if let newState {
+            skeleton.isHidden = true
             state.show(newState)
             state.isHidden = false
             rows.isHidden = true
         } else {
             state.isHidden = true
             rows.isHidden = false
+            if window == nil { skeleton.isHidden = true } else { skeleton.fadeOut() }
         }
         body.setNeedsLayout()
         page.setNeedsLayout()
         if hadFocus { window?.focus.focus(state.isHidden ? rows : state, animated: false) }
+    }
+
+    /// Shows skeleton rows where the rows go while the first of them load (a title's comments, a member's page), until
+    /// `presentState(nil)` fades them out over the rows that arrived, or a failure replaces them.
+    func presentLoadingRows() {
+        let hadFocus = containsFocus
+        state.isHidden = true
+        rows.isHidden = true
+        skeleton.show()
+        body.setNeedsLayout()
+        page.setNeedsLayout()
+        if hadFocus { window?.focus.focus(skeleton, animated: false) }
     }
 
     /// A row was chosen; subclasses act on it.
@@ -105,6 +126,7 @@ private final class SplitSection: View {
     var context: View?
     weak var rows: RowListView?
     weak var state: StateView?
+    weak var skeleton: SkeletonRowsView?
     var pinsContext = false
     private var scrolled: Float = 0
 
@@ -136,9 +158,10 @@ private final class SplitSection: View {
         return min(room, metrics.wideColumn)
     }
 
-    /// The rows' height, or the state's room in their place while it shows.
+    /// The rows' height, or the room of the state or the skeleton in their place while it shows.
     private func listHeight(_ width: Float) -> Float {
         if state?.isHidden == false { return Theme.current.metrics.tv(480) }
+        if rows?.isHidden == true, skeleton?.isHidden == false { return Theme.current.metrics.tv(720) }
         return rows?.sizeThatFits(Size(width: width, height: 0)).height ?? 0
     }
 
@@ -163,11 +186,13 @@ private final class SplitSection: View {
             let top = contextHeight > 0 ? contextHeight + metrics.tv(40) : 0
             rows?.frame = Rect(x: 0, y: top, width: frame.width, height: rowsHeight)
             state?.frame = Rect(x: metrics.sideMargin, y: top, width: width, height: rowsHeight)
+            skeleton?.frame = Rect(x: metrics.sideMargin, y: top, width: width, height: max(rowsHeight, metrics.tv(720)))
         } else {
             context?.frame = Rect(x: metrics.sideMargin, y: 0, width: contextWidth, height: contextHeight)
             let left = metrics.sideMargin + contextWidth + gap
             rows?.frame = Rect(x: left - metrics.sideMargin, y: 0, width: width + metrics.sideMargin * 2, height: rowsHeight)
             state?.frame = Rect(x: left, y: 0, width: width, height: rowsHeight)
+            skeleton?.frame = Rect(x: left, y: 0, width: width, height: max(rowsHeight, metrics.tv(720)))
         }
         follow(scrolled)
     }

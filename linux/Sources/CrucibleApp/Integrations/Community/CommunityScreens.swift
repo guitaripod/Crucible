@@ -47,7 +47,7 @@ final class CommentsScreen: SettingsScaffold {
         super.init(title: title, detail: titleName)
         panel.wellView = BrandMarkView("trakt")
         installContext(panel)
-        presentState(.loading(title: TraktCommunityCopy.comments))
+        presentLoadingRows()
         reload()
     }
 
@@ -105,7 +105,7 @@ final class CommentsScreen: SettingsScaffold {
                 guard let self, !Task.isCancelled, !(error is CancellationError), self.comments.isEmpty else { return }
                 self.presentState(.error(title: TraktCommunityCopy.loadFailed, message: error.localizedDescription, retryTitle: String(localized: "Retry"),
                                          retry: { [weak self] in
-                                             self?.presentState(.loading(title: TraktCommunityCopy.comments))
+                                             self?.presentLoadingRows()
                                              self?.reload()
                                          }))
             }
@@ -583,7 +583,7 @@ final class TraktMemberScreen: SettingsScaffold {
         super.init(title: user.displayName)
         installContext(column)
         column.show(user)
-        presentState(.loading(title: user.displayName))
+        presentLoadingRows()
         let handle = user.handle
         Task { [weak self] in
             async let profile = try? TraktCommunity.shared.profile(handle)

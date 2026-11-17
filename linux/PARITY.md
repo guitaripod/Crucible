@@ -8,14 +8,14 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | --- | --- | --- | --- | --- |
 | Sign in, launch, tabs and navigation | 56 | 0 | 0 | 1 |
 | Home and libraries | 78 | 0 | 0 | 0 |
-| Title pages, collections, playlists and server activity | 78 | 0 | 0 | 1 |
+| Title pages, collections, playlists and server activity | 80 | 0 | 0 | 1 |
 | Player and What to Watch | 68 | 0 | 0 | 1 |
 | Search, Pro features (free on Linux) and demo | 55 | 0 | 0 | 8 |
 | You, profiles, history, statistics and manage | 84 | 0 | 0 | 3 |
 | Settings and integrations | 67 | 0 | 0 | 2 |
 | Design system | 97 | 0 | 0 | 0 |
 | Linux-only requirements (docs/LINUX.md) | 103 | 1 | 0 | 0 |
-| **All** | 686 | 1 | 0 | 16 |
+| **All** | 688 | 1 | 0 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -175,6 +175,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `trakt-comment-thread` (M) A comment's thread: the comment in the left column (Reveal Spoilers, Read in Full), Like with its count, React with the seven reactions, Reply, the author, each reply opening as a thread of its own, More Replies, Edit and Delete for the viewer's own, Report with Trakt's eleven reasons _Apple TV: Sources/CrucibleTV/Trakt/TVCommunityScreens.swift (TVCommentThreadViewController)_
 - [x] `trakt-comments-list` (M) Every comment on a title: Sort in Trakt's seven orders, Write a Review, a page more as the focus nears the end, the focused comment read in full in the left column, and the comments behind a sentiment _Apple TV: Sources/CrucibleTV/Trakt/TVCommunityScreens.swift (TVCommentsViewController)_
 - [x] `trakt-member-page` (M) A Trakt member: avatar, name, VIP and director badges, location, joined, about, Follow (Requested for a private member), what they are watching, their recent comments, Block and Report; and the list of who is watching a title _Apple TV: Sources/CrucibleTV/Trakt/TVCommunityScreens.swift (TVTraktMemberViewController, TVTraktMembersViewController)_
+- [x] `trakt-community-loading-rows` (S) A title's comments and a member's page load behind pulsing placeholder rows (an icon well and three lines each, at the rows' height), which fade out over the rows that arrive _Apple TV: Sources/CrucibleTV/DesignSystem/State/TVSkeletonView.swift_
 - [x] `trakt-comment-composer` (M) Writing a comment, review or reply through the system keyboard: Write or Edit, Contains Spoilers, Post or Save, the word count toward five words and a review at 200, warnings for text that is not English or names the app, Trakt's rules until read, drafts kept per title and per reply _Apple TV: Sources/CrucibleTV/Trakt/TVCommunityScreens.swift (TVCommentComposerViewController)_
 - [x] `detail-watchlist` (M) Add to Watchlist or Remove from Watchlist button for movies and shows (watchlist read alongside the page; failure alert and revert) _Apple TV: Sources/CrucibleTV/Detail/TVMediaDetailViewController.swift:22-25_
 - [x] `detail-add-to-playlist` (M) Add to Playlist button on movies, episodes and shows that opens the playlist picker _Apple TV: Sources/CrucibleTV/Detail/TVMediaDetailViewController.swift:348-358_
@@ -202,6 +203,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `detail-unavailable-state` (S) Not Available state for a title that cannot be loaded, with a Go Back action _Apple TV: Sources/CrucibleTV/Detail/TVDetailViewController.swift:112-124_
 - [x] `detail-error-retry` (S) Couldn’t Load error with Try Again on a movie page, Failed to load with Retry on a show page; both reload the page _Apple TV: Sources/CrucibleTV/Detail/TVDetailViewController.swift:126-133_
 - [x] `detail-page-loading-state` (S) Loading skeleton on first open, labelled Loading for accessibility, replaced by the page when data arrives _Apple TV: Sources/CrucibleTV/Detail/TVDetailSkeletonView.swift:1-57_
+- [x] `detail-grid-loading-skeleton` (S) A person's films, a collection and a playlist load behind pulsing poster placeholders laid out like the grid under the screen's title, which fade out over the cards; Retry after a failure brings them back _Apple TV: Sources/CrucibleTV/DesignSystem/State/TVSkeletonView.swift_
 - [x] `detail-play-focused-remote` (S) Play/Pause on the focused item plays it: Play on a movie page, the episode under focus on a show page, Up Next on a show with none focused _Apple TV: Sources/CrucibleTV/Detail/TVMediaDetailViewController.swift:74-77_
 - [x] `detail-show-primary-up-next` (S) Show primary button plays the Up Next episode or Continues, labelled from the show model, disabled when nothing is playable _Apple TV: Sources/CrucibleTV/Detail/TVShowDetailViewController.swift:415-426,572-575_
 - [x] `detail-show-watched-menu` (S) Watched menu on a show: Mark Show Watched or Unwatched and per-season Mark Season Watched or Unwatched, with checkmark states _Apple TV: Sources/CrucibleCore/Features/Detail/ShowDetailModel.swift:314-317_

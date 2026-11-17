@@ -5,9 +5,10 @@ import Foundation
 import Kiln
 import MidgarCore
 
-/// A screen of titles in a poster grid (`TVMediaGridViewController`): a collection, a person's films, a playlist. It
-/// loads every time it appears, keeps what it showed while a reload runs, and opens a title's page on select; a right
-/// click offers what every poster offers.
+/// A screen of titles in a poster grid (`TVMediaGridViewController`): a collection, a person's films, a playlist. Until the
+/// first titles arrive its grid stands in skeleton posters under the title, which fade out over the cards. It loads every
+/// time it appears, keeps what it showed while a reload runs, and opens a title's page on select; a right click offers
+/// what every poster offers.
 @MainActor
 final class TitleGridScreen: ScreenView {
     struct Empty {
@@ -38,7 +39,10 @@ final class TitleGridScreen: ScreenView {
     /// How tall the cards' artwork is for its width.
     var aspect: Float {
         get { grid.aspect }
-        set { grid.aspect = newValue }
+        set {
+            grid.aspect = newValue
+            skeleton.aspect = newValue
+        }
     }
 
     private let api: APIClient
@@ -48,6 +52,7 @@ final class TitleGridScreen: ScreenView {
     private let heading: ScreenTitleView
     private let grid = CardGridView()
     private let state = StateView()
+    private let skeleton = SkeletonGridView()
     private var items: [String: PlexMetadata] = [:]
     private var shown: [PlexMetadata] = []
     private var hasLoaded = false
@@ -62,7 +67,7 @@ final class TitleGridScreen: ScreenView {
         self.load = load
         heading = ScreenTitleView(title: title)
         super.init()
-        [page, state].forEach(addSubview)
+        [page, skeleton, state].forEach(addSubview)
         page.setSections([heading, grid])
         page.onScroll = { [weak self] offset in self?.rootView?.contentScrolled(offset: offset) }
         grid.onActivate = { [weak self] card in
@@ -85,14 +90,14 @@ final class TitleGridScreen: ScreenView {
             guard let self, let item = self.items[card.id] else { return false }
             return self.onPlay?(item) ?? false
         }
-        state.show(.loading(title: nil))
+        state.isHidden = true
         if let initial, !initial.isEmpty {
             hasLoaded = true
             display(initial)
         }
     }
 
-    override var preferredFocusView: View? { state.isHidden ? grid : state }
+    override var preferredFocusView: View? { !skeleton.isHidden ? skeleton : state.isHidden ? grid : state }
 
     override func keyPressed(_ event: KeyEvent) -> Bool {
         guard let onKey, let card = window?.focusedView as? CardView, card.isDescendant(of: grid), let item = items[card.item.id] else { return false }
@@ -136,12 +141,7 @@ final class TitleGridScreen: ScreenView {
             } catch {
                 guard !Task.isCancelled, !self.hasLoaded else { return }
                 MidgarLog.error("Grid load failed: \(error)", category: .networking)
-                self.state.isHidden = false
-                self.state.show(.error(title: String(localized: "Couldn’t Load"), message: ConnectionError.message(for: error),
-                                       retryTitle: String(localized: "Retry"), retry: { [weak self] in
-                                           self?.state.show(.loading(title: nil))
-                                           self?.reload()
-                                       }))
+                self.showFailure(error)
             }
         }
     }
@@ -155,13 +155,35 @@ final class TitleGridScreen: ScreenView {
         heading.summary = summary(loaded)
         onLoaded?(loaded)
         if loaded.isEmpty {
+            skeleton.isHidden = true
             state.isHidden = false
             state.show(.empty(title: empty.title, message: empty.message, symbol: empty.symbol, action: nil))
+        } else if !skeleton.isHidden, window == nil {
+            skeleton.isHidden = true
+        } else if !skeleton.isHidden {
+            if skeleton.containsFocus { window?.focus.focus(grid, animated: false) }
+            skeleton.fadeOut()
         } else {
             if !state.isHidden { page.fadeIn() }
             state.isHidden = true
         }
         page.setNeedsLayout()
+    }
+
+    /// The first load failed: what went wrong, with Retry, which brings the skeleton back while it loads again.
+    private func showFailure(_ error: Error) {
+        let hadFocus = containsFocus
+        skeleton.isHidden = true
+        state.isHidden = false
+        state.show(.error(title: String(localized: "Couldn’t Load"), message: ConnectionError.message(for: error),
+                          retryTitle: String(localized: "Retry"), retry: { [weak self] in
+                              guard let self else { return }
+                              self.state.isHidden = true
+                              self.skeleton.show()
+                              if self.containsFocus { self.window?.focus.focus(self.skeleton, animated: false) }
+                              self.reload()
+                          }))
+        if hadFocus { window?.focus.focus(state, animated: false) }
     }
 
     /// Draws the cards again from what is shown, after something a card says changed (a request's state, a release).
@@ -177,6 +199,8 @@ final class TitleGridScreen: ScreenView {
         page.topInset = Theme.current.metrics.tabBarClearance
         page.frame = bounds
         state.frame = bounds
+        let top = page.topInset + heading.sizeThatFits(Size(width: bounds.width, height: 0)).height
+        skeleton.frame = Rect(x: 0, y: top, width: bounds.width, height: max(0, bounds.height - top))
     }
 
     override func draw(_ context: inout DrawContext) {
