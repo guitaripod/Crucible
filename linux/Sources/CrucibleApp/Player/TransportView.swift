@@ -7,8 +7,10 @@ import Kiln
 /// scrubber with play/pause before it and the times beneath. On a desk, a control bar made for the pointer: the title, a
 /// tall scrubbing band whose track thickens under the pointer with the times at either end, and a row of large buttons
 /// (skip back, play/pause, skip ahead, mute with a volume slider; Audio, Subtitles, Speed, Sleep Timer, Info and Full
-/// Screen at the far end), each lit under the pointer and named with its shortcut in a tooltip. Either way the scrubber
-/// shows what is buffered and a tick at each chapter, and hovering it shows the time there, the chapter and a still.
+/// Screen at the far end), each lit under the pointer and named with its shortcut in a tooltip; a window too narrow for
+/// that one row gives the menus, Mini Player and Full Screen a row of their own above the bar, beside the title. Either
+/// way the scrubber shows what is buffered and a tick at each chapter, and hovering it shows the time there, the chapter
+/// and a still.
 @MainActor
 final class TransportView: View {
     enum Control: String, CaseIterable {
@@ -180,7 +182,9 @@ final class TransportView: View {
     }
 
     override func sizeThatFits(_ size: Size) -> Size {
-        Size(width: size.width, height: Theme.current.metrics.tv(isDesk ? 372 : 150))
+        let metrics = Theme.current.metrics
+        guard isDesk else { return Size(width: size.width, height: metrics.tv(150)) }
+        return Size(width: size.width, height: metrics.tv(isCompact(width: size.width) ? 432 : 372))
     }
 
     // MARK: Geometry
@@ -208,7 +212,9 @@ final class TransportView: View {
     }
 
     private var deskInset: Float { Theme.current.metrics.tv(56) }
-    private var deskBarMidY: Float { Theme.current.metrics.tv(146) }
+    private var deskStart: Float { deskInset - Theme.current.metrics.tv(22) }
+    private var deskGap: Float { Theme.current.metrics.tv(12) }
+    private var deskBarMidY: Float { Theme.current.metrics.tv(146) + (isCompact ? Theme.current.metrics.tv(60) : 0) }
 
     /// The band a press or hover scrubs in: the track's row from end to end, tall enough to hit without aiming.
     private var scrubBand: Rect {
@@ -226,37 +232,101 @@ final class TransportView: View {
     private var deskButtonSide: Float { Theme.current.metrics.tv(116) }
     private var deskRowMidY: Float { frame.height - Theme.current.metrics.tv(34) - Theme.current.metrics.tv(66) }
 
-    /// Where each button of the desk's row sits: back, play, ahead and mute from the start, the menus and Full Screen from
-    /// the end.
+    /// Whether the window is too narrow for the desk's one row, so the menus, Mini Player and Full Screen move to a row
+    /// of their own above the bar, beside the title, and the row below keeps the transport and the volume.
+    private var isCompact: Bool { isCompact(width: frame.width) }
+
+    private func isCompact(width: Float) -> Bool { width < deskOneRowWidth }
+
+    /// The width the desk's one row needs: the transport buttons, the gap after them, then the menus and the row's end.
+    private var deskOneRowWidth: Float {
+        let metrics = Theme.current.metrics
+        let side = deskButtonSide
+        let gap = deskGap
+        let transportEnd = deskStart + side * 3 + gap * 2 + metrics.tv(132) + metrics.tv(44)
+        let menus = side * 7 + gap * 6 + metrics.tv(40) + deskStart
+        return transportEnd + metrics.tv(40) + menus
+    }
+
+    /// The menus, Mini Player and Full Screen, left to right, in the compact layout's own row.
+    private var deskTopOrder: [Button] {
+        [.control(.audio), .control(.subtitles), .control(.speed), .control(.sleep), .control(.info), .mini, .fullscreen]
+    }
+
+    private var deskTopRowMidY: Float { Theme.current.metrics.tv(70) }
+
+    /// The compact row's button side: the desk's own while the row and the title both fit, smaller as the window narrows
+    /// so the title keeps its room, and never below 40 on the tvOS canvas.
+    private var deskTopSide: Float {
+        let metrics = Theme.current.metrics
+        let room = frame.width - deskInset * 2 - deskGap * 6 - metrics.tv(240)
+        return min(deskButtonSide, max(metrics.tv(40), (room / Float(deskTopOrder.count)).rounded(.down)))
+    }
+
+    /// Where the leftmost button of the compact row sits, for the title to end before it.
+    private var deskTopRowX: Float {
+        frame.width - deskInset - Float(deskTopOrder.count) * (deskTopSide + deskGap) + deskGap
+    }
+
+    /// Where a button of the compact row sits: right-aligned above the bar.
+    private func deskTopFrame(of button: Button) -> Rect {
+        let side = deskTopSide
+        let gap = deskGap
+        let index = Float(deskTopOrder.firstIndex(of: button) ?? 0)
+        let x = frame.width - deskInset - (Float(deskTopOrder.count) - index) * (side + gap) + gap
+        return Rect(x: x, y: deskTopRowMidY - side / 2, width: side, height: side)
+    }
+
+    /// Where each button of the desk's row sits: back, play, ahead and mute from the start, the menus, Mini Player and
+    /// Full Screen from the end, or in the compact layout's row above the bar.
     private func deskFrame(of button: Button) -> Rect {
         let metrics = Theme.current.metrics
         let side = deskButtonSide
-        let gap = metrics.tv(12)
+        let gap = deskGap
         func at(_ x: Float, _ size: Float = side) -> Rect { Rect(x: x, y: deskRowMidY - size / 2, width: size, height: size) }
-        let start = deskInset - metrics.tv(22)
+        let start = deskStart
         let playSide = metrics.tv(132)
         switch button {
         case .back: return at(start)
         case .play: return at(start + side + gap, playSide)
         case .ahead: return at(start + side + gap * 2 + playSide)
         case .mute: return at(start + side * 2 + gap * 2 + playSide + metrics.tv(44))
-        case .fullscreen: return at(frame.width - start - side)
-        case .mini: return at(frame.width - start - side * 2 - gap)
+        case .fullscreen, .mini, .control:
+            return isCompact ? deskTopFrame(of: button) : deskEndFrame(of: button)
+        }
+    }
+
+    /// Where a button at the end of the desk's one row sits.
+    private func deskEndFrame(of button: Button) -> Rect {
+        let metrics = Theme.current.metrics
+        let side = deskButtonSide
+        let gap = deskGap
+        func at(_ x: Float) -> Rect { Rect(x: x, y: deskRowMidY - side / 2, width: side, height: side) }
+        switch button {
+        case .fullscreen: return at(frame.width - deskStart - side)
+        case .mini: return at(frame.width - deskStart - side * 2 - gap)
         case .control(let control):
             let order: [Control] = [.info, .sleep, .speed, .subtitles, .audio]
             let index = Float(order.firstIndex(of: control) ?? 0)
-            return at(frame.width - start - side * (index + 3) - gap * (index + 2) - metrics.tv(40))
+            return at(frame.width - deskStart - side * (index + 3) - gap * (index + 2) - metrics.tv(40))
+        default: return at(deskStart)
         }
     }
 
     private var deskButtons: [Button] { [.back, .play, .ahead, .mute, .mini, .fullscreen] + Control.allCases.map { .control($0) } }
+
+    /// Where the volume slider must stop: at the menus on a wide window, at the transport's own end in the compact
+    /// layout, whose menus are above the bar.
+    private var volumeLimit: Float {
+        isCompact ? frame.width - deskInset : deskFrame(of: .control(.audio)).minX - Theme.current.metrics.tv(48)
+    }
 
     /// The volume slider beside the mute button, as wide as the room before the menu buttons allows (none in a narrow
     /// window), and the wider band that takes presses and the wheel, never over a button.
     private var volumeTrack: Rect {
         let metrics = Theme.current.metrics
         let mute = deskFrame(of: .mute)
-        let room = deskFrame(of: .control(.audio)).minX - metrics.tv(48) - (mute.maxX + metrics.tv(14)) - volumeLabelRoom
+        let room = volumeLimit - (mute.maxX + metrics.tv(14)) - volumeLabelRoom
         let width = min(metrics.tv(320), room)
         let height = metrics.tv(12) + metrics.tv(8) * volumeHover.value
         return Rect(x: mute.maxX + metrics.tv(14), y: deskRowMidY - height / 2, width: width >= metrics.tv(90) ? width : 0, height: height)
@@ -542,10 +612,14 @@ final class TransportView: View {
     private func drawDesk(label: Color, scale: Float, context: inout DrawContext) {
         let theme = Theme.current
         let metrics = theme.metrics
-        let titleWidth = frame.width - deskInset * 2
-        let titleLayout = TextLayout(title, font: theme.type.headline, maxWidth: titleWidth, maxLines: 1, scale: scale)
-        let titleOrigin = Point(x: deskInset, y: metrics.tv(40))
-        context.text(titleLayout, at: titleOrigin, color: label)
+        let titleWidth = isCompact ? deskTopRowX - deskInset - metrics.tv(24) : frame.width - deskInset * 2
+        if titleWidth >= metrics.tv(80) {
+            let titleLayout = TextLayout(title, font: theme.type.headline, maxWidth: titleWidth, maxLines: 1, scale: scale)
+            let titleOrigin = isCompact
+                ? Point(x: deskInset, y: (deskTopRowMidY - titleLayout.size.height / 2).rounded())
+                : Point(x: deskInset, y: metrics.tv(40))
+            context.text(titleLayout, at: titleOrigin, color: label)
+        }
         let accent = theme.palette.accent
         for button in deskButtons {
             let rect = deskFrame(of: button)
