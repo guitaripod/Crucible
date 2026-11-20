@@ -81,7 +81,12 @@ package enum SettingsCategory: String, CaseIterable, Sendable {
     package func title(on platform: SettingsPlatform) -> String {
         switch self {
         case .playback: return String(localized: "Playback", comment: "Settings section title for playback options")
-        case .controls: return platform == .tv ? String(localized: "Remote", comment: "Settings category for the Siri Remote's skip and hold actions") : String(localized: "Skip Buttons", comment: "Settings category for skip distances")
+        case .controls:
+            switch platform {
+            case .tv: return String(localized: "Remote", comment: "Settings category for the Siri Remote's skip and hold actions")
+            case .linux: return String(localized: "Controls", comment: "Linux Settings category: what the keys and the mouse do while a video plays")
+            case .phone: return String(localized: "Skip Buttons", comment: "Settings category for skip distances")
+            }
         case .home: return String(localized: "Home & Libraries", comment: "Settings category for Home rows and library choices")
         case .downloads: return String(localized: "Downloads")
         case .notifications: return String(localized: "Notifications", comment: "Settings category for notifications")
@@ -116,7 +121,7 @@ package enum SettingsCategory: String, CaseIterable, Sendable {
         case .controls:
             switch platform {
             case .tv: return String(localized: "What the Siri Remote's clickpad does while a video plays.")
-            case .linux: return String(localized: "How far Left and Right, J and L, and the media keys skip while a video plays.")
+            case .linux: return String(localized: "How far the keys skip, and what the mouse does over the picture.", comment: "Linux Settings: what the Controls category holds")
             case .phone: return String(localized: "How far the skip buttons on the Lock Screen, in Control Center and on headphones go.")
             }
         case .home: return String(localized: "Which rows Home shows, in what order, and which libraries count.")

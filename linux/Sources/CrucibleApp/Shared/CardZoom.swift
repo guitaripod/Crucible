@@ -13,6 +13,8 @@ enum CardZoom {
     private static let key = "cardZoom"
     private static let increment: Float = 0.1
     private static let range: ClosedRange<Float> = 0.7...1.6
+    /// Every size a step lands on, for Settings' choice of one.
+    static let sizes: [Float] = stride(from: range.lowerBound, through: range.upperBound + 0.01, by: increment).map { ($0 * 10).rounded() / 10 }
 
     static var saved: Float {
         let stored = Float(UserDefaults.standard.double(forKey: key))

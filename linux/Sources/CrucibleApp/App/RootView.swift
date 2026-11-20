@@ -328,10 +328,12 @@ final class RootView: View, WindowRestoration.Restorable {
             return true
         }
         if (event.key == Key.character("f") && event.modifiers == .control) || (event.key == Key.character("/") && event.modifiers.isEmpty) {
+            if !playerCovers, let settings = current?.top as? SettingsScreen, settings.focusSearch() { return true }
             select("search")
             return true
         }
         if let typed = event.typedText, !playerCovers, !typed.trimmingCharacters(in: .whitespaces).isEmpty {
+            if let settings = current?.top as? SettingsScreen, settings.beginSearch(with: typed) { return true }
             select("search")
             (stacks["search"]?.top as? SearchScreen)?.begin(with: typed)
             return true

@@ -164,6 +164,19 @@ class DetailScreen: ScreenView {
         window?.focus.focus(state, animated: false)
     }
 
+    /// Playback Settings for a show, a movie or an episode's show: how it skips, plays on and matches the screen its own
+    /// way, and what the player remembered for it (`TitleRulesScreen`).
+    func playbackSettingsAction(for item: PlexMetadata) -> DetailAction? {
+        let isShow = item.mediaType == "show" || item.mediaType == "episode"
+        guard isShow || item.mediaType == "movie" else { return nil }
+        let ratingKey = item.mediaType == "episode" ? item.grandparentRatingKey : item.id
+        guard let ratingKey else { return nil }
+        let name = item.mediaType == "episode" ? item.grandparentTitle ?? item.title : item.title
+        return DetailAction(id: "playbackSettings", title: TitleRulesCopy.pageTitle, symbol: "slider.horizontal.3", behaviour: .run { [weak self] in
+            self?.rootView?.push(TitleRulesScreen(ratingKey: ratingKey, name: name, isShow: isShow))
+        })
+    }
+
     /// The owner's Manage button for `item`, last in the action row; deleting the title leaves its page.
     func manageAction(for item: PlexMetadata) -> DetailAction? {
         guard ManageTools.offers(item) else { return nil }

@@ -123,66 +123,6 @@ enum LinuxDisplay {
     }
 }
 
-/// Settings › Appearance on Linux (the iPhone's Appearance category, with what a desk adds): light or dark, the Desktop
-/// or Steam Deck layout, and the poster size that Ctrl with plus, minus or the wheel also changes.
-@MainActor
-final class AppearanceSettingsScreen: SettingsScaffold {
-    private enum RowID {
-        static let appearance = "appearance.palette"
-        static let density = "appearance.density"
-        static let posterSize = "appearance.posterSize"
-    }
-
-    private static let posterSizes: [Float] = stride(from: 0.7, through: 1.6, by: 0.1).map { ($0 * 10).rounded() / 10 }
-
-    init() {
-        super.init(title: SettingsCategory.appearance.title(on: .linux), detail: SettingsCategory.appearance.explanation(on: .linux))
-        render()
-    }
-
-    override func screenDidAppear() {
-        render()
-    }
-
-    private func render() {
-        setRows([
-            RowItem(id: RowID.appearance, title: String(localized: "Appearance"), value: LinuxDisplay.appearanceLabel, symbol: "circle.lefthalf.filled"),
-            RowItem(id: RowID.density, title: LinuxDisplay.layoutTitle, subtitle: LinuxDisplay.layoutExplanation, value: LinuxDisplay.densityLabel,
-                    symbol: "textformat.size"),
-            RowItem(id: RowID.posterSize, title: String(localized: "Poster Size"), value: LinuxDisplay.posterSizeLabel, symbol: "square.grid.2x2",
-                    accessory: .chevron),
-        ])
-    }
-
-    override func rowSelected(_ id: String) {
-        switch id {
-        case RowID.appearance: LinuxDisplay.toggleAppearance(in: window)
-        case RowID.density: LinuxDisplay.toggleDensity(in: window)
-        case RowID.posterSize: choosePosterSize()
-        default: break
-        }
-        render()
-    }
-
-    /// The sizes from 70% to 160% in a menu, the current one checked.
-    private func choosePosterSize() {
-        guard let window, let anchor = rows.row(id: RowID.posterSize)?.frameInWindow else { return }
-        let current = (Theme.current.cardZoom * 10).rounded() / 10
-        let items = Self.posterSizes.map { size in
-            MenuView.Item(id: String(size), title: "\(Int((size * 100).rounded()))%", isChecked: abs(size - current) < 0.01)
-        }
-        let menu = MenuView(title: String(localized: "Poster Size"), items: items,
-                            anchor: Rect(x: anchor.maxX - Theme.current.metrics.tv(500), y: anchor.maxY, width: 1, height: 1))
-        menu.onSelect = { [weak self] chosen in
-            guard let size = Float(chosen.id) else { return }
-            CardZoom.set(size)
-            self?.window?.relayoutEverything()
-            self?.render()
-        }
-        menu.present(in: window)
-    }
-}
-
 /// The Steam Deck layout, offered once (docs/LINUX.md §5.5): the first time a gamepad is used while Crucible fills a
 /// screen of 40 inches or more in the Desktop layout, it asks whether to draw itself for a gamepad and a TV across the room. `CRUCIBLE_SCREEN_INCHES` stands in
 /// for the screen's own size in headless checks.
