@@ -18,11 +18,13 @@ public final class BackdropView: View {
     private var fadingOut: [Layer] = []
     private var requested: ArtworkSource?
     private var pending: Task<Void, Never>?
+    private var waitsForWindow = false
 
     /// Cross-fades to `source` after the debounce (or at once when `immediate`); nil fades to the canvas.
     public func show(_ source: ArtworkSource?, immediate: Bool = false) {
         guard source != requested else { return }
         requested = source
+        waitsForWindow = false
         pending?.cancel()
         pending = Task { [weak self] in
             if !immediate {
@@ -42,7 +44,10 @@ public final class BackdropView: View {
             return
         }
         if layers.last?.source == source { return }
-        guard let window, let store = window.images else { return }
+        guard let window, let store = window.images, !frame.isEmpty else {
+            waitsForWindow = true
+            return
+        }
         let pixelWidth = Int((max(frame.width, 1) * window.scale).rounded(.up))
         let pixelHeight = Int((max(frame.height, 1) * window.scale).rounded(.up))
         guard let request = source.request(pixelWidth: pixelWidth, pixelHeight: pixelHeight), let texture = await store.load(request) else {
@@ -54,6 +59,20 @@ public final class BackdropView: View {
         opacity.set(1, animation: .backdrop)
         layers.append(Layer(source: source, texture: texture, opacity: opacity))
         startAnimating()
+    }
+
+    public override func didMoveToWindow() { resumeWaitingLoad() }
+
+    public override func layoutSubviews() { resumeWaitingLoad() }
+
+    /// Loads what was asked for while the backdrop was out of a window or had no size yet, as Home's is when it is built
+    /// behind the tab a launch restores.
+    private func resumeWaitingLoad() {
+        guard waitsForWindow, window != nil, !frame.isEmpty else { return }
+        waitsForWindow = false
+        let source = requested
+        pending?.cancel()
+        pending = Task { [weak self] in await self?.load(source) }
     }
 
     public override func advanceAnimations(_ dt: Float) -> Bool {
