@@ -1,8 +1,9 @@
 import UIKit
 
 /// The lines that follow a text shown in part, fading out to nothing, so the reader sees that it goes on and where it
-/// stops being theirs to read. A text shorter than the lines it may show takes only the room it needs. VoiceOver
-/// passes over it: what cannot be read to the end is not read at all.
+/// stops being theirs to read. The fade begins with the first line, so even a continuation of two or three lines keeps
+/// most of itself back. A text shorter than the lines it may show takes only the room it needs. VoiceOver passes over
+/// it: what cannot be read to the end is not read at all.
 package final class FadingTextView: UIView {
     private let label = UILabel()
     private let fade = CAGradientLayer()
@@ -17,7 +18,7 @@ package final class FadingTextView: UIView {
     /// - Parameters:
     ///   - font: The font of the text this continues.
     ///   - lines: How many lines show before the last has faded out.
-    package init(font: UIFont, color: UIColor, lines: Int = 3) {
+    package init(font: UIFont, color: UIColor, lines: Int = 2) {
         self.lines = lines
         super.init(frame: .zero)
         label.font = font
@@ -30,8 +31,8 @@ package final class FadingTextView: UIView {
         isAccessibilityElement = false
         accessibilityElementsHidden = true
 
-        fade.colors = [UIColor.black.cgColor, UIColor.black.cgColor, UIColor.clear.cgColor]
-        fade.locations = [0, 0.3, 1]
+        fade.colors = [UIColor.black.cgColor, UIColor.clear.cgColor]
+        fade.locations = [0, 1]
         layer.mask = fade
 
         let fitsText = bottomAnchor.constraint(equalTo: label.bottomAnchor)
