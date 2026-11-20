@@ -210,17 +210,18 @@ final class PreviouslyOnViewController: UIViewController {
         sendsLabel.isHidden = true
     }
 
-    /// Opens the paywall from a recap shown in part; once Crucible Pro is on, the rest of it is there to read.
+    /// Opens the paywall from a recap shown in part. When it has closed the rest is there to read if Crucible Pro is on
+    /// by then, however it came to be.
     private func unseal() {
-        ProAccess.shared.requestUnlock(.previouslyOn) { [weak self] unlocked in
-            if unlocked { self?.openSealedRecap() }
-        }
+        ProAccess.shared.requestUnlock(.previouslyOn) { [weak self] _ in self?.unsealIfProArrived() }
     }
 
     /// Pro can also arrive while a recap shown in part is on screen without this sheet asking: a purchase made
-    /// elsewhere, or a Pro Week that starts.
+    /// elsewhere, or a Pro Week that starts. Under the paywall the recap waits for it to close, so the viewer sees the
+    /// rest arrive.
     private func unsealIfProArrived() {
-        if ProAccess.shared.hasFullAccess { openSealedRecap() }
+        guard ProAccess.shared.hasFullAccess, presentedViewController == nil else { return }
+        openSealedRecap()
     }
 
     private func openSealedRecap() {

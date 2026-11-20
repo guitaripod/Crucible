@@ -21,12 +21,11 @@ final class WhatToWatchViewController: UIViewController, UICollectionViewDelegat
         case picks
     }
 
-    /// A row of the answer: a pick that can be opened, the line and button between it and the sealed ones, or a pick
-    /// whose title and poster wait for Crucible Pro.
+    /// A row of the answer: a pick, or the line and button between the first pick of a taste and the sealed ones. A
+    /// sealed pick is the same row as the pick it becomes (`seals`), so Crucible Pro opens it where it stands.
     private enum Row: Hashable {
         case pick(String)
         case seal
-        case sealedPick(String)
     }
 
     private let api: APIClient
@@ -182,14 +181,10 @@ final class WhatToWatchViewController: UIViewController, UICollectionViewDelegat
             switch row {
             case .pick(let id):
                 guard let pick = answer.picks.first(where: { $0.id == id }) else { return }
-                cell.contentConfiguration = Self.content(for: pick, posterPath: answer.item(for: pick)?.thumb)
-                cell.accessories = [.disclosureIndicator()]
-                cell.accessibilityIdentifier = "watch.pick.\(id)"
-            case .sealedPick(let id):
-                guard let pick = answer.picks.first(where: { $0.id == id }) else { return }
-                cell.contentConfiguration = Self.sealedContent(for: pick)
-                cell.accessories = []
-                cell.accessibilityIdentifier = "watch.sealed.\(id)"
+                let isSealed = self.seals(pick, of: answer)
+                cell.contentConfiguration = isSealed ? Self.sealedContent(for: pick) : Self.content(for: pick, posterPath: answer.item(for: pick)?.thumb)
+                cell.accessories = isSealed ? [] : [.disclosureIndicator()]
+                cell.accessibilityIdentifier = isSealed ? "watch.sealed.\(id)" : "watch.pick.\(id)"
             case .seal:
                 cell.contentConfiguration = WatchSealConfiguration(note: WatchCopy.sealedNote, action: WatchCopy.seeEveryPick) { [weak self] in
                     self?.unseal()
@@ -223,32 +218,46 @@ final class WhatToWatchViewController: UIViewController, UICollectionViewDelegat
         return content
     }
 
-    /// The rows of an answer: every pick, or for a taste the first pick, the line that says what the rest are, and the
-    /// rest sealed. An answer of one pick has nothing to seal.
+    /// The rows of an answer: every pick, and for a taste the line that says what the sealed ones are, after the first.
+    /// An answer of one pick has nothing to seal.
     private func rows(for answer: WatchAnswer) -> [Row] {
-        guard sealsAnswer, answer.picks.count > 1 else { return answer.picks.map { .pick($0.id) } }
-        return [.pick(answer.picks[0].id), .seal] + answer.picks.dropFirst().map { .sealedPick($0.id) }
+        let picks = answer.picks.map { Row.pick($0.id) }
+        guard sealsAnswer, picks.count > 1 else { return picks }
+        return [picks[0], .seal] + picks.dropFirst()
     }
 
     private var sealsAnswer: Bool { answerIsTaste && !ProAccess.shared.hasFullAccess }
 
-    /// Opens the paywall from the sealed part of an answer; once Crucible Pro is on, the picks open where they stand.
+    /// Whether `pick` waits for Crucible Pro: every pick of a taste but its first.
+    private func seals(_ pick: WatchPick, of answer: WatchAnswer) -> Bool {
+        sealsAnswer && answer.picks.count > 1 && answer.picks.first?.id != pick.id
+    }
+
+    /// Opens the paywall from the sealed part of an answer. When it has closed the picks open where they stand if
+    /// Crucible Pro is on by then, however it came to be.
     private func unseal() {
-        ProAccess.shared.requestUnlock(.whatToWatch) { [weak self] unlocked in
-            if unlocked { self?.openSealedPicks() }
-        }
+        ProAccess.shared.requestUnlock(.whatToWatch) { [weak self] _ in self?.unsealIfProArrived() }
     }
 
     /// Pro can also arrive while a sealed answer is on screen without this screen asking: a purchase made elsewhere, or
-    /// a Pro Week that starts.
+    /// a Pro Week that starts. Under a sheet the picks wait: the paywall opens them once it has closed, where the viewer
+    /// sees them open and the work stays out of its way, and under any other sheet the button does.
     private func unsealIfProArrived() {
-        if ProAccess.shared.hasFullAccess { openSealedPicks() }
+        guard ProAccess.shared.hasFullAccess, presentedViewController == nil else { return }
+        openSealedPicks()
     }
 
+    /// Opens the sealed picks where they stand: the line between them and the first pick goes, and each sealed row takes
+    /// its title and poster in place. Nothing is asked again and no row is built anew, which on an iPhone XS held the
+    /// screen for 60 ms when the whole list was reloaded.
     private func openSealedPicks() {
-        guard answerIsTaste, case .answered = phase else { return }
+        guard answerIsTaste, case .answered(let answer) = phase, let dataSource else { return }
         answerIsTaste = false
-        render()
+        var snapshot = dataSource.snapshot()
+        snapshot.deleteItems([.seal].filter { snapshot.indexOfItem($0) != nil })
+        snapshot.reconfigureItems(answer.picks.dropFirst().map { Row.pick($0.id) }.filter { snapshot.indexOfItem($0) != nil })
+        dataSource.apply(snapshot, animatingDifferences: true)
+        UIAccessibility.post(notification: .screenChanged, argument: collectionView)
     }
 
     private static func layout() -> UICollectionViewLayout {
@@ -362,8 +371,9 @@ final class WhatToWatchViewController: UIViewController, UICollectionViewDelegat
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         collectionView.deselectItem(at: indexPath, animated: true)
         guard case .answered(let answer) = phase, let row = dataSource?.itemIdentifier(for: indexPath) else { return }
-        guard case .pick(let id) = row, let pick = answer.picks.first(where: { $0.id == id }) else {
-            if case .sealedPick = row { unseal() }
+        guard case .pick(let id) = row, let pick = answer.picks.first(where: { $0.id == id }) else { return }
+        guard !seals(pick, of: answer) else {
+            unseal()
             return
         }
         switch pick.title.kind {
