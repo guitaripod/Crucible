@@ -90,7 +90,9 @@ enum AppCommand: String, CaseIterable {
         }
     }
 
-    /// Poster size may step while the key is held; everything else fires once per press.
+    /// Poster size may step while the key is held; everything else fires once per press, where the system can be told so:
+    /// a key command has had a repeat behaviour to set only since iOS 26, and setting it before that is a selector the
+    /// command does not answer, which ended the app the moment a keyboard made UIKit build the menu on iOS 17 and 18.
     private var repeats: Bool {
         self == .largerPosters || self == .smallerPosters
     }
@@ -110,7 +112,7 @@ enum AppCommand: String, CaseIterable {
             propertyList: rawValue
         )
         command.discoverabilityTitle = title
-        if !repeats { command.repeatBehavior = .nonRepeatable }
+        if #available(iOS 26.0, *), !repeats { command.repeatBehavior = .nonRepeatable }
         return command
     }
 
