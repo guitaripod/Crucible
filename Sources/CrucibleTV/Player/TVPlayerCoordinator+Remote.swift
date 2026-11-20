@@ -32,7 +32,8 @@ extension TVPlayerCoordinator {
 
     /// Every other move the viewer makes on the transport bar: a scrub, the end of a scan, or the ten-second steps the arrows
     /// make on a paused scrubber. Each lands where the scrubber and its preview showed it, counts as the viewer at the remote
-    /// and ends an automatic skip's Undo.
+    /// and ends an automatic skip's Undo. The one exception is a time the paused bar kept from the item a rebuild replaced,
+    /// which it commits when Play is pressed: that lands where the rebuilt stream starts instead.
     func playerViewController(
         _ playerViewController: AVPlayerViewController,
         timeToSeekAfterUserNavigatedFrom oldTime: CMTime,
@@ -40,7 +41,12 @@ extension TVPlayerCoordinator {
     ) -> CMTime {
         viewerActed()
         session?.viewerNavigated()
-        return targetTime
+        let seconds = targetTime.seconds
+        guard let session, seconds.isFinite else { return targetTime }
+        let target = session.seekTarget(forPlayerSeconds: seconds)
+        guard target != seconds else { return targetTime }
+        MidgarLog.notice("Transport bar committed a carried-over time ratingKey=\(request.ratingKey) from=\(Int(seconds)) to=\(Int(target))", category: .playback)
+        return CMTime(seconds: target, preferredTimescale: 600)
     }
 
     /// Press-and-hold on a side of the clickpad set to jump, start over or play the next episode. That side's presses go to

@@ -64,8 +64,7 @@ extension PlaybackSession {
             restartTranscode(atAbsolute: streamOffset + max(0, now), resumesPlayback: intendsToPlay, reason: "scrub during a rebuild to \(Int(now))")
             return
         }
-        let toStaleClock = staleClock.map { abs($0 - now) < 1.5 } ?? false
-        if toStaleClock || settlingUntil.map({ self.now() < $0 }) == true {
+        if isCarriedOver(now) || settlingUntil.map({ self.now() < $0 }) == true {
             settleRebuiltItem(item, movedTo: now)
             return
         }
@@ -82,10 +81,11 @@ extension PlaybackSession {
 
     /// The system player moves a rebuilt item to where its previous item was, as if that were still the
     /// viewer's place: right after it became ready, or later while it stays paused (the paused transport bar
-    /// commits the time it still shows). The rebuilt stream already starts at the viewer's place, so the item
-    /// goes back to where it starts on its own clock (the item's timeline on a Plex server, whose playlist
-    /// spans the whole item, so never its zero) instead of being taken for a scrub that would skip ahead.
-    private func settleRebuiltItem(_ item: AVPlayerItem, movedTo seconds: Double) {
+    /// commits the time it still shows when the viewer presses Play, which after a night away can be zero). The
+    /// rebuilt stream already starts at the viewer's place, so the item goes back to where it starts on its own
+    /// clock (the item's timeline on a Plex server, whose playlist spans the whole item, so never its zero)
+    /// instead of being taken for a scrub that would skip ahead or play the episode from its start.
+    func settleRebuiltItem(_ item: AVPlayerItem, movedTo seconds: Double) {
         let home = max(0, streamStart - streamOffset)
         MidgarLog.notice("Settling a rebuilt item ratingKey=\(request.ratingKey): the player moved it to \(Int(seconds)) s, back to the start at \(Int(streamStart))", category: .playback)
         lastPlayhead = home
@@ -257,6 +257,7 @@ extension PlaybackSession {
         guard let stream, player != nil, !isStopped else { return }
         let start = StreamPosition.transcodeStart(target)
         MidgarLog.notice("Transcode restart ratingKey=\(request.ratingKey) at=\(Int(start)) fresh=\(freshSession) plays=\(resumesPlayback) queued=\(isRestarting) reason=\(reason)", category: .playback)
+        if clockShownBeforeRebuild == nil { clockShownBeforeRebuild = bestKnownPosition - streamOffset }
         tracker.beginRebuild(at: start)
         guard !isRestarting else {
             pendingRestart = PendingRestart(
@@ -285,6 +286,7 @@ extension PlaybackSession {
             guard let url, !isStopped, let current = self.stream, current.sessionId == previous else {
                 isRestarting = false
                 pendingRestart = nil
+                clockShownBeforeRebuild = nil
                 tracker.endRebuild()
                 finishRecovery()
                 return
@@ -298,7 +300,7 @@ extension PlaybackSession {
                 discardTranscode(session: previous)
             }
             guard !startPendingRestart() else { return }
-            applyTranscodeRestart(url: url, atAbsolute: start)
+            applyTranscodeRestart(url: url, atAbsolute: start, freshSession: sessionId != previous)
         }
     }
 
@@ -312,14 +314,18 @@ extension PlaybackSession {
         return true
     }
 
-    private func applyTranscodeRestart(url: URL, atAbsolute target: Double) {
+    private func applyTranscodeRestart(url: URL, atAbsolute target: Double, freshSession: Bool) {
         guard let player else {
             isRestarting = false
             tracker.endRebuild()
             return
         }
-        let previousClock = player.currentItem?.currentTime().seconds ?? 0
-        staleClock = previousClock.isFinite && previousClock > TranscodeSeekPolicy.jumpThreshold ? previousClock : nil
+        carriedTimes = CarriedTimes(
+            previousClock: player.currentItem?.currentTime().seconds,
+            previousPosition: clockShownBeforeRebuild,
+            afterAbsence: freshSession
+        )
+        clockShownBeforeRebuild = nil
         tracker.beginStream(start: target, isTranscode: true)
         lastPlayhead = target - streamOffset
         tracker.moved(to: target)
@@ -364,11 +370,13 @@ extension PlaybackSession {
         _ = startPendingRestart()
     }
 
-    /// Whether a rebuilt item's first reading is the previous item's clock the system carried over rather than where the
-    /// new stream starts, which says nothing about how the new clock reads.
+    /// Whether a rebuilt item's first reading is a time the system carried over from the previous item rather than where the
+    /// new stream starts, which says nothing about how the new clock reads. Zero is left to the clock to explain: a server whose
+    /// playlist begins at the offset reads zero at its start.
     private func isStaleReading(_ reading: Double) -> Bool {
-        guard let staleClock, abs(staleClock - reading) < 1.5 else { return false }
-        return abs(reading - streamStart) > 1.5 && reading > 1.5
+        let tolerance = CarriedTimes.tolerance
+        guard reading > tolerance, abs(reading - streamStart) > tolerance, let carriedTimes else { return false }
+        return carriedTimes.times.contains { abs($0 - reading) < tolerance }
     }
 
     /// Keeps the server's transcode session alive; it reaps sessions that stop pinging. Every answer says

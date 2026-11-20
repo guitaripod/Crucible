@@ -212,6 +212,7 @@ extension PlaybackSession {
 
     private func timeControlChanged(to status: AVPlayer.TimeControlStatus) {
         guard !isStopped else { return }
+        carriedTimes?.noteRate(playing: status == .playing, at: now())
         tellWatchers(status)
         guard !noticeAbsence(trigger: "player state") else { return }
         switch status {
@@ -220,7 +221,6 @@ extension PlaybackSession {
             if pausedSince == nil, !isRestarting, !isChangingStreams { pausedSince = now() }
             noteViewerAction()
         case .playing, .waitingToPlayAtSpecifiedRate:
-            if status == .playing { staleClock = nil }
             guard let since = pausedSince else { return }
             pausedSince = nil
             noteViewerAction()
@@ -291,6 +291,11 @@ extension PlaybackSession {
         guard !isStopped, let player, !noticeAbsence(trigger: "playhead") else { return }
         let ready = isItemReady
         guard ready || stream?.isDirectPlay != false else { return }
+        if player.timeControlStatus == .playing { carriedTimes?.noteRate(playing: true, at: now()) }
+        if ready, !isRestarting, isCarriedOver(seconds), let item = player.currentItem {
+            settleRebuiltItem(item, movedTo: seconds)
+            return
+        }
         let offset = streamOffset
         tracker.observe(playerSeconds: seconds, isReady: ready)
         if streamOffset != offset { clockRemapped(reading: seconds) }

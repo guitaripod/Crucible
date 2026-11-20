@@ -606,6 +606,7 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         let report = session.suspendNow()
         #if DEBUG
         resetPlayerClockForUITests()
+        stretchAbsenceForUITests()
         #endif
         Task {
             if let report { await session.reportSuspension(report) }
@@ -630,6 +631,14 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         guard ProcessInfo.processInfo.environment["CRUCIBLE_PLAYER_CLOCK_RESET"] == "1" else { return }
         MidgarLog.notice("Debug: resetting the player clock to zero", category: .playback)
         session?.player?.seek(to: .zero)
+    }
+
+    /// `CRUCIBLE_PLAYER_AWAY_FOR=<seconds>` moves the session's clock that far ahead right after the app has gone to the background, so a
+    /// short trip to the Home screen comes back as an absence of that length: paused, and backed up by "Rewind After a Break".
+    private func stretchAbsenceForUITests() {
+        guard let seconds = ProcessInfo.processInfo.environment["CRUCIBLE_PLAYER_AWAY_FOR"].flatMap(Double.init) else { return }
+        MidgarLog.notice("Debug: stretching the absence by \(Int(seconds)) s", category: .playback)
+        session?.debugAdvanceClock(by: .seconds(seconds))
     }
     #endif
 

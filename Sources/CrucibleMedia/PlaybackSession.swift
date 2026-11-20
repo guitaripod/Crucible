@@ -76,7 +76,10 @@ package final class PlaybackSession {
     var awaySince: ContinuousClock.Instant?
     var positionAtLastBeat: Double?
     var settlingUntil: ContinuousClock.Instant?
-    var staleClock: Double?
+    /// The times the system player may carry over onto the rebuilt transcode from the item before it (`CarriedTimes`).
+    var carriedTimes: CarriedTimes?
+    /// Where the item on screen showed the viewer, on its own clock, when the rebuild that replaces it was asked for.
+    var clockShownBeforeRebuild: Double?
     var selectionCarry: MediaSelectionCarry?
     var pausedSince: ContinuousClock.Instant?
     var liveness: TranscodeLiveness?
@@ -185,7 +188,21 @@ package final class PlaybackSession {
     /// The item's timeline position of the playhead, or nil before playback starts.
     package var absolutePosition: Double? {
         guard let player else { return nil }
-        return tracker.position(playerSeconds: player.currentTime().seconds, isReady: isItemReady)
+        let seconds = player.currentTime().seconds
+        if isCarriedOver(seconds) { return tracker.lastGoodPosition }
+        return tracker.position(playerSeconds: seconds, isReady: isItemReady)
+    }
+
+    /// Whether the player's clock reads a time the system player carried over onto a rebuilt transcode from the item before it,
+    /// rather than where the viewer is.
+    func isCarriedOver(_ reading: Double) -> Bool {
+        carriedTimes?.isCarried(reading, home: max(0, streamStart - streamOffset), at: now()) ?? false
+    }
+
+    /// Where a seek the system player is about to make to `seconds` on its clock should land: a time carried over from the item a
+    /// rebuild replaced goes to where the rebuilt stream starts instead.
+    package func seekTarget(forPlayerSeconds seconds: Double) -> Double {
+        isCarriedOver(seconds) ? max(0, streamStart - streamOffset) : seconds
     }
 
     var isItemReady: Bool {
