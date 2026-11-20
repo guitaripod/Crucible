@@ -128,9 +128,10 @@ extension PlayerScreen {
         format.contains("10") || format.contains("p010") ? "10-bit" : format.contains("12") ? "12-bit" : "8-bit"
     }
 
-    /// The decoding API without mpv's copy-back suffix: "NVDEC" for nvdec-copy, "VAAPI" for vaapi.
+    /// The decoding API without mpv's copy-back suffix: "NVDEC" for nvdec-copy, "VAAPI" for vaapi, "Vulkan Video" for vulkan.
     private static func decoderName(_ hwdec: String) -> String {
-        (hwdec.hasSuffix("-copy") ? String(hwdec.dropLast("-copy".count)) : hwdec).uppercased()
+        let api = hwdec.hasSuffix("-copy") ? String(hwdec.dropLast("-copy".count)) : hwdec
+        return api == "vulkan" ? "Vulkan Video" : api.uppercased()
     }
 
     /// mpv's transfer names as people know them.
