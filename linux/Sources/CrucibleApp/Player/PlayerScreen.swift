@@ -215,10 +215,9 @@ final class PlayerScreen: View {
             player.setMuted(!player.state.isMuted)
         }
         transport.onVolume = { [weak self] volume in
-            guard let self, let player = self.player else { return }
+            guard let self else { return }
             self.viewerActed()
-            if player.state.isMuted { player.setMuted(false) }
-            player.setVolume(volume)
+            self.setViewerVolume(volume)
         }
         transport.onMini = { [weak self] in self?.onMinimize?() }
         transport.onToggleFullscreen = { [weak self] in
@@ -295,6 +294,7 @@ final class PlayerScreen: View {
         startHeartbeat()
         guard case .plex = source else {
             if case .file(let url, _) = source {
+                loadTweaks()
                 player?.load(url)
                 player?.setPaused(false)
                 ScreenAwake.hold(true, in: window)
@@ -648,8 +648,7 @@ final class PlayerScreen: View {
             setSpeed(1)
         case .up, .down:
             let volume = min(max(player.state.volume + (event.key == .up ? 5 : -5), 0), player.maximumVolume)
-            if player.state.isMuted { player.setMuted(false) }
-            player.setVolume(volume)
+            setViewerVolume(volume)
             say(String(localized: "Volume \(Int(volume))%", comment: "Player message with the volume, as in \"Volume 55%\""), symbol: volume <= 0 ? "speaker.slash" : "speaker.wave.2")
             return true
         case Key.character("m"):

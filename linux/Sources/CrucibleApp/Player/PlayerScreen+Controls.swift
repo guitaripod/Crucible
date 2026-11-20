@@ -443,15 +443,16 @@ extension PlayerScreen {
         }
     }
 
-    /// The key Match Content's choice is kept under: the whole show for an episode, otherwise the title itself.
-    var matchContentKey: String {
+    /// The key what holds for a whole show is kept under (Match Content, the volume): the show for an episode, otherwise
+    /// the title itself.
+    var showOrTitleKey: String {
         if case .plex(_, let item, _) = source, let show = item.grandparentRatingKey { return PlayerTweakStore.key(ratingKey: show) }
         return tweakKey
     }
 
     /// Whether Match Content acts for this title: on in Settings and turned on for this show or movie.
     var matchesContent: Bool {
-        Preferences.matchesContent && MatchContentTitles.isOn(matchContentKey)
+        Preferences.matchesContent && MatchContentTitles.isOn(showOrTitleKey)
     }
 
     /// Matches the screen to `stream` when Match Content is on for this title, and otherwise puts back what an earlier
@@ -466,10 +467,18 @@ extension PlayerScreen {
     }
 
     func setMatchContent(_ on: Bool) {
-        MatchContentTitles.set(on, for: matchContentKey)
+        MatchContentTitles.set(on, for: showOrTitleKey)
         if let stream, let window, window.isFullscreen, !isMini { engageMatchContent(stream) }
         say(on ? String(localized: "Match Content On", comment: "Player message") : String(localized: "Match Content Off", comment: "Player message"),
             symbol: "tv")
+    }
+
+    /// Sets the volume the viewer chose and keeps it for this show or movie, and as where a new one starts.
+    func setViewerVolume(_ volume: Double) {
+        guard let player else { return }
+        if player.state.isMuted { player.setMuted(false) }
+        player.setVolume(volume)
+        PlayerVolumeStore.save(player.state.volume, for: showOrTitleKey)
     }
 
     /// Reads what the viewer set for this title and in general, and hands it to mpv before the file opens.
@@ -478,6 +487,7 @@ extension PlayerScreen {
         tweaks.taste = PlayerTweakStore.taste()
         guard let player else { return }
         player.maximumVolume = tweaks.taste.volumeBoost ? 200 : 100
+        if let volume = PlayerVolumeStore.volume(for: showOrTitleKey) { player.setVolume(volume) }
         player.set("audio-delay", String(format: "%.3f", tweaks.title.audioDelay))
         player.set("sub-delay", String(format: "%.3f", tweaks.title.subtitleDelay))
         player.set("deinterlace", tweaks.title.deinterlace ? "yes" : "no")

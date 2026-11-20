@@ -134,3 +134,35 @@ enum MatchContentTitles {
         Set(defaults.stringArray(forKey: titlesKey) ?? [])
     }
 }
+
+/// The volume each show or movie was last played at (a show's episodes share one), keyed like `MatchContentTitles`. A
+/// show or movie not played since starts at the volume the viewer last chose anywhere; one never chosen leaves mpv's.
+@MainActor
+enum PlayerVolumeStore {
+    private static let titlesKey = "player.volumes"
+    private static let lastKey = "player.lastVolume"
+    private static let titleCapacity = 400
+
+    private struct Kept: Codable {
+        var volume: Double
+        var changed: Date
+    }
+
+    static func volume(for title: String, in defaults: UserDefaults = .standard) -> Double? {
+        titles(in: defaults)[title]?.volume ?? (defaults.object(forKey: lastKey) as? Double)
+    }
+
+    static func save(_ volume: Double, for title: String, in defaults: UserDefaults = .standard) {
+        var all = titles(in: defaults)
+        all[title] = Kept(volume: volume, changed: Date())
+        if all.count > titleCapacity {
+            for stale in all.sorted(by: { $0.value.changed < $1.value.changed }).prefix(all.count - titleCapacity) { all[stale.key] = nil }
+        }
+        defaults.set(try? JSONEncoder().encode(all), forKey: titlesKey)
+        defaults.set(volume, forKey: lastKey)
+    }
+
+    private static func titles(in defaults: UserDefaults) -> [String: Kept] {
+        defaults.data(forKey: titlesKey).flatMap { try? JSONDecoder().decode([String: Kept].self, from: $0) } ?? [:]
+    }
+}
