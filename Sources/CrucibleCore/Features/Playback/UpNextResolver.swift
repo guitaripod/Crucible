@@ -95,6 +95,11 @@ package struct UpNextResolver: Sendable {
     /// Where the closing credits begin, which is when Up Next is offered; earlier credits markers only get a skip button.
     package let creditsStartSecs: Double?
     private var creditsTriggered = false
+    /// What the credits do for this title when the app decides it per show or movie; nil follows Skip Credits.
+    package var creditsMode: Preferences.SkipOutroMode?
+    /// Whether the next episode starts on its own for this title when the app decides it per show; nil follows Autoplay
+    /// Next Episode.
+    package var autoplaysNext: Bool?
 
     package init(
         ratingKey: String,
@@ -139,44 +144,47 @@ package struct UpNextResolver: Sendable {
             return try await queuedOffer(after: queue, reason: reason)
         }
         guard let seasonRatingKey else { return nil }
-        if reason == .credits, Preferences.skipOutroMode == .off { return nil }
+        if reason == .credits, credits == .off { return nil }
         if let showRatingKey {
             switch await EssentialsCenter.shared.successor(after: ratingKey, showRatingKey: showRatingKey, api: api) {
-            case .next(let episode): return Self.offer(episode, season: episode.parentRatingKey ?? seasonRatingKey, reason: reason)
+            case .next(let episode): return offer(episode, season: episode.parentRatingKey ?? seasonRatingKey, reason: reason)
             case .end: return nil
             case .notApplicable: break
             }
         }
         let container = try await api.requestContainer(.children(ratingKey: seasonRatingKey))
         if let next = EpisodeOrder.next(after: ratingKey, in: container.Metadata ?? []) {
-            return Self.offer(next, season: seasonRatingKey, reason: reason)
+            return offer(next, season: seasonRatingKey, reason: reason)
         }
         guard let (episode, season) = try await firstEpisodeOfNextSeason(api: api, from: seasonRatingKey) else {
             return nil
         }
-        return Self.offer(episode, season: season, reason: reason)
+        return offer(episode, season: season, reason: reason)
     }
+
+    /// What the credits do: this title's own rule, or Skip Credits.
+    private var credits: Preferences.SkipOutroMode { creditsMode ?? Preferences.skipOutroMode }
 
     /// The next entry of a playlist. Nothing is fetched: the queue already holds what plays next. A credits offer waits for the viewer
     /// unless Skip Outro is set to start the next one automatically; the end of an item plays on, as a playlist is made to.
     private func queuedOffer(after queue: PlaybackQueue, reason: UpNextOffer.Reason) async throws -> UpNextOffer? {
-        if reason == .credits, Preferences.skipOutroMode == .off { return nil }
+        if reason == .credits, credits == .off { return nil }
         guard let advanced = queue.advanced() else { return nil }
         return UpNextOffer(
             episode: advanced.current,
             seasonRatingKey: advanced.current.parentRatingKey ?? "",
             reason: reason,
-            autoplays: AutoplayRule.autoplays(reason: reason, isQueue: true),
+            autoplays: AutoplayRule.autoplays(reason: reason, isQueue: true, autoplayNext: autoplaysNext ?? Preferences.autoplayNextEpisode, skipCredits: credits),
             queue: advanced
         )
     }
 
-    private static func offer(_ episode: PlexMetadata, season: String, reason: UpNextOffer.Reason) -> UpNextOffer {
+    private func offer(_ episode: PlexMetadata, season: String, reason: UpNextOffer.Reason) -> UpNextOffer {
         UpNextOffer(
             episode: episode,
             seasonRatingKey: season,
             reason: reason,
-            autoplays: AutoplayRule.autoplays(reason: reason, isQueue: false)
+            autoplays: AutoplayRule.autoplays(reason: reason, isQueue: false, autoplayNext: autoplaysNext ?? Preferences.autoplayNextEpisode, skipCredits: credits)
         )
     }
 

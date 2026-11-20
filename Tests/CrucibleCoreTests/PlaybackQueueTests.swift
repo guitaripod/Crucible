@@ -75,6 +75,21 @@ struct PlaybackQueueTests {
         #expect(try await resolver.loadOffer(api: APIClient(baseURL: URL(string: "http://queue.invalid")!, token: "t"), reason: .playbackEnded) == nil)
     }
 
+    @Test func aTitlesOwnRulesDecideTheCreditsOverSettings() async throws {
+        let queue = try #require(PlaybackQueue.starting(in: [entry("1"), entry("2")]))
+        let api = APIClient(baseURL: URL(string: "http://queue.invalid")!, token: "t")
+        var resolver = UpNextResolver(ratingKey: "1", isEpisode: false, seasonRatingKey: nil, queue: queue, markers: [])
+        resolver.creditsMode = .off
+        #expect(try await resolver.loadOffer(api: api, reason: .credits) == nil)
+        resolver.creditsMode = .automatic
+        resolver.autoplaysNext = false
+        #expect(try await resolver.loadOffer(api: api, reason: .credits)?.autoplays == true)
+        resolver.creditsMode = .button
+        #expect(try await resolver.loadOffer(api: api, reason: .credits)?.autoplays == false)
+        resolver.autoplaysNext = true
+        #expect(try await resolver.loadOffer(api: api, reason: .credits)?.autoplays == true)
+    }
+
     @Test func aFilmInAQueueReachesItsCreditsLikeAnEpisode() throws {
         let queue = try #require(PlaybackQueue.starting(in: [entry("1"), entry("2")]))
         var resolver = UpNextResolver(
