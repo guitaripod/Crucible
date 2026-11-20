@@ -48,6 +48,8 @@ public struct Metrics {
     /// A form's column: wider on a desk, where a monitor has the room and long settings stop cutting off.
     public var formColumn: Float { density == .desk ? tv(1300) : tv(1000) }
     public var wideColumn: Float { density == .desk ? tv(1500) : tv(1100) }
+    /// Settings' cards on a desk, wide enough for a row's text beside its choices made in place.
+    public var settingsColumn: Float { density == .desk ? tv(1900) : wideColumn }
     public var messageColumn: Float { tv(900) }
 
     public enum Space {

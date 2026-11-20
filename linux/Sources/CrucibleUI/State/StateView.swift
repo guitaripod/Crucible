@@ -259,6 +259,8 @@ public final class ScreenTitleView: View {
     public var detail: String? { didSet { superview?.setNeedsLayout(); setNeedsDisplay() } }
     /// Lines the title up with a centred column of this width (a settings list) instead of the screen's margin.
     public var columnWidth: Float? { didSet { setNeedsDisplay() } }
+    /// Lines the title up with a column that starts at the screen's margin (a desk's settings cards) instead of a centred one.
+    public var isLeadingAligned = false { didSet { if isLeadingAligned != oldValue { setNeedsDisplay() } } }
 
     public init(title: String, summary: String? = nil, detail: String? = nil) {
         self.title = title
@@ -279,6 +281,7 @@ public final class ScreenTitleView: View {
     private var leading: Float {
         let metrics = Theme.current.metrics
         guard let columnWidth else { return metrics.sideMargin }
+        if isLeadingAligned { return metrics.sideMargin + metrics.rowInset }
         let width = min(columnWidth, frame.width - metrics.sideMargin * 2)
         return ((frame.width - width) / 2).rounded() + metrics.rowInset
     }
