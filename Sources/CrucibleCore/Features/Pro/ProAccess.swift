@@ -316,15 +316,28 @@ extension ProAccess {
     }
 
     /// `CRUCIBLE_TASTE=fresh` hands the tastes of the AI features out again, as `CRUCIBLE_FRESH=1` does with the Pro Week;
-    /// `CRUCIBLE_TASTE=used` marks each as given, so asking opens the paywall.
+    /// `CRUCIBLE_TASTE=used` marks each as given, so asking opens the paywall. `CRUCIBLE_TASTE=posed` is for a device in real
+    /// use: it changes nothing the device keeps (`poseFreshTastes`).
     private func stageTastesIfRequested(_ environment: [String: String]) {
         let value = environment["CRUCIBLE_TASTE"]
         if value == "used" {
             stageTastes(used: true)
             MidgarLog.notice("Debug session: the AI tastes are used", category: .lifecycle)
+        } else if value == "posed" {
+            poseFreshTastes()
+            MidgarLog.notice("Debug session: the AI tastes and the Pro Week are posed for this launch only", category: .lifecycle)
         } else if value == "fresh" || environment["CRUCIBLE_FRESH"] == "1" {
             stageTastes(used: false)
         }
+    }
+
+    /// Moves the Pro Week and the tastes to stores that end with the process, the week not begun and no taste given. With
+    /// `CRUCIBLE_PRO=free` a launch on a device in real use then shows a taste without starting or ending that device's week,
+    /// reading its tastes or using one: the keychain and the defaults are neither read nor written.
+    private func poseFreshTastes() {
+        weekStore = .ephemeral()
+        tasteStore = .ephemeral()
+        refreshProWeek()
     }
 }
 #endif

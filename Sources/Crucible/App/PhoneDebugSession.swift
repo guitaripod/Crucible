@@ -48,10 +48,15 @@ enum PhoneDebugSession {
     }
 
     /// With `CRUCIBLE_OPEN=sports` and `CRUCIBLE_SPORTS_FIXTURE=<file>` shows Sports Research over the first screen with the report in
-    /// that file, for screenshots of states a live server cannot be put in on demand.
+    /// that file, for screenshots of states a live server cannot be put in on demand. With `CRUCIBLE_WALK` starts the walk it
+    /// describes once the main screen is up (`PhoneDebugWalk`), and with `CRUCIBLE_DEMO` starts the demo from the welcome screen.
     @MainActor
     static func openIfRequested(over root: UIViewController) {
         let environment = ProcessInfo.processInfo.environment
+        if let tabBar = root as? TabBarController { PhoneDebugWalk.startIfRequested(on: tabBar) }
+        if environment["CRUCIBLE_DEMO"] != nil, let setup = (root as? UINavigationController)?.viewControllers.first as? ServerSetupViewController {
+            setup.startTheDemo()
+        }
         guard environment["CRUCIBLE_OPEN"] == "sports", let path = environment["CRUCIBLE_SPORTS_FIXTURE"] else { return }
         let screen = SportsResearchViewController(source: SportsFixture(url: URL(fileURLWithPath: path)))
         root.present(UINavigationController(rootViewController: screen), animated: false)
@@ -65,6 +70,17 @@ enum PhoneDebugSession {
         let steps = raw.split(separator: ",").compactMap { DemoTourStep(rawValue: $0.trimmingCharacters(in: .whitespaces)) }
         for step in steps { DemoTour.shared.record(step, demoActive: true) }
         MidgarLog.notice("Debug session: demo tour steps pre-completed: \(steps.map(\.rawValue))", category: .lifecycle)
+    }
+
+    /// With `CRUCIBLE_DEMO=free` or `CRUCIBLE_DEMO=pro` the demo that just began opens on Home with its welcome sheet counted as
+    /// shown, and `free` turns its Preview Free Version on, so a walk finds Crucible Pro's features locked as on a free install.
+    /// The switch acts only on the welcome screen of a device that is not signed in, so it can never replace a real session.
+    @MainActor
+    static func poseDemoIfRequested() {
+        guard let pose = ProcessInfo.processInfo.environment["CRUCIBLE_DEMO"] else { return }
+        DemoPhoneSession.shared.introWasShown()
+        if pose == "free" { DemoMode.shared.setPreviewsFreeVersion(true) }
+        MidgarLog.notice("Debug session: demo started without its welcome sheet, previewing \(pose == "free" ? "the free version" : "Pro")", category: .lifecycle)
     }
 
     /// A fresh install is not in the demo: its flag, tour, welcome sheet and the watch state the demo library saved are forgotten.

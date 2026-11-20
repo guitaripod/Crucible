@@ -67,6 +67,26 @@ struct ProTasteAccessTests {
         #expect(!tastes.isUsed(.whatToWatch))
     }
 
+    @Test func aPosedLaunchShowsATasteAndKeepsNothingOfTheDevices() async {
+        let tastes = ProTasteStore.ephemeral()
+        tastes.markUsed(.whatToWatch)
+        let weeks = ProWeekStore.ephemeral()
+        weeks.saveStart(start)
+        let access = ProAccess(provider: UnlockedProAccess(), weekStore: weeks, tasteStore: tastes, now: { start })
+        #expect(access.proWeekPhase.isActive)
+
+        access.configureForLaunch(store: nil, environment: ["CRUCIBLE_PRO": "free", "CRUCIBLE_PRO_DELAY_MS": "1", "CRUCIBLE_TASTE": "posed"])
+        await settle { access.status == .free }
+        #expect(!access.proWeekPhase.isActive)
+        #expect(access.tasteAccess(to: .whatToWatch) == .taste)
+
+        access.noteTasteGiven(.writtenRecap)
+        #expect(access.tasteAccess(to: .writtenRecap) == .locked)
+        #expect(!tastes.isUsed(.writtenRecap))
+        #expect(tastes.isUsed(.whatToWatch))
+        #expect(weeks.start == start)
+    }
+
     @Test func aProWeekHasTheWholeAnswerAndLeavesTheTasteForAfterIt() async {
         let clock = Clock()
         let access = await started(clock: clock)

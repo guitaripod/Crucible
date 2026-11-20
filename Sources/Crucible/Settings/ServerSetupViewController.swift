@@ -243,6 +243,7 @@ final class ServerSetupViewController: UIViewController {
                 DemoPhoneSession.shared.beginSession()
                 #if DEBUG
                 PhoneDebugSession.seedDemoTourIfRequested()
+                PhoneDebugSession.poseDemoIfRequested()
                 #endif
                 guard let self, let connection = ServerBootstrap.connection() else { throw DemoError.unavailable }
                 onConnected?(connection)
@@ -619,3 +620,12 @@ final class PlexWebAuthViewController: UIViewController {
         webView.load(URLRequest(url: url))
     }
 }
+
+#if DEBUG
+extension ServerSetupViewController {
+    /// Starts the demo as its button does, for a debug launch that asks for it (`CRUCIBLE_DEMO`).
+    func startTheDemo() {
+        startDemo()
+    }
+}
+#endif

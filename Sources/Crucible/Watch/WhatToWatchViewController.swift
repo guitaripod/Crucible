@@ -409,3 +409,19 @@ final class WhatToWatchViewController: UIViewController, UICollectionViewDelegat
         label.adjustsFontForContentSizeCategory = true
     }
 }
+
+#if DEBUG
+extension WhatToWatchViewController {
+    /// Asks `request` as if it had been typed and sent, for a debug walk (`PhoneDebugWalk`).
+    func ask(_ request: String) {
+        field.text = request
+        updateSuggestButton()
+        suggest()
+    }
+
+    /// Reaches for the sealed picks as the button under the first pick does, for a debug walk.
+    func reachForTheSealedPicks() {
+        unseal()
+    }
+}
+#endif

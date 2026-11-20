@@ -38,7 +38,7 @@ NAME=x ios/scripts/ios.sh sim-down [--delete]
 
 `run` passes `VAR=value` arguments and every exported `CRUCIBLE_*` variable to the app as `SIMCTL_CHILD_VAR`, so the scripted store works: `CRUCIBLE_PRO=free CRUCIBLE_PRO_STORE=ok NAME=x ios/scripts/ios.sh run`. Build logs stay on the Mac in `~/Dev/ios/$NAME/.ioslogs/`; the command prints only errors and the result line.
 
-`CRUCIBLE_BRAIN=ok|offline|limit|pro|busy|fail` scripts Crucible's hosted model (What to Watch, a described Previously On); without it this build asks the real one. `CRUCIBLE_TASTE=fresh|used` hands a free viewer's one answer from each of the two out again or marks it used; `CRUCIBLE_FRESH=1` also hands them out. `WhatToWatchTests` needs the mock server named in `CRUCIBLE_PHONE_MOCK`.
+`CRUCIBLE_BRAIN=ok|offline|limit|pro|busy|fail` scripts Crucible's hosted model (What to Watch, a described Previously On); without it this build asks the real one. `CRUCIBLE_TASTE=fresh|used` hands a free viewer's one answer from each of the two out again or marks it used; `CRUCIBLE_FRESH=1` also hands them out. `CRUCIBLE_TASTE=posed` poses a fresh taste for one launch and keeps nothing, for a real device in use; `CRUCIBLE_WALK` drives the app there with no hand on it (`docs/ARCHITECTURE.md`, DEBUG launch switches). `WhatToWatchTests` needs the mock server named in `CRUCIBLE_PHONE_MOCK`.
 
 `scripts/mac.sh ios` is unaffected: it builds the package scheme `Crucible` without this project.
 

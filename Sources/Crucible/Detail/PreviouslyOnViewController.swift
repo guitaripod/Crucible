@@ -277,3 +277,17 @@ final class PreviouslyOnViewController: UIViewController {
         }
     }
 }
+
+#if DEBUG
+extension PreviouslyOnViewController {
+    /// Has the recap written as Write a Recap does, for a debug walk (`PhoneDebugWalk`).
+    func writeTheRecap() {
+        writeRecap()
+    }
+
+    /// Reaches for the rest of a recap shown in part as Read the Whole Recap does, for a debug walk.
+    func reachForTheSealedRecap() {
+        unseal()
+    }
+}
+#endif
