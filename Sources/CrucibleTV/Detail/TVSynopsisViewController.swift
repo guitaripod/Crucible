@@ -2,20 +2,38 @@ import CrucibleDesign
 import UIKit
 
 /// The full synopsis in a glass panel over the dimmed screen. Menu or Close dismisses it and focus
-/// returns to the More button that opened it.
+/// returns to the More button that opened it. A text shown in part carries a second button that opens the rest.
 final class TVSynopsisViewController: UIViewController {
+    /// The button beside Close under a text shown in part: what it says and what pressing it does. It leaves when
+    /// ``show(text:)`` puts the whole text in the panel.
+    struct Action {
+        let title: String
+        let symbol: String
+        let handler: @MainActor (TVSynopsisViewController) -> Void
+    }
+
     private let titleText: String
-    private let bodyText: String
+    private var bodyText: String
+    private let action: Action?
     private let panel = Glass.effectView(fallback: .regular)
     private let textView = UITextView()
     private var textHeight: NSLayoutConstraint?
     private lazy var closeButton = TVButton.make(.glass, title: String(localized: "Close", comment: "Button that dismisses the synopsis")) { [weak self] in
         self?.dismiss(animated: TVMotion.animationsEnabled)
     }
+    private lazy var actionButton: UIButton? = action.map { action in
+        let button = TVButton.make(.primary, title: action.title, symbol: action.symbol) { [weak self] in
+            guard let self else { return }
+            action.handler(self)
+        }
+        button.accessibilityIdentifier = "detail.synopsis.action"
+        return button
+    }
 
-    init(title: String, text: String) {
+    init(title: String, text: String, action: Action? = nil) {
         titleText = title
         bodyText = text
+        self.action = action
         super.init(nibName: nil, bundle: nil)
         modalPresentationStyle = .overFullScreen
         modalTransitionStyle = .crossDissolve
@@ -51,7 +69,10 @@ final class TVSynopsisViewController: UIViewController {
         textView.accessibilityIdentifier = "detail.synopsis.text"
         textView.accessibilityLabel = bodyText
 
-        let stack = UIStackView(arrangedSubviews: [heading, textView, closeButton])
+        let buttons = UIStackView(arrangedSubviews: [actionButton, closeButton].compactMap { $0 })
+        buttons.axis = .horizontal
+        buttons.spacing = Theme.Space.m
+        let stack = UIStackView(arrangedSubviews: [heading, textView, buttons])
         stack.axis = .vertical
         stack.alignment = .leading
         stack.spacing = Theme.Space.m
@@ -94,5 +115,20 @@ final class TVSynopsisViewController: UIViewController {
         }
     }
 
-    override var preferredFocusEnvironments: [UIFocusEnvironment] { [closeButton] }
+    /// Puts the whole text in the panel in place of the part that was shown, and takes the button that opened it away.
+    func show(text: String) {
+        bodyText = text
+        textView.text = text
+        textView.accessibilityLabel = text
+        textView.setContentOffset(.zero, animated: false)
+        actionButton?.isHidden = true
+        view.setNeedsLayout()
+        setNeedsFocusUpdate()
+        UIAccessibility.post(notification: .layoutChanged, argument: textView)
+    }
+
+    override var preferredFocusEnvironments: [UIFocusEnvironment] {
+        if let actionButton, !actionButton.isHidden { return [actionButton] }
+        return [closeButton]
+    }
 }

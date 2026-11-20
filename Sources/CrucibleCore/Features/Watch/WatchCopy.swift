@@ -9,6 +9,11 @@ package enum WatchCopy {
     package static let tryAgain = String(localized: "Try Again")
     package static let typeYourOwn = String(localized: "Say or Type Your Own", comment: "Apple TV button that opens a text field for a What to Watch request")
     package static let tileSubtitle = String(localized: "Picks from your library", comment: "Subtitle of the What to Watch tile on Apple TV Home")
+    /// Stands where a pick's title would be while the pick is sealed: a viewer without Crucible Pro sees their first pick and the
+    /// reasons for the others.
+    package static let sealedTitle = String(localized: "Opens with Crucible Pro", comment: "Stands in place of the title of a What to Watch pick that is sealed until Crucible Pro is on")
+    package static let sealedNote = String(localized: "Your first pick is ready to watch. The others were chosen for you too: Crucible Pro opens them, and answers whenever you ask.", comment: "Between the first What to Watch pick and the sealed ones, for a viewer without Crucible Pro")
+    package static let seeEveryPick = String(localized: "See Every Pick", comment: "Button that opens the paywall from What to Watch picks of which only the first is shown")
 
     /// What a person is told before they ask: what is chosen, and what leaves the device to choose it. In the demo
     /// nothing leaves it, and the line says which requests the demo answers.

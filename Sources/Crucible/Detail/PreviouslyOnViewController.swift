@@ -5,6 +5,9 @@ import UIKit
 /// A show's Previously On. With a paired Crucible Server it is a short read of the episodes watched so far, written
 /// from what was said, with what it draws on and the computer that wrote it. Without one it is the last finished
 /// episodes' own descriptions, which Crucible's AI writes into one recap when the person asks for that.
+///
+/// A viewer without Crucible Pro is given one written recap as a taste (`ProTasteStore`): how it begins, its next
+/// lines fading out, and the button that opens the rest.
 final class PreviouslyOnViewController: UIViewController {
     private let model: ShowDetailModel
     private let offer: PreviouslyOnOffer
@@ -27,8 +30,26 @@ final class PreviouslyOnViewController: UIViewController {
     private let titleLabel = UILabel()
     private let bodyLabel = UILabel()
     private let basisLabel = UILabel()
+    private let restView = FadingTextView(font: Theme.Font.body, color: Theme.Color.label)
+    private let sealedLabel = UILabel()
+    private lazy var readWholeButton: UIButton = {
+        var configuration = UIButton.Configuration.filled()
+        configuration.cornerStyle = .capsule
+        configuration.title = DescribedRecapCopy.readWhole
+        configuration.image = ProLock.image()
+        configuration.imagePadding = 6
+        configuration.baseBackgroundColor = Theme.Color.accent
+        configuration.baseForegroundColor = .black
+        let button = UIButton(configuration: configuration, primaryAction: UIAction { [weak self] _ in self?.unseal() })
+        button.titleLabel?.adjustsFontForContentSizeCategory = true
+        button.accessibilityIdentifier = "previouslyOn.unseal"
+        return button
+    }()
     private let spinner = UIActivityIndicatorView(style: .medium)
     private var task: Task<Void, Never>?
+    /// The whole recap while only how it begins is shown, kept so Crucible Pro opens it without asking again.
+    private var sealedRecap: String?
+    private lazy var proObservation = ProObservation { [weak self] in self?.unsealIfProArrived() }
 
     init(model: ShowDetailModel) {
         self.model = model
@@ -72,10 +93,19 @@ final class PreviouslyOnViewController: UIViewController {
         basisLabel.adjustsFontForContentSizeCategory = true
         spinner.startAnimating()
 
-        let stack = UIStackView(arrangedSubviews: [titleLabel, spinner, bodyLabel, basisLabel, writeButton, sendsLabel, episodeList, serverLabel])
+        sealedLabel.font = Theme.Font.footnote
+        sealedLabel.textColor = Theme.Color.labelSecondary
+        sealedLabel.numberOfLines = 0
+        sealedLabel.adjustsFontForContentSizeCategory = true
+        sealedLabel.text = DescribedRecapCopy.sealedNote
+        [restView, sealedLabel, readWholeButton].forEach { $0.isHidden = true }
+
+        let stack = UIStackView(arrangedSubviews: [titleLabel, spinner, bodyLabel, restView, sealedLabel, readWholeButton, basisLabel, writeButton, sendsLabel, episodeList, serverLabel])
         stack.axis = .vertical
         stack.alignment = .leading
         stack.spacing = Theme.Space.m
+        stack.setCustomSpacing(Theme.Space.xs, after: bodyLabel)
+        _ = proObservation
         buildDescriptions()
         let scroll = UIScrollView()
         scroll.alwaysBounceVertical = true
@@ -148,16 +178,58 @@ final class PreviouslyOnViewController: UIViewController {
         }
     }
 
-    /// Has the descriptions written into one recap, once the person may: it is part of Crucible Pro and of a Pro Week.
+    /// Has the descriptions written into one recap. That is part of Crucible Pro and of a Pro Week; a viewer without
+    /// either is given one recap on this device as a taste, and after that asking opens the paywall.
     private func writeRecap() {
         guard task == nil else { return }
-        ProAccess.shared.requestUnlock(.previouslyOn) { [weak self] unlocked in
-            guard unlocked, let self else { return }
-            self.startWriting()
+        switch ProAccess.shared.tasteAccess(to: .writtenRecap) {
+        case .whole:
+            startWriting(asTaste: false)
+        case .taste:
+            startWriting(asTaste: true)
+        case .locked:
+            ProAccess.shared.requestUnlock(.previouslyOn) { [weak self] unlocked in
+                guard unlocked, let self else { return }
+                self.startWriting(asTaste: false)
+            }
         }
     }
 
-    private func startWriting() {
+    /// Shows a recap that was written: all of it, or for a taste how it begins with the rest sealed. A recap too
+    /// short to split is shown whole.
+    private func show(_ recap: String, asTaste: Bool) {
+        let taste = DescribedRecap.taste(of: recap)
+        let seals = asTaste && !ProAccess.shared.hasFullAccess && !taste.rest.isEmpty
+        sealedRecap = seals ? recap : nil
+        bodyLabel.text = seals ? taste.opening : recap
+        restView.text = seals ? taste.rest : nil
+        [restView, sealedLabel, readWholeButton].forEach { $0.isHidden = !seals }
+        basisLabel.text = DescribedRecap.basis(episodes)
+        basisLabel.isHidden = false
+        writeButton.isHidden = true
+        sendsLabel.isHidden = true
+    }
+
+    /// Opens the paywall from a recap shown in part; once Crucible Pro is on, the rest of it is there to read.
+    private func unseal() {
+        ProAccess.shared.requestUnlock(.previouslyOn) { [weak self] unlocked in
+            if unlocked { self?.openSealedRecap() }
+        }
+    }
+
+    /// Pro can also arrive while a recap shown in part is on screen without this sheet asking: a purchase made
+    /// elsewhere, or a Pro Week that starts.
+    private func unsealIfProArrived() {
+        if ProAccess.shared.hasFullAccess { openSealedRecap() }
+    }
+
+    private func openSealedRecap() {
+        guard let recap = sealedRecap else { return }
+        show(recap, asTaste: false)
+        UIAccessibility.post(notification: .layoutChanged, argument: bodyLabel)
+    }
+
+    private func startWriting(asTaste: Bool) {
         Haptics.selection()
         writeButton.isEnabled = false
         spinner.isHidden = false
@@ -167,11 +239,9 @@ final class PreviouslyOnViewController: UIViewController {
         task = Task { [weak self] in
             guard let self else { return }
             do throws(HostedBrainError) {
-                bodyLabel.text = try await DescribedRecap.write(show: model.show.title, episodes: episodes)
-                basisLabel.text = DescribedRecap.basis(episodes)
-                basisLabel.isHidden = false
-                writeButton.isHidden = true
-                sendsLabel.isHidden = true
+                let recap = try await DescribedRecap.write(show: model.show.title, episodes: episodes)
+                if asTaste, !Task.isCancelled { ProAccess.shared.noteTasteGiven(.writtenRecap) }
+                show(recap, asTaste: asTaste)
                 Haptics.success()
             } catch {
                 bodyLabel.text = DescribedRecapCopy.failure(error)

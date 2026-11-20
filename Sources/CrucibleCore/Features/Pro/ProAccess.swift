@@ -17,7 +17,8 @@ package struct PaywallRequest: Equatable, Sendable {
 /// behind it, refreshes it when the app comes to the front, and tells observers when it changes.
 @MainActor
 package final class ProAccess {
-    package static let shared = ProAccess(provider: UnlockedProAccess(), weekStore: .live(), demoWeekStore: .demo())
+    package static let shared = ProAccess(
+        provider: UnlockedProAccess(), weekStore: .live(), demoWeekStore: .demo(), tasteStore: .live(), demoTasteStore: .demo())
 
     package typealias Observer = @MainActor (ProStatus) -> Void
     package typealias PaywallPresenter = @MainActor (PaywallRequest, @escaping @MainActor (Bool) -> Void) -> Void
@@ -33,6 +34,9 @@ package final class ProAccess {
     private var weekStore: ProWeekStore
     private let deviceWeekStore: ProWeekStore
     private let demoWeekStore: ProWeekStore
+    private var tasteStore: ProTasteStore
+    private let deviceTasteStore: ProTasteStore
+    private let demoTasteStore: ProTasteStore
     private let now: () -> Date
 
     /// The Pro Week as of the last check (`ProWeek`). Observers hear when it begins and when it ends.
@@ -42,11 +46,15 @@ package final class ProAccess {
     ///   - weekStore: Where the Pro Week is remembered. Only the shared instance uses the live store; every other instance, as
     ///     in tests and previews, gets a throwaway one.
     ///   - demoWeekStore: Where the demo's own Pro Week is remembered while the demo runs.
+    ///   - tasteStore: Where the tastes of the AI features (`ProTasteStore`) are remembered, live for the shared instance only.
+    ///   - demoTasteStore: Where the demo's own tastes are remembered while the demo runs.
     ///   - now: The clock, injectable for tests.
     package init(
         provider: any ProAccessProviding,
         weekStore: ProWeekStore = .ephemeral(),
         demoWeekStore: ProWeekStore = .ephemeral(),
+        tasteStore: ProTasteStore = .ephemeral(),
+        demoTasteStore: ProTasteStore = .ephemeral(),
         now: @escaping () -> Date = Date.init
     ) {
         self.provider = provider
@@ -54,6 +62,9 @@ package final class ProAccess {
         self.weekStore = weekStore
         deviceWeekStore = weekStore
         self.demoWeekStore = demoWeekStore
+        self.tasteStore = tasteStore
+        deviceTasteStore = tasteStore
+        self.demoTasteStore = demoTasteStore
         self.now = now
         proWeekPhase = ProWeek.phase(start: weekStore.start, now: now())
     }
@@ -123,14 +134,33 @@ package final class ProAccess {
         notify()
     }
 
-    /// While the demo runs its Pro Week is its own, so previewing the free version there never starts or ends the device's one week;
-    /// leaving the demo forgets the demo's week and brings the device's back.
+    /// While the demo runs its Pro Week and its tastes of the AI features are its own, so previewing the free version there never
+    /// starts or ends the device's one week and never uses the device's tastes; leaving the demo forgets the demo's and brings the
+    /// device's back.
     package func useDemoProWeek(_ inDemo: Bool) {
+        tasteStore = inDemo ? demoTasteStore : deviceTasteStore
+        if !inDemo { demoTasteStore.forgetDemoTastes() }
         let store = inDemo ? demoWeekStore : deviceWeekStore
         if !inDemo { demoWeekStore.forgetDemoWeek() }
         guard store !== weekStore else { return }
         weekStore = store
         refreshProWeek()
+    }
+
+    /// How much of an answer from `feature` the viewer gets now. A taste is only for a viewer the store has said has no Pro: until
+    /// it answers, asking opens the paywall as it always did, and a source build has the whole answer.
+    package func tasteAccess(to feature: ProTasteFeature) -> ProTasteAccess {
+        if hasFullAccess { return .whole }
+        guard provider.isStoreBacked, status == .free, !tasteStore.isUsed(feature) else { return .locked }
+        return .taste
+    }
+
+    /// Records that the viewer has been given their one answer from `feature`. Call it once the answer is on screen, never for a
+    /// request that failed: a taste is used by an answer, not by asking.
+    package func noteTasteGiven(_ feature: ProTasteFeature) {
+        guard !hasFullAccess, !tasteStore.isUsed(feature) else { return }
+        tasteStore.markUsed(feature)
+        MidgarLog.info("Taste of \(feature.rawValue) given", category: .store)
     }
 
     package func setDemoUnlocked(_ unlocked: Bool) {
@@ -173,6 +203,14 @@ package final class ProAccess {
         weekStore.reset()
         if let start { weekStore.saveStart(start) }
         refreshProWeek()
+    }
+
+    /// Hands the tastes of the AI features out again, or with `used` marks each as given. For screenshot runs, UI tests and debug
+    /// launches; not in release builds.
+    package func stageTastes(used: Bool) {
+        tasteStore.reset()
+        guard used else { return }
+        ProTasteFeature.allCases.forEach(tasteStore.markUsed)
     }
     #endif
 
@@ -251,6 +289,7 @@ extension ProAccess {
     package func configureForLaunch(store: (any ProAccessProviding)?, environment: [String: String] = ProcessInfo.processInfo.environment) {
         #if DEBUG
         stageProWeekIfRequested(environment)
+        stageTastesIfRequested(environment)
         if let scripted = ScriptedProAccess.fromEnvironment(environment) {
             install(scripted)
             start()
@@ -273,6 +312,18 @@ extension ProAccess {
             MidgarLog.notice("Debug session: Pro Week started \(days) days ago", category: .lifecycle)
         } else if value == "none" || environment["CRUCIBLE_FRESH"] == "1" {
             stageProWeek(startedAt: nil)
+        }
+    }
+
+    /// `CRUCIBLE_TASTE=fresh` hands the tastes of the AI features out again, as `CRUCIBLE_FRESH=1` does with the Pro Week;
+    /// `CRUCIBLE_TASTE=used` marks each as given, so asking opens the paywall.
+    private func stageTastesIfRequested(_ environment: [String: String]) {
+        let value = environment["CRUCIBLE_TASTE"]
+        if value == "used" {
+            stageTastes(used: true)
+            MidgarLog.notice("Debug session: the AI tastes are used", category: .lifecycle)
+        } else if value == "fresh" || environment["CRUCIBLE_FRESH"] == "1" {
+            stageTastes(used: false)
         }
     }
 }

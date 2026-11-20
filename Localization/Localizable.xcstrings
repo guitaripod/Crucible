@@ -128274,6 +128274,101 @@
         }
       }
     },
+    "Opens with Crucible Pro" : {
+      "comment" : "Stands in place of the title of a What to Watch pick that is sealed until Crucible Pro is on",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Åbnes med Crucible Pro"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öffnet sich mit Crucible Pro"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se abre con Crucible Pro"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avautuu Crucible Prolla"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "S’ouvre avec Crucible Pro"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opnast með Crucible Pro"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si apre con Crucible Pro"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Pro で開きます"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Pro로 열립니다"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Åpnes med Crucible Pro"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwiera się z Crucible Pro"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abre com o Crucible Pro"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öppnas med Crucible Pro"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Pro 可解锁"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible Pro 可解鎖"
+          }
+        }
+      }
+    },
     "Optional" : {
       "comment" : "Seerr guide: a step that can be skipped",
       "localizations" : {
@@ -144607,6 +144702,101 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "閱讀描述"
+          }
+        }
+      }
+    },
+    "Read the Whole Recap" : {
+      "comment" : "Button under the opening of a recap that opens the paywall for the rest",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Læs hele resuméet"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ganzes „Was bisher geschah“ lesen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leer el Anteriormente completo"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lue koko Aiemmin-yhteenveto"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lire tout le « Précédemment »"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lesa allt „Það sem gerðist áður“"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leggi tutto il riassunto"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "あらすじをすべて読む"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "지난 이야기 전체 읽기"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les hele «Tidligere i serien»"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przeczytaj całe „W poprzednich odcinkach”"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ler o “Anteriormente” completo"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Läs hela ”Tidigare i”"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "阅读完整前情提要"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "閱讀完整前情提要"
           }
         }
       }
@@ -162072,6 +162262,101 @@
         }
       },
       "comment" : "Sports Research: open the Crucible Pro offer"
+    },
+    "See Every Pick" : {
+      "comment" : "Button that opens the paywall from What to Watch picks of which only the first is shown",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se alle forslag"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle Vorschläge ansehen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ver todas las selecciones"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Näytä kaikki valinnat"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voir toutes les suggestions"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sjá allar tillögur"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vedi tutti i consigli"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべてのおすすめを見る"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모든 추천 보기"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se alle forslagene"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zobacz wszystkie propozycje"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ver todas as sugestões"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Visa alla tips"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查看全部推荐"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查看全部推薦"
+          }
+        }
+      }
     },
     "See Your Requests" : {
       "comment" : "Button after requesting that opens the requests screen",
@@ -196968,6 +197253,101 @@
         }
       }
     },
+    "This is how your recap begins. Crucible Pro opens the rest of it, and writes one for every series you watch." : {
+      "comment" : "Under the opening of a recap whose rest is sealed until Crucible Pro is on",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sådan begynder dit resumé. Crucible Pro åbner resten af det og skriver et til hver serie, du ser."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "So beginnt dein „Was bisher geschah“. Crucible Pro öffnet den Rest und schreibt eines für jede Serie, die du schaust."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Así empieza tu Anteriormente. Crucible Pro abre el resto y escribe uno para cada serie que veas."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Näin Aiemmin-yhteenvetosi alkaa. Crucible Pro avaa loput siitä ja kirjoittaa yhteenvedon jokaisesta sarjasta, jota katsot."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voici comment commence votre « Précédemment ». Crucible Pro en ouvre la suite et en rédige un pour chaque série que vous regardez."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Svona byrjar „Það sem gerðist áður“ hjá þér. Crucible Pro opnar afganginn og skrifar slíkt fyrir hverja þáttaröð sem þú horfir á."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Così inizia il tuo riassunto. Crucible Pro apre il resto e ne scrive uno per ogni serie che guardi."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "あらすじの冒頭です。Crucible Pro で続きが開き、視聴中のすべてのシリーズのあらすじを作成できます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "지난 이야기는 이렇게 시작합니다. Crucible Pro가 나머지를 열어 주고, 시청하는 모든 시리즈의 지난 이야기를 작성해 드립니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slik begynner «Tidligere i serien». Crucible Pro åpner resten og skriver et for hver serie du ser."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tak zaczyna się Twoje „W poprzednich odcinkach”. Crucible Pro otwiera resztę i pisze takie streszczenie dla każdego serialu, który oglądasz."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "É assim que o seu “Anteriormente” começa. O Crucible Pro abre o restante e escreve um para cada série que você assiste."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Så här börjar din ”Tidigare i”. Crucible Pro öppnar resten och skriver en för varje serie du tittar på."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这是你的前情提要的开头。Crucible Pro 可解锁其余内容，并为你观看的每部剧集撰写前情提要。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這是你的前情提要的開頭。Crucible Pro 可解鎖其餘內容，並為你觀看的每部影集撰寫前情提要。"
+          }
+        }
+      }
+    },
     "This item is no longer available on the server." : {
       "localizations" : {
         "da" : {
@@ -225741,6 +226121,101 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "檔案維持原位"
+          }
+        }
+      }
+    },
+    "Your first pick is ready to watch. The others were chosen for you too: Crucible Pro opens them, and answers whenever you ask." : {
+      "comment" : "Between the first What to Watch pick and the sealed ones, for a viewer without Crucible Pro",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dit første forslag er klar til at blive set. De andre er også valgt til dig: Crucible Pro åbner dem og svarer, hver gang du spørger."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein erster Vorschlag ist bereit zum Ansehen. Die anderen wurden ebenfalls für dich ausgewählt: Crucible Pro öffnet sie und antwortet, wann immer du fragst."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu primera selección está lista para ver. Las demás también se eligieron para ti: Crucible Pro las abre y responde siempre que preguntes."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ensimmäinen valintasi on valmis katsottavaksi. Muutkin on valittu sinulle: Crucible Pro avaa ne ja vastaa aina, kun kysyt."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre première suggestion est prête à être regardée. Les autres ont aussi été choisies pour vous : Crucible Pro les ouvre et répond chaque fois que vous demandez."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fyrsta tillagan þín er tilbúin til áhorfs. Hinar voru líka valdar fyrir þig: Crucible Pro opnar þær og svarar hvenær sem þú spyrð."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo primo consiglio è pronto da guardare. Anche gli altri sono stati scelti per te: Crucible Pro li apre e risponde ogni volta che chiedi."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最初のおすすめはすぐにご覧いただけます。ほかのおすすめもあなたのために選ばれたものです。Crucible Pro ですべて開き、いつでもリクエストに応えます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "첫 번째 추천은 바로 볼 수 있습니다. 나머지도 요청에 맞춰 고른 작품입니다. Crucible Pro가 나머지를 열어 주고, 요청할 때마다 답해 드립니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Det første forslaget ditt er klart til å ses. De andre er også valgt til deg: Crucible Pro åpner dem og svarer hver gang du spør."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Twoja pierwsza propozycja jest gotowa do obejrzenia. Pozostałe też wybrano dla Ciebie: Crucible Pro je otwiera i odpowiada, kiedy tylko zapytasz."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sua primeira sugestão está pronta para assistir. As outras também foram escolhidas para você: o Crucible Pro abre todas e responde sempre que você pedir."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ditt första tips är redo att ses. De andra valdes också ut åt dig: Crucible Pro öppnar dem och svarar varje gång du frågar."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的第一个推荐已可观看。其余推荐同样是为你挑选的：Crucible Pro 可将它们全部解锁，并随时回应你的请求。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的第一個推薦已可觀看。其餘推薦同樣是為你挑選的：Crucible Pro 可將它們全部解鎖，並隨時回應你的請求。"
           }
         }
       }

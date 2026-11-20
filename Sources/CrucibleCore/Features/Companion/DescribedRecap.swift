@@ -73,6 +73,57 @@ package enum DescribedRecap {
         return recap
     }
 
+    /// A recap as a viewer given a taste of it reads it: how it begins, and the rest that Crucible Pro opens.
+    package struct Taste: Equatable, Sendable {
+        package let opening: String
+        package let rest: String
+    }
+
+    /// Where a recap shown in part stops: after the first sentence that ends past `earliestCut` of the text, as long as it
+    /// ends before `latestCut`, so the opening says something and most of the recap is still to come.
+    private static let earliestCut = 0.2
+    private static let latestCut = 0.6
+    private static let cutWithoutSentence = 0.4
+    private static let sentenceEnds: Set<Character> = [".", "!", "?", "…", "。", "！", "？", "।", "۔"]
+    /// Sentence ends that need no space after them, as Chinese and Japanese write theirs.
+    private static let unspacedSentenceEnds: Set<Character> = ["。", "！", "？"]
+
+    /// Splits a recap for a taste. One written as a single long sentence is cut at a word, or mid-run in a script that
+    /// writes none apart, and its opening ends in an ellipsis. A recap too short to split comes back whole.
+    package static func taste(of recap: String) -> Taste {
+        let characters = Array(recap)
+        guard characters.count >= 2 else { return Taste(opening: recap, rest: "") }
+        let earliest = Int(Double(characters.count) * earliestCut)
+        let latest = Int(Double(characters.count) * latestCut)
+        let cut = sentenceCut(in: characters, from: earliest, to: latest)
+        if let cut { return split(characters, at: cut, elided: false) }
+        return split(characters, at: wordCut(in: characters), elided: true)
+    }
+
+    /// The offset just past the first sentence end between `earliest` and `latest`, or nil when no sentence ends there.
+    private static func sentenceCut(in characters: [Character], from earliest: Int, to latest: Int) -> Int? {
+        guard earliest < latest else { return nil }
+        for place in max(earliest, 1)..<latest where sentenceEnds.contains(characters[place - 1]) {
+            let next = characters[place]
+            if sentenceEnds.contains(next) { continue }
+            if next.isWhitespace || unspacedSentenceEnds.contains(characters[place - 1]) { return place }
+        }
+        return nil
+    }
+
+    /// The offset of the last space before `cutWithoutSentence` of the text, or that point itself in a run with no space.
+    private static func wordCut(in characters: [Character]) -> Int {
+        let limit = max(1, Int(Double(characters.count) * cutWithoutSentence))
+        return characters[..<limit].lastIndex(where: \.isWhitespace) ?? limit
+    }
+
+    private static func split(_ characters: [Character], at cut: Int, elided: Bool) -> Taste {
+        let opening = String(characters[..<cut]).trimmingCharacters(in: .whitespacesAndNewlines)
+        let rest = String(characters[cut...]).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !opening.isEmpty, !rest.isEmpty else { return Taste(opening: String(characters), rest: "") }
+        return Taste(opening: elided ? opening + "…" : opening, rest: rest)
+    }
+
     /// "From the descriptions of S1 · E3 to S1 · E5", or the one episode when there was only one.
     package static func basis(_ episodes: [DescribedEpisode]) -> String {
         guard let first = episodes.first?.code, let last = episodes.last?.code else { return "" }
@@ -101,6 +152,9 @@ package enum DescribedRecapCopy {
         }
     }
     package static let withServer = String(localized: "With Crucible Server on the computer with Plex, it is written from what was said in the episodes.", comment: "Hint under a Previously On made from descriptions")
+    /// Under how a recap begins, for a viewer without Crucible Pro who was given a taste of it.
+    package static let sealedNote = String(localized: "This is how your recap begins. Crucible Pro opens the rest of it, and writes one for every series you watch.", comment: "Under the opening of a recap whose rest is sealed until Crucible Pro is on")
+    package static let readWhole = String(localized: "Read the Whole Recap", comment: "Button under the opening of a recap that opens the paywall for the rest")
 
     package static func failure(_ error: HostedBrainError) -> String {
         switch error {

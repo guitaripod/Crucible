@@ -6,6 +6,9 @@ import UIKit
 /// What to Watch on iPhone and iPad: a sentence about what the person feels like, then picks from their own library,
 /// each with a reason. It says what is sent before anything is, and nothing is sent until they ask. In the demo
 /// there is no field: its example requests are the ones that have an answer, and the one asked stays marked.
+///
+/// A viewer without Crucible Pro gets one real answer (`ProTasteStore`): the first pick as it is, and the others
+/// sealed, showing why each was chosen but not what it is, until Pro is on.
 final class WhatToWatchViewController: UIViewController, UICollectionViewDelegate, UITextFieldDelegate {
     private enum Phase {
         case asking
@@ -16,6 +19,14 @@ final class WhatToWatchViewController: UIViewController, UICollectionViewDelegat
 
     private enum Section: Hashable {
         case picks
+    }
+
+    /// A row of the answer: a pick that can be opened, the line and button between it and the sealed ones, or a pick
+    /// whose title and poster wait for Crucible Pro.
+    private enum Row: Hashable {
+        case pick(String)
+        case seal
+        case sealedPick(String)
     }
 
     private let api: APIClient
@@ -34,8 +45,11 @@ final class WhatToWatchViewController: UIViewController, UICollectionViewDelegat
     private lazy var suggestButton = Self.button(WatchCopy.suggest, filled: true) { [weak self] in self?.suggest() }
     private lazy var retryButton = Self.button(WatchCopy.tryAgain, filled: false) { [weak self] in self?.suggest() }
     private lazy var collectionView = UICollectionView(frame: .zero, collectionViewLayout: Self.layout())
-    private var dataSource: UICollectionViewDiffableDataSource<Section, String>?
+    private var dataSource: UICollectionViewDiffableDataSource<Section, Row>?
     private var work: Task<Void, Never>?
+    /// The answer on screen was given as a taste, so all but its first pick stay sealed until Crucible Pro is on.
+    private var answerIsTaste = false
+    private lazy var proObservation = ProObservation { [weak self] in self?.unsealIfProArrived() }
     private var phase: Phase = .asking {
         didSet { render() }
     }
@@ -56,6 +70,7 @@ final class WhatToWatchViewController: UIViewController, UICollectionViewDelegat
         navigationItem.largeTitleDisplayMode = .never
         buildHeader()
         buildList()
+        _ = proObservation
         render()
     }
 
@@ -159,24 +174,81 @@ final class WhatToWatchViewController: UIViewController, UICollectionViewDelegat
             collectionView.trailingAnchor.constraint(equalTo: view.readableContentGuide.trailingAnchor, constant: Theme.Space.l),
             collectionView.bottomAnchor.constraint(equalTo: view.keyboardLayoutGuide.topAnchor),
         ])
-        let registration = UICollectionView.CellRegistration<UICollectionViewListCell, String> { [weak self] cell, _, id in
-            guard let self, case .answered(let answer) = self.phase, let pick = answer.picks.first(where: { $0.id == id }) else { return }
-            var content = WatchPickConfiguration()
-            content.posterPath = answer.item(for: pick)?.thumb
-            content.title = pick.title.title
-            content.facts = WatchCopy.facts(pick.title)
-            content.why = pick.why
-            content.placeholderIcon = pick.title.kind == .show ? "tv" : "film"
-            cell.contentConfiguration = content
-            cell.accessories = [.disclosureIndicator()]
-            cell.accessibilityIdentifier = "watch.pick.\(id)"
+        let registration = UICollectionView.CellRegistration<UICollectionViewListCell, Row> { [weak self] cell, _, row in
+            guard let self, case .answered(let answer) = self.phase else { return }
             var background = UIBackgroundConfiguration.listPlainCell()
             background.backgroundColor = .clear
             cell.backgroundConfiguration = background
+            switch row {
+            case .pick(let id):
+                guard let pick = answer.picks.first(where: { $0.id == id }) else { return }
+                cell.contentConfiguration = Self.content(for: pick, posterPath: answer.item(for: pick)?.thumb)
+                cell.accessories = [.disclosureIndicator()]
+                cell.accessibilityIdentifier = "watch.pick.\(id)"
+            case .sealedPick(let id):
+                guard let pick = answer.picks.first(where: { $0.id == id }) else { return }
+                cell.contentConfiguration = Self.sealedContent(for: pick)
+                cell.accessories = []
+                cell.accessibilityIdentifier = "watch.sealed.\(id)"
+            case .seal:
+                cell.contentConfiguration = WatchSealConfiguration(note: WatchCopy.sealedNote, action: WatchCopy.seeEveryPick) { [weak self] in
+                    self?.unseal()
+                }
+                cell.accessories = []
+                cell.accessibilityIdentifier = "watch.seal"
+            }
         }
-        dataSource = UICollectionViewDiffableDataSource<Section, String>(collectionView: collectionView) { collectionView, indexPath, id in
-            collectionView.dequeueConfiguredReusableCell(using: registration, for: indexPath, item: id)
+        dataSource = UICollectionViewDiffableDataSource<Section, Row>(collectionView: collectionView) { collectionView, indexPath, row in
+            collectionView.dequeueConfiguredReusableCell(using: registration, for: indexPath, item: row)
         }
+    }
+
+    private static func content(for pick: WatchPick, posterPath: String?) -> WatchPickConfiguration {
+        var content = WatchPickConfiguration()
+        content.posterPath = posterPath
+        content.title = pick.title.title
+        content.facts = WatchCopy.facts(pick.title)
+        content.why = pick.why
+        content.placeholderIcon = pick.title.kind == .show ? "tv" : "film"
+        return content
+    }
+
+    /// A sealed pick says why it was chosen and nothing that names it: no title, no poster, no year or length.
+    private static func sealedContent(for pick: WatchPick) -> WatchPickConfiguration {
+        var content = WatchPickConfiguration()
+        content.title = WatchCopy.sealedTitle
+        content.why = pick.why
+        content.placeholderIcon = ProLock.symbolName
+        content.isSealed = true
+        return content
+    }
+
+    /// The rows of an answer: every pick, or for a taste the first pick, the line that says what the rest are, and the
+    /// rest sealed. An answer of one pick has nothing to seal.
+    private func rows(for answer: WatchAnswer) -> [Row] {
+        guard sealsAnswer, answer.picks.count > 1 else { return answer.picks.map { .pick($0.id) } }
+        return [.pick(answer.picks[0].id), .seal] + answer.picks.dropFirst().map { .sealedPick($0.id) }
+    }
+
+    private var sealsAnswer: Bool { answerIsTaste && !ProAccess.shared.hasFullAccess }
+
+    /// Opens the paywall from the sealed part of an answer; once Crucible Pro is on, the picks open where they stand.
+    private func unseal() {
+        ProAccess.shared.requestUnlock(.whatToWatch) { [weak self] unlocked in
+            if unlocked { self?.openSealedPicks() }
+        }
+    }
+
+    /// Pro can also arrive while a sealed answer is on screen without this screen asking: a purchase made elsewhere, or
+    /// a Pro Week that starts.
+    private func unsealIfProArrived() {
+        if ProAccess.shared.hasFullAccess { openSealedPicks() }
+    }
+
+    private func openSealedPicks() {
+        guard answerIsTaste, case .answered = phase else { return }
+        answerIsTaste = false
+        render()
     }
 
     private static func layout() -> UICollectionViewLayout {
@@ -212,9 +284,9 @@ final class WhatToWatchViewController: UIViewController, UICollectionViewDelegat
         field.isEnabled = step == nil
         updateSuggestButton()
 
-        var snapshot = NSDiffableDataSourceSnapshot<Section, String>()
+        var snapshot = NSDiffableDataSourceSnapshot<Section, Row>()
         snapshot.appendSections([.picks])
-        snapshot.appendItems(answer?.picks.map(\.id) ?? [])
+        snapshot.appendItems(answer.map(rows) ?? [])
         dataSource?.applySnapshotUsingReloadData(snapshot)
         if let failure {
             UIAccessibility.post(notification: .layoutChanged, argument: failureLabel)
@@ -230,19 +302,27 @@ final class WhatToWatchViewController: UIViewController, UICollectionViewDelegat
         suggestButton.isEnabled = !isWorking && !request.isEmpty
     }
 
-    /// Asks for picks once the person may: What to Watch is part of Crucible Pro and of a Pro Week.
+    /// Asks for picks. What to Watch is part of Crucible Pro and of a Pro Week; a viewer without either is answered
+    /// once on this device as a taste, and after that asking opens the paywall.
     private func suggest() {
         let request = request
         guard !request.isEmpty else { return }
         if case .working = phase { return }
         field.resignFirstResponder()
-        ProAccess.shared.requestUnlock(.whatToWatch) { [weak self] unlocked in
-            guard unlocked, let self else { return }
-            self.run(request)
+        switch ProAccess.shared.tasteAccess(to: .whatToWatch) {
+        case .whole:
+            run(request, asTaste: false)
+        case .taste:
+            run(request, asTaste: true)
+        case .locked:
+            ProAccess.shared.requestUnlock(.whatToWatch) { [weak self] unlocked in
+                guard unlocked, let self else { return }
+                self.run(request, asTaste: false)
+            }
         }
     }
 
-    private func run(_ request: String) {
+    private func run(_ request: String, asTaste: Bool) {
         Haptics.selection()
         work?.cancel()
         phase = .working(.readingLibrary)
@@ -258,6 +338,8 @@ final class WhatToWatchViewController: UIViewController, UICollectionViewDelegat
             switch result {
             case .success(let answer):
                 Haptics.success()
+                if asTaste { ProAccess.shared.noteTasteGiven(.whatToWatch) }
+                self.answerIsTaste = asTaste
                 self.phase = .answered(answer)
                 DemoTour.shared.record(.whatToWatch)
             case .failure(let failure):
@@ -272,10 +354,18 @@ final class WhatToWatchViewController: UIViewController, UICollectionViewDelegat
         return true
     }
 
+    /// The row between the first pick and the sealed ones is words and a button of its own, not a row to press.
+    func collectionView(_ collectionView: UICollectionView, shouldHighlightItemAt indexPath: IndexPath) -> Bool {
+        dataSource?.itemIdentifier(for: indexPath) != .seal
+    }
+
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         collectionView.deselectItem(at: indexPath, animated: true)
-        guard case .answered(let answer) = phase, answer.picks.indices.contains(indexPath.item) else { return }
-        let pick = answer.picks[indexPath.item]
+        guard case .answered(let answer) = phase, let row = dataSource?.itemIdentifier(for: indexPath) else { return }
+        guard case .pick(let id) = row, let pick = answer.picks.first(where: { $0.id == id }) else {
+            if case .sealedPick = row { unseal() }
+            return
+        }
         switch pick.title.kind {
         case .movie: navigationController?.pushViewController(MediaDetailViewController(api: api, ratingKey: pick.id, mediaType: "movie"), animated: true)
         case .show: navigationController?.pushViewController(ShowDetailViewController(api: api, showRatingKey: pick.id), animated: true)

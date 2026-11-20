@@ -127,8 +127,69 @@ final class WhatToWatchTests: TVTestCase {
         XCTAssertTrue(labelled("a quiet film").exists, "the picks do not say what was asked")
     }
 
+    private var sealedPicks: XCUIElementQuery {
+        app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'watch.sealed.'"))
+    }
+
+    private func waitForGone(_ element: XCUIElement, timeout: TimeInterval = 30) -> Bool {
+        let gone = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: element)
+        return XCTWaiter().wait(for: [gone], timeout: timeout) == .completed
+    }
+
+    func testWithoutProTheFirstAnswerShowsOnePickAndSealsTheOthersUntilProIsBought() {
+        launch(pro: "free", extraEnvironment: ["CRUCIBLE_FRESH": "1", "CRUCIBLE_TASTE": "fresh", "CRUCIBLE_OPEN": "whattowatch"])
+        XCTAssertTrue(element("watch.example.0").waitForExistence(timeout: 60), "the ask screen never opened")
+        TVTest.settle(1.5)
+        focus("watch.example.0", pressing: .down)
+        press(.select)
+        XCTAssertTrue(firstPick.waitForExistence(timeout: 120), "no pick came back")
+        TVTest.settle(2)
+        TVTest.capture("13-taste", in: self)
+        let picks = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'watch.pick.'"))
+        XCTAssertEqual(picks.count, 1, "a taste shows one pick as it is")
+        XCTAssertGreaterThan(sealedPicks.count, 0, "a taste seals the other picks")
+        XCTAssertTrue(labelled("Your first pick is ready to watch").exists, "the screen does not say what the sealed picks are")
+
+        press(.right)
+        XCTAssertTrue(focusedIdentifier.hasPrefix("watch.sealed."), "focus is not on a sealed pick but on \(focusedIdentifier)")
+        TVTest.capture("14-sealed-pick-focused", in: self)
+        press(.select)
+        XCTAssertTrue(element("paywall.buy").waitForExistence(timeout: 30), "a sealed pick did not open the paywall")
+        TVTest.settle(1.5)
+        TVTest.capture("15-taste-paywall", in: self)
+        XCTAssertTrue(labelled("What to Watch is part of Crucible Pro").exists, "the paywall does not say why it opened")
+
+        focus("paywall.buy", pressing: .down, atMost: 4)
+        press(.select)
+        XCTAssertTrue(waitForGone(sealedPicks.firstMatch), "buying Crucible Pro did not open the sealed picks")
+        TVTest.settle(1.5)
+        TVTest.capture("16-taste-opened", in: self)
+        XCTAssertGreaterThan(picks.count, 1, "every pick shows once Crucible Pro is on")
+    }
+
+    func testWithoutProTheFirstRecapShowsHowItBeginsWithTheWayToTheRest() {
+        launch(pro: "free", extraEnvironment: ["CRUCIBLE_FRESH": "1", "CRUCIBLE_TASTE": "fresh", "CRUCIBLE_OPEN_LINK": "crucible://item/2005?type=show"])
+        XCTAssertTrue(element("detail.action.primary").waitForExistence(timeout: 60), "the show page never opened")
+        TVTest.settle(2)
+        focus("detail.action.primary", pressing: .down, atMost: 3)
+        focus("detail.action.previouslyOn", pressing: .right)
+        press(.select)
+        XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 5))
+        press(.select)
+        let text = element("detail.synopsis.text")
+        XCTAssertTrue(text.waitForExistence(timeout: 120), "no recap came back")
+        TVTest.settle(1)
+        TVTest.capture("17-recap-taste", in: self)
+        XCTAssertTrue(labelled("This is how your recap begins").exists, "the panel does not say the recap goes on")
+        XCTAssertTrue(isFocused("detail.synopsis.action"), "focus should rest on Read the Whole Recap, not on \(focusedIdentifier)")
+        press(.select)
+        XCTAssertTrue(element("paywall.buy").waitForExistence(timeout: 30), "Read the Whole Recap did not open the paywall")
+        TVTest.settle(1.5)
+        TVTest.capture("18-recap-taste-paywall", in: self)
+    }
+
     func testWithoutProAskingOpensThePaywallThatNamesIt() {
-        launch(pro: "free", extraEnvironment: ["CRUCIBLE_FRESH": "1", "CRUCIBLE_OPEN": "whattowatch"])
+        launch(pro: "free", extraEnvironment: ["CRUCIBLE_FRESH": "1", "CRUCIBLE_TASTE": "used", "CRUCIBLE_OPEN": "whattowatch"])
         XCTAssertTrue(element("watch.example.0").waitForExistence(timeout: 60), "the ask screen never opened")
         TVTest.settle(1.5)
         focus("watch.example.0", pressing: .down)

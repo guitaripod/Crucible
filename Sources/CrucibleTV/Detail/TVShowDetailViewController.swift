@@ -358,10 +358,7 @@ final class TVShowDetailViewController: TVDetailViewController {
         }
         let choice = UIAlertController(title: title, message: DescribedRecapCopy.sends, preferredStyle: .alert)
         choice.addAction(UIAlertAction(title: DescribedRecapCopy.write, style: .default) { [weak self] _ in
-            ProAccess.shared.requestUnlock(.previouslyOn) { unlocked in
-                guard unlocked else { return }
-                self?.writeRecap(model, episodes: episodes)
-            }
+            self?.writeRecapIfAllowed(model, episodes: episodes)
         })
         choice.addAction(UIAlertAction(title: DescribedRecapCopy.readDescriptions, style: .default) { [weak self] _ in
             self?.present(TVSynopsisViewController(title: title, text: Self.descriptions(episodes)), animated: TVMotion.animationsEnabled)
@@ -378,26 +375,63 @@ final class TVShowDetailViewController: TVDetailViewController {
         return (blocks + [DescribedRecapCopy.withServer]).joined(separator: "\n\n")
     }
 
-    /// Has Crucible's AI write the descriptions into one recap, saying so meanwhile.
-    private func writeRecap(_ model: ShowDetailModel, episodes: [DescribedEpisode]) {
+    /// Has the recap written for a viewer who may have it: whole with Crucible Pro or a Pro Week, once on this Apple TV as a
+    /// taste without either, and after that by way of the paywall.
+    private func writeRecapIfAllowed(_ model: ShowDetailModel, episodes: [DescribedEpisode]) {
+        switch ProAccess.shared.tasteAccess(to: .writtenRecap) {
+        case .whole:
+            writeRecap(model, episodes: episodes, asTaste: false)
+        case .taste:
+            writeRecap(model, episodes: episodes, asTaste: true)
+        case .locked:
+            ProAccess.shared.requestUnlock(.previouslyOn) { [weak self] unlocked in
+                guard unlocked else { return }
+                self?.writeRecap(model, episodes: episodes, asTaste: false)
+            }
+        }
+    }
+
+    /// Has Crucible's AI write the descriptions into one recap, saying so meanwhile. A recap written as a taste is shown
+    /// as far as its opening, with the button that opens the rest.
+    private func writeRecap(_ model: ShowDetailModel, episodes: [DescribedEpisode], asTaste: Bool) {
         guard presentedViewController == nil else { return }
         let title = CompanionCopy.previouslyOnTitle(model.show.title)
         let waiting = UIAlertController(title: title, message: DescribedRecapCopy.writing, preferredStyle: .alert)
         let task = Task { [weak self, weak waiting] in
-            let text: String
+            let panel: TVSynopsisViewController
+            var wasWritten = false
             do throws(HostedBrainError) {
                 let recap = try await DescribedRecap.write(show: model.show.title, episodes: episodes)
-                text = "\(recap)\n\n\(DescribedRecap.basis(episodes))"
+                panel = Self.recapPanel(title: title, recap: recap, basis: DescribedRecap.basis(episodes), asTaste: asTaste)
+                wasWritten = true
             } catch {
-                text = "\(DescribedRecapCopy.failure(error))\n\n\(Self.descriptions(episodes))"
+                panel = TVSynopsisViewController(title: title, text: "\(DescribedRecapCopy.failure(error))\n\n\(Self.descriptions(episodes))")
             }
             guard !Task.isCancelled, let waiting else { return }
+            if asTaste, wasWritten { ProAccess.shared.noteTasteGiven(.writtenRecap) }
             waiting.dismiss(animated: TVMotion.animationsEnabled) {
-                self?.present(TVSynopsisViewController(title: title, text: text), animated: TVMotion.animationsEnabled)
+                self?.present(panel, animated: TVMotion.animationsEnabled)
             }
         }
         waiting.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel) { _ in task.cancel() })
         present(waiting, animated: TVMotion.animationsEnabled)
+    }
+
+    /// The panel a written recap is read in: all of it with what it draws on, or for a taste how it begins, what the rest
+    /// is, and the button that opens the paywall and then the rest in the same panel. A recap too short to split is
+    /// shown whole.
+    private static func recapPanel(title: String, recap: String, basis: String, asTaste: Bool) -> TVSynopsisViewController {
+        let whole = "\(recap)\n\n\(basis)"
+        let taste = DescribedRecap.taste(of: recap)
+        guard asTaste, !ProAccess.shared.hasFullAccess, !taste.rest.isEmpty else {
+            return TVSynopsisViewController(title: title, text: whole)
+        }
+        let unseal = TVSynopsisViewController.Action(title: DescribedRecapCopy.readWhole, symbol: "lock.fill") { panel in
+            ProAccess.shared.requestUnlock(.previouslyOn) { [weak panel] unlocked in
+                if unlocked { panel?.show(text: whole) }
+            }
+        }
+        return TVSynopsisViewController(title: title, text: "\(taste.opening)\n\n\(DescribedRecapCopy.sealedNote)", action: unseal)
     }
 
     /// Asks the paired Crucible Server for a Previously On, saying it is being written meanwhile.

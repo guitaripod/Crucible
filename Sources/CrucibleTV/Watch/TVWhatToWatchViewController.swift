@@ -5,17 +5,25 @@ import UIKit
 
 /// The picks for one What to Watch request on Apple TV: two columns of tiles, each with its reason, under the request
 /// itself. The screen asks once when it opens; coming back from a pick's page shows the same picks again.
+///
+/// An answer given as a taste (`ProTasteStore`) shows its first pick as it is and seals the others: each says why it
+/// was chosen but not what it is, and Select on one opens the paywall. Once Crucible Pro is on they open where they stand.
 final class TVWhatToWatchViewController: TVScreenViewController {
+    private static let sealedPrefix = "sealed."
+
     private let env: TVAppEnvironment
     private let request: String
     private let session: WatchSession
     private var answer: WatchAnswer?
+    private var answerIsTaste: Bool
+    private var proObserver: UUID?
     private var dataSource: UICollectionViewDiffableDataSource<Int, String>!
     private lazy var askSlot = makeTaskSlot()
 
-    init(env: TVAppEnvironment, request: String) {
+    init(env: TVAppEnvironment, request: String, asTaste: Bool) {
         self.env = env
         self.request = WatchPicker.cleaned(request)
+        answerIsTaste = asTaste
         session = WatchSession(api: env.api)
         super.init(layout: UICollectionViewLayout())
         title = WatchCopy.title
@@ -29,23 +37,39 @@ final class TVWhatToWatchViewController: TVScreenViewController {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
+    deinit {
+        if let proObserver {
+            Task { @MainActor in ProAccess.shared.stopObserving(proObserver) }
+        }
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
         configureDataSource()
+        proObserver = ProAccess.shared.observe { [weak self] _ in self?.unsealIfProArrived() }
         ask()
     }
 
     private func configureDataSource() {
-        let tile = TVHostCell.registration { [weak self] (id: String) -> UIView in
-            guard let self, let answer, let pick = answer.picks.first(where: { $0.id == id }) else { return UIView() }
-            let surface = TVWatchPickSurface(pick: pick, artworkPath: answer.item(for: pick)?.thumb)
-            surface.accessibilityIdentifier = "watch.pick.\(id)"
-            surface.addAction(UIAction { [weak self] _ in self?.open(pick) }, for: .primaryActionTriggered)
+        let tile = TVHostCell.registration { [weak self] (item: String) -> UIView in
+            guard let self, let answer else { return UIView() }
+            let isSealed = item.hasPrefix(Self.sealedPrefix)
+            let id = isSealed ? String(item.dropFirst(Self.sealedPrefix.count)) : item
+            guard let pick = answer.picks.first(where: { $0.id == id }) else { return UIView() }
+            guard isSealed else {
+                let surface = TVWatchPickSurface(pick: pick, artworkPath: answer.item(for: pick)?.thumb)
+                surface.accessibilityIdentifier = "watch.pick.\(id)"
+                surface.addAction(UIAction { [weak self] _ in self?.open(pick) }, for: .primaryActionTriggered)
+                return surface
+            }
+            let surface = TVWatchPickSurface(sealed: pick)
+            surface.accessibilityIdentifier = "watch.sealed.\(id)"
+            surface.addAction(UIAction { [weak self] _ in self?.unseal() }, for: .primaryActionTriggered)
             return surface
         }
         let header = TVScreenTitleView.headerRegistration { [weak self] _ in
             guard let self else { return nil }
-            return TVScreenTitleContent(title: WatchCopy.title, summary: request, detail: answer?.note.isEmpty == false ? answer?.note : nil)
+            return TVScreenTitleContent(title: WatchCopy.title, summary: request, detail: headerDetail)
         }
         dataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) { collectionView, indexPath, id in
             collectionView.dequeueConfiguredReusableCell(using: tile, for: indexPath, item: id)
@@ -77,12 +101,50 @@ final class TVWhatToWatchViewController: TVScreenViewController {
 
     private func display(_ answer: WatchAnswer) {
         self.answer = answer
+        if answerIsTaste { ProAccess.shared.noteTasteGiven(.whatToWatch) }
         DemoTour.shared.record(.whatToWatch)
+        applyPicks()
+        showContent()
+    }
+
+    private var sealsAnswer: Bool {
+        answerIsTaste && !ProAccess.shared.hasFullAccess && (answer?.picks.count ?? 0) > 1
+    }
+
+    /// Under the request: what the sealed tiles are while there are any, else the model's own note on its picks.
+    private var headerDetail: String? {
+        if sealsAnswer { return WatchCopy.sealedNote }
+        return answer?.note.isEmpty == false ? answer?.note : nil
+    }
+
+    /// Lays the tiles out again: every pick, or for a taste the first pick followed by the others sealed. Everything is
+    /// drawn afresh, the header with them, since opening the sealed picks changes what each tile and the header say.
+    private func applyPicks() {
+        guard let answer else { return }
+        let ids = answer.picks.map(\.id)
         var snapshot = NSDiffableDataSourceSnapshot<Int, String>()
         snapshot.appendSections([0])
-        snapshot.appendItems(answer.picks.map(\.id), toSection: 0)
-        dataSource.apply(snapshot, animatingDifferences: false)
-        showContent()
+        snapshot.appendItems(sealsAnswer ? Array(ids.prefix(1)) + ids.dropFirst().map { Self.sealedPrefix + $0 } : ids, toSection: 0)
+        dataSource.applySnapshotUsingReloadData(snapshot)
+    }
+
+    /// Opens the paywall from a sealed pick; once Crucible Pro is on, the picks open where they stand.
+    private func unseal() {
+        ProAccess.shared.requestUnlock(.whatToWatch) { [weak self] unlocked in
+            if unlocked { self?.openSealedPicks() }
+        }
+    }
+
+    /// Pro can also arrive while sealed picks are on screen without this screen asking: a purchase made elsewhere, or a
+    /// Pro Week that starts.
+    private func unsealIfProArrived() {
+        if ProAccess.shared.hasFullAccess { openSealedPicks() }
+    }
+
+    private func openSealedPicks() {
+        guard answerIsTaste, answer != nil else { return }
+        answerIsTaste = false
+        applyPicks()
     }
 
     private func display(_ failure: WatchFailure) {
@@ -109,8 +171,8 @@ final class TVWhatToWatchViewController: TVScreenViewController {
 }
 
 /// Asking What to Watch on Apple TV: what is sent, the examples one press away, and a sentence of the person's own,
-/// dictated or typed. Asking is part of Crucible Pro and of a Pro Week; the picks open over this screen, so Menu
-/// comes back here to ask for something else.
+/// dictated or typed. Asking is part of Crucible Pro and of a Pro Week, and a viewer without either is answered once
+/// as a taste; the picks open over this screen, so Menu comes back here to ask for something else.
 final class TVWhatToWatchAskViewController: UIViewController {
     private let env: TVAppEnvironment
     private var buttons: [UIButton] = []
@@ -203,9 +265,16 @@ final class TVWhatToWatchAskViewController: UIViewController {
     }
 
     private func ask(_ request: String) {
-        ProAccess.shared.requestUnlock(.whatToWatch) { [weak self] unlocked in
-            guard unlocked, let self else { return }
+        switch ProAccess.shared.tasteAccess(to: .whatToWatch) {
+        case .whole:
             TVNavigation.push(TVScreens.whatToWatch(env, request: request), from: self)
+        case .taste:
+            TVNavigation.push(TVScreens.whatToWatch(env, request: request, asTaste: true), from: self)
+        case .locked:
+            ProAccess.shared.requestUnlock(.whatToWatch) { [weak self] unlocked in
+                guard unlocked, let self else { return }
+                TVNavigation.push(TVScreens.whatToWatch(env, request: request), from: self)
+            }
         }
     }
 }

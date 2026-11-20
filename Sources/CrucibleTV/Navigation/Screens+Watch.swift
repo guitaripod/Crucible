@@ -5,7 +5,7 @@ extension TVScreens {
         TVWhatToWatchAskViewController(env: env)
     }
 
-    static func whatToWatch(_ env: TVAppEnvironment, request: String) -> UIViewController {
-        TVWhatToWatchViewController(env: env, request: request)
+    static func whatToWatch(_ env: TVAppEnvironment, request: String, asTaste: Bool = false) -> UIViewController {
+        TVWhatToWatchViewController(env: env, request: request, asTaste: asTaste)
     }
 }
