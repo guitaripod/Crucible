@@ -76,6 +76,7 @@ package actor WatchSession {
 
     /// Picks for `request`. `progress` is called as each step begins.
     package func answer(_ request: String, progress: @Sendable (WatchStep) -> Void) async -> Result<WatchAnswer, WatchFailure> {
+        let asked = ContinuousClock.now
         progress(.readingLibrary)
         let items: [PlexMetadata]
         do {
@@ -87,6 +88,7 @@ package actor WatchSession {
         let titles = items.compactMap(WatchTitle.init)
         guard !titles.isEmpty else { return .failure(.emptyLibrary) }
 
+        let libraryRead = ContinuousClock.now
         progress(.understanding)
         let plan: WatchPlan
         do {
@@ -99,17 +101,29 @@ package actor WatchSession {
         let candidates = WatchPicker.offered(request, plan: plan, candidates: WatchPicker.candidates(for: plan, in: titles))
         guard !candidates.isEmpty else { return .failure(.nothingFits(note: "")) }
 
+        let understood = ContinuousClock.now
         progress(.choosing)
         do {
             let reply = try await environment.ask(WatchPicker.pickAlias, WatchPicker.pickInput(request, plan: plan, candidates: candidates))
             guard let chosen = WatchPicker.picks(from: reply, candidates: candidates, plan: plan) else { return .failure(.brain(.failed)) }
             guard !chosen.picks.isEmpty else { return .failure(.nothingFits(note: chosen.note)) }
-            MidgarLog.info("What to Watch chose \(chosen.picks.count) of \(candidates.count) candidates from \(titles.count) titles", category: .networking)
+            let chose = ContinuousClock.now
+            let steps = "library \(Self.seconds(asked, libraryRead)) s, limits \(Self.seconds(libraryRead, understood)) s, picks \(Self.seconds(understood, chose)) s"
+            MidgarLog.info(
+                "What to Watch chose \(chosen.picks.count) of \(candidates.count) candidates from \(titles.count) titles in \(Self.seconds(asked, chose)) s: \(steps)",
+                category: .networking)
             let byID = Dictionary(items.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
             return .success(WatchAnswer(request: WatchPicker.cleaned(request), picks: chosen.picks, note: chosen.note, items: byID))
         } catch {
             return .failure(.brain(error))
         }
+    }
+
+    /// The seconds between two moments of an answer, to a tenth, for the log line that says where the wait went.
+    private static func seconds(_ start: ContinuousClock.Instant, _ end: ContinuousClock.Instant) -> String {
+        let elapsed = start.duration(to: end)
+        let seconds = Double(elapsed.components.seconds) + Double(elapsed.components.attoseconds) / 1e18
+        return String(format: "%.1f", seconds)
     }
 
     /// The library, read again when the copy held is older than ten minutes or was read under another choice of
