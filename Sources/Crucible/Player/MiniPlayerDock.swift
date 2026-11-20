@@ -3,10 +3,10 @@ import CrucibleCore
 import CrucibleDesign
 @preconcurrency import UIKit
 
-/// The player of one window and the bar it shrinks into. A player closed with its close button or swiped down keeps playing in
-/// the bar above the tab bar (the tab bar's bottom accessory on iOS 26, a floating bar of its own before), so the viewer can browse
-/// and open it again. The dock holds the window's player for as long as it plays, docked or full screen, because the screen that
-/// started it may be gone by then.
+/// The player of one window and the bar it shrinks into. A player swiped down keeps playing in the bar above the tab bar (the tab
+/// bar's Liquid Glass bottom accessory on iOS 26, a floating bar of its own before), so the viewer can browse and open it again; its
+/// close button ends playback instead. The dock holds the window's player for as long as it plays, docked or full screen, because
+/// the screen that started it may be gone by then.
 @MainActor
 final class MiniPlayerDock {
     private unowned let tabBar: TabBarController
@@ -67,6 +67,12 @@ final class MiniPlayerDock {
         bar.attach(player: player, scene: tabBar.view.window?.windowScene)
         describe(coordinator, in: bar)
         bar.isLive = true
+    }
+
+    /// Takes the bar down again for a player that did not dock after all.
+    func withdraw(_ coordinator: PlayerCoordinator) {
+        guard active === coordinator else { return }
+        removeBar(animated: true)
     }
 
     /// The full player is opening over the bar, which stops drawing the picture until it comes back.

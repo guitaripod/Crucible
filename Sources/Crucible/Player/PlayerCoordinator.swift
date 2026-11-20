@@ -43,7 +43,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     private var shownUpNext: UpNextOffer?
     private var skipToast: SkipToastView?
     private var advanceIndicator: AdvanceIndicator?
-    private var isInPiP = false
+    private(set) var isInPiP = false
     private var pipRestoreInProgress = false
     private weak var presentingVC: UIViewController?
     private weak var windowScene: UIWindowScene?
@@ -883,23 +883,12 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         Task { @MainActor in await self.dismissPlayer() }
     }
 
-    nonisolated func playerViewController(
-        _ playerViewController: AVPlayerViewController,
-        willEndFullScreenPresentationWithAnimationCoordinator coordinator: UIViewControllerTransitionCoordinator
-    ) {
-        MainActor.assumeIsolated {
-            let wasPlaying = (session.player?.rate ?? 0) > 0
-            _ = coordinator.animate(alongsideTransition: nil) { [weak self] context in
-                guard let self, !context.isCancelled, !self.isInPiP, !self.isFinishing else { return }
-                Task { @MainActor [weak self] in
-                    guard let self, !self.isInPiP, !self.isFinishing else { return }
-                    if self.dockAfterDismissal(resuming: wasPlaying) { return }
-                    self.isFinishing = true
-                    self.removeUpNextOverlay()
-                    await self.cleanup()
-                }
-            }
-        }
+    /// Ends playback once the full screen has gone without docking.
+    func finishAfterDismissal() async {
+        guard !isFinishing else { return }
+        isFinishing = true
+        removeUpNextOverlay()
+        await cleanup()
     }
 
     private func cleanup() async {

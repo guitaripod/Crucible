@@ -14,9 +14,54 @@ extension PlayerCoordinator {
     /// The item this player plays, so starting the same title again opens this player instead of a second one.
     var playingRatingKey: String { request.ratingKey }
 
-    /// Shrinks the player into the bar above the tab bar after its full screen was swiped down or closed, instead of ending
-    /// playback. It plays on if it was playing; the system player may pause it on the way out. False when this window has no
-    /// bar to dock in (a player opened outside the main app), so the caller ends playback as before.
+    /// The system player's full screen is going away. Swiping it down shrinks it into the bar above the tab bar and it plays on;
+    /// its close button stops playback there and then, so nothing is left playing to close a second time.
+    nonisolated func playerViewController(
+        _ playerViewController: AVPlayerViewController,
+        willEndFullScreenPresentationWithAnimationCoordinator coordinator: UIViewControllerTransitionCoordinator
+    ) {
+        MainActor.assumeIsolated {
+            let wasPlaying = (session.player?.rate ?? 0) > 0
+            let swipedDown = coordinator.initiallyInteractive
+            MidgarLog.notice("Player full screen ending swipedDown=\(swipedDown) playing=\(wasPlaying)", category: .playback)
+            if !isInPiP, swipedDown {
+                coordinator.notifyWhenInteractionChanges { [weak self] context in
+                    guard !context.isCancelled else { return }
+                    MainActor.assumeIsolated { self?.revealDock() }
+                }
+            } else if !isInPiP {
+                session.player?.pause()
+            }
+            _ = coordinator.animate(alongsideTransition: nil) { [weak self] context in
+                guard !context.isCancelled else { return }
+                Task { @MainActor [weak self] in
+                    guard let self, !self.isFinishing else { return }
+                    guard !self.isInPiP else { return self.withdrawDock() }
+                    if swipedDown, self.dockAfterDismissal(resuming: wasPlaying) { return }
+                    await self.finishAfterDismissal()
+                }
+            }
+        }
+    }
+
+    /// Brings the bar up, live, as soon as a swipe lets go of the full player, so the shrinking picture slides down into a bar that
+    /// is already there instead of vanishing before the bar appears.
+    private func revealDock() {
+        guard let dock, dock.active === self, let player = session.player, !isFinishing,
+              dock.tabBarController.view.window != nil else { return }
+        dock.dock(self, player: player)
+        MidgarLog.notice("Player dock revealed ratingKey=\(request.ratingKey)", category: .playback)
+    }
+
+    /// Takes the bar a swipe brought up back down when the player went into Picture in Picture instead of docking.
+    private func withdrawDock() {
+        guard !isDocked else { return }
+        dock?.withdraw(self)
+    }
+
+    /// Shrinks the player into the bar above the tab bar after its full screen was swiped down, instead of ending playback. It
+    /// plays on if it was playing; the system player may pause it on the way out. False when this window has no bar to dock in (a
+    /// player opened outside the main app), so the caller ends playback as before.
     func dockAfterDismissal(resuming wasPlaying: Bool) -> Bool {
         guard let dock, dock.active === self, let player = session.player, let playerVC,
               dock.tabBarController.view.window != nil else { return false }
