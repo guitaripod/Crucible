@@ -14,6 +14,8 @@ struct PlayerRun {
     var queue: PlaybackQueue?
     /// Whether the window was out of full screen when the sitting's first title opened; nil until it opens.
     var beganWindowed: Bool?
+    /// How many titles of the sitting played before this one (0 for the one the viewer started), for After the First Episode.
+    var titlesBefore = 0
 
     /// Whether the Up Next card asks "Still watching?" instead of counting down.
     var asksStillWatching: Bool {
@@ -28,7 +30,8 @@ struct PlayerRun {
                   sleepTimer: sleepTimer.flatMap { $0.stopsAtEndOfItem ? nil : $0 },
                   trackLanguages: languages,
                   queue: queue,
-                  beganWindowed: beganWindowed)
+                  beganWindowed: beganWindowed,
+                  titlesBefore: titlesBefore + 1)
     }
 }
 

@@ -178,7 +178,13 @@ final class PlayerScreen: View {
     var watchers: [PlaybackWatching] = []
     var watchersStarted = false
     private var lastClick: Date?
+    /// Whether the last click on the picture paused or played, which a double click puts back as it goes full screen.
+    private var lastClickToggled = false
     var closed = false
+    /// Settings' changes to the title rules and the taste reaching an open player; removed when it closes.
+    var settingsObservers: [NSObjectProtocol] = []
+    /// This title's rules as last read, which the skip button consults on every playhead update.
+    var keptTitleRules: TitlePlaybackRules?
     var controls: MediaControls?
     var artworkFile: URL?
     var alert: AlertView?
@@ -250,6 +256,7 @@ final class PlayerScreen: View {
         }
         addSubview(transport)
         addSubview(skip)
+        followSettings()
     }
 
     override var canBecomeFocused: Bool { true }
@@ -356,6 +363,7 @@ final class PlayerScreen: View {
         streamOffset = resolved.isDirectPlay ? 0 : start
         upNext = UpNextResolver(ratingKey: item.id, isEpisode: item.mediaType == "episode", seasonRatingKey: item.parentRatingKey,
                                 showRatingKey: item.grandparentRatingKey, queue: run.queue, markers: resolved.markers)
+        applyTitleRules()
         startWatchers(for: item, api: api)
         transport.chapterMarks = ChapterList.playable(resolved.chapters).map(\.startSecs)
         showStills(of: resolved, api: api)
@@ -510,10 +518,10 @@ final class PlayerScreen: View {
     var chromeShown: Bool { chrome.target > 0.5 }
 
     /// How long the chrome stays after the last sign of the viewer (the pointer moving over the picture, a key, a seek):
-    /// brief on a desk, a little longer on the couch, read from across the room.
-    static var chromeRest: Duration { Theme.current.density == .desk ? .milliseconds(1500) : .milliseconds(2500) }
+    /// Settings' Hide Controls After, by default brief on a desk and a little longer on the couch, read from across the room.
+    static var chromeRest: Duration { .milliseconds(Int(PlayerMouse.rest * 1000)) }
     /// The longer rest of a pointer stopped on the transport, aiming at a button or reading the scrubber's preview.
-    static var chromeRestOnBar: Duration { Theme.current.density == .desk ? .milliseconds(2500) : .milliseconds(3000) }
+    static var chromeRestOnBar: Duration { .milliseconds(Int((PlayerMouse.rest + (Theme.current.density == .desk ? 1 : 0.5)) * 1000)) }
 
     /// The rest for the pointer where it is now: the longer one while it is on the transport.
     private var restWherePointerIs: Duration {
@@ -652,10 +660,7 @@ final class PlayerScreen: View {
             say(String(localized: "Volume \(Int(volume))%", comment: "Player message with the volume, as in \"Volume 55%\""), symbol: volume <= 0 ? "speaker.slash" : "speaker.wave.2")
             return true
         case Key.character("m"):
-            let muting = !player.state.isMuted
-            player.setMuted(muting)
-            say(muting ? String(localized: "Mute") : String(localized: "Unmute", comment: "Player button: turn the sound back on"),
-                symbol: muting ? "speaker.slash" : "speaker.wave.2")
+            toggleMute()
             return true
         case Key.character("s"), .return:
             if !skip.isHidden { skipSegment() } else { togglePause() }
@@ -835,8 +840,9 @@ final class PlayerScreen: View {
         return true
     }
 
-    /// A click on the picture pauses or plays (twice, also full screen), except where the hidden transport sits: the
-    /// viewer is aiming at a button they cannot see, so that click brings the transport back instead.
+    /// A click on the picture does what Settings › Controls says (by default pauses or plays, and twice also goes full
+    /// screen), except where the hidden transport sits: the viewer is aiming at a button they cannot see, so that click
+    /// brings the transport back instead. A right click on the skip button offers how this show skips that stretch.
     override func pointerPressed(_ button: MouseButton, at point: Point) -> Bool {
         viewerActed()
         if isMini { return miniPressed(button, at: point) }
@@ -846,21 +852,17 @@ final class PlayerScreen: View {
                 showChrome(autoHide: true, rest: Self.chromeRestOnBar)
                 return true
             }
-            let now = Date()
-            if let lastClick, now.timeIntervalSince(lastClick) < 0.35, let window {
-                window.setFullscreen(!window.isFullscreen)
-                togglePause()
-            } else {
-                togglePause()
-            }
-            lastClick = now
-            showChrome(autoHide: true)
+            clickedPicture()
+            return true
+        case .middle:
+            middleClicked()
             return true
         case .back:
             close()
             return true
         case .secondary:
             guard scrubOrigin == nil else { return false }
+            if !skip.isHidden, skip.frame.contains(point), presentSkipMenu(at: transformToWindow.apply(point)) { return true }
             presentContextMenu(at: transformToWindow.apply(point))
             return true
         default:
@@ -868,20 +870,58 @@ final class PlayerScreen: View {
         }
     }
 
+    /// One click on the picture, or the second of a double click, as Settings › Controls › Mouse has them.
+    private func clickedPicture() {
+        let now = Date()
+        if let lastClick, now.timeIntervalSince(lastClick) < 0.35, PlayerMouse.doubleClick == .fullScreen, let window {
+            window.setFullscreen(!window.isFullscreen)
+            if lastClickToggled { togglePause() }
+            self.lastClick = nil
+            lastClickToggled = false
+            showChrome(autoHide: true)
+            return
+        }
+        lastClick = now
+        lastClickToggled = false
+        switch PlayerMouse.click {
+        case .playPause:
+            togglePause()
+            lastClickToggled = true
+            showChrome(autoHide: true)
+        case .showControls:
+            if chromeShown { hideChrome() } else { showChrome(autoHide: true) }
+        case .nothing:
+            break
+        }
+    }
+
+    private func middleClicked() {
+        switch PlayerMouse.middleClick {
+        case .nothing: return
+        case .mute: toggleMute()
+        case .playPause: togglePause()
+        case .fullScreen: window.map { $0.setFullscreen(!$0.isFullscreen) }
+        }
+        showChrome(autoHide: true)
+    }
+
     override func showContextMenu(at point: Point?) -> Bool {
         presentContextMenu(at: point)
         return true
     }
 
-    /// The wheel or a touchpad seeks (5 s a notch), except a run that began over the shown transport's volume slider or mute
-    /// button, which turns the volume and keeps the transport up while it does (`wheelTurnsVolume`).
+    /// The wheel or a touchpad does what Settings › Controls › Mouse says (by default seeks 5 s a notch), except a run
+    /// that began over the shown transport's volume slider or mute button, which turns the volume and keeps the transport
+    /// up while it does (`wheelTurnsVolume`).
     override func scrolled(_ event: ScrollEvent) -> Bool {
-        if wheelTurnsVolume(event) {
+        let wheel = PlayerMouse.wheel
+        if wheelTurnsVolume(event) || (wheel == .volume && !isMini) {
             transport.turnVolume(event)
             showChrome(autoHide: true, rest: Self.chromeRestOnBar)
             return true
         }
-        let step: Double = event.isDiscrete ? Double(-event.notchesY + event.notchesX) * 5 : Double(-event.dy + event.dx) * 0.1
+        guard let notch = wheel.seconds ?? (isMini ? 5 : nil) else { return true }
+        let step: Double = event.isDiscrete ? Double(-event.notchesY + event.notchesX) * notch : Double(-event.dy + event.dx) * 0.02 * notch
         guard step != 0 else { return true }
         viewerActed()
         seek(to: playhead - step)

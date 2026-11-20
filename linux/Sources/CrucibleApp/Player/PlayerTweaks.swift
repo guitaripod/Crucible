@@ -87,6 +87,17 @@ enum PlayerTweakStore {
         defaults.set(try? JSONEncoder().encode(taste), forKey: tasteKey)
     }
 
+    /// Posted when Settings changed the taste (or the subtitle size), so a player that is open takes it up.
+    static let tasteChanged = Notification.Name("org.guitaripod.Crucible.playerTasteChanged")
+
+    /// Changes the taste from outside the player and tells an open one.
+    static func changeTaste(_ change: (inout PlayerTweaks.Taste) -> Void) {
+        var current = taste()
+        change(&current)
+        save(current)
+        NotificationCenter.default.post(name: tasteChanged, object: nil)
+    }
+
     static func title(_ key: String, in defaults: UserDefaults = .standard) -> PlayerTweaks.Title {
         titles(in: defaults)[key]?.title ?? PlayerTweaks.Title()
     }
@@ -114,33 +125,14 @@ enum PlayerTweakStore {
     }
 }
 
-/// The shows and movies Match Content is on for. It is off for each one until the viewer turns it on in the player's
-/// Picture menu; a show's episodes share one choice. Keys are `PlayerTweakStore.key(ratingKey:)` of the show or movie.
-@MainActor
-enum MatchContentTitles {
-    private static let titlesKey = "player.matchContentTitles"
-
-    static func isOn(_ title: String, in defaults: UserDefaults = .standard) -> Bool {
-        titles(in: defaults).contains(title)
-    }
-
-    static func set(_ on: Bool, for title: String, in defaults: UserDefaults = .standard) {
-        var all = titles(in: defaults)
-        if on { all.insert(title) } else { all.remove(title) }
-        defaults.set(all.sorted(), forKey: titlesKey)
-    }
-
-    private static func titles(in defaults: UserDefaults) -> Set<String> {
-        Set(defaults.stringArray(forKey: titlesKey) ?? [])
-    }
-}
-
-/// The volume each show or movie was last played at (a show's episodes share one), keyed like `MatchContentTitles`. A
-/// show or movie not played since starts at the volume the viewer last chose anywhere; one never chosen leaves mpv's.
+/// The volume each show or movie was last played at (a show's episodes share one), keyed like `TitleRulesStore`. A show
+/// or movie not played since, or any while Remember Volume for Each Show is off, starts at the volume the viewer last chose
+/// anywhere; one never chosen leaves mpv's.
 @MainActor
 enum PlayerVolumeStore {
     private static let titlesKey = "player.volumes"
     private static let lastKey = "player.lastVolume"
+    private static let perTitleKey = "player.volumePerTitle"
     private static let titleCapacity = 400
 
     private struct Kept: Codable {
@@ -148,8 +140,29 @@ enum PlayerVolumeStore {
         var changed: Date
     }
 
+    /// Whether each show and movie keeps its own volume (on until the viewer turns it off).
+    static func isPerTitle(in defaults: UserDefaults = .standard) -> Bool {
+        defaults.object(forKey: perTitleKey) as? Bool ?? true
+    }
+
+    static func setPerTitle(_ on: Bool, in defaults: UserDefaults = .standard) {
+        defaults.set(on, forKey: perTitleKey)
+    }
+
     static func volume(for title: String, in defaults: UserDefaults = .standard) -> Double? {
-        titles(in: defaults)[title]?.volume ?? (defaults.object(forKey: lastKey) as? Double)
+        (isPerTitle(in: defaults) ? titleVolume(for: title, in: defaults) : nil) ?? (defaults.object(forKey: lastKey) as? Double)
+    }
+
+    /// The volume `title` itself was last played at, if it was kept.
+    static func titleVolume(for title: String, in defaults: UserDefaults = .standard) -> Double? {
+        titles(in: defaults)[title]?.volume
+    }
+
+    /// Drops what `title` kept, so it starts at the last volume chosen anywhere.
+    static func forget(_ title: String, in defaults: UserDefaults = .standard) {
+        var all = titles(in: defaults)
+        guard all.removeValue(forKey: title) != nil else { return }
+        defaults.set(try? JSONEncoder().encode(all), forKey: titlesKey)
     }
 
     static func save(_ volume: Double, for title: String, in defaults: UserDefaults = .standard) {

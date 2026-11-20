@@ -58,6 +58,8 @@ extension PlayerScreen {
     func close() {
         guard !closed else { return }
         closed = true
+        settingsObservers.forEach { NotificationCenter.default.removeObserver($0) }
+        settingsObservers = []
         MatchContent.release()
         resolveTask?.cancel()
         reportTask?.cancel()

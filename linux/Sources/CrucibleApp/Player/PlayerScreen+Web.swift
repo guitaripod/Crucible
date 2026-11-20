@@ -298,14 +298,18 @@ extension PlayerScreen {
         return SkipMarker(kind: kind, startSecs: segment.start, endSecs: segment.end)
     }
 
-    /// Whether `segment` is skipped on its own, offered or left alone: a Plex title's markers follow Skip Intro and Skip
-    /// Credits, a web video's follow the SponsorBlock setting.
-    func skipHandling(of segment: SkipMarker) -> (automatic: Bool, off: Bool) {
+    /// Whether `segment` is skipped on its own, offered or left alone: a Plex title's stretches follow its show's or movie's
+    /// own rules over Settings › Playback › Skipping, a web video's the SponsorBlock setting.
+    func skipDecision(for segment: SkipMarker) -> SkipDecision {
         guard web != nil else {
-            return (segment.isCredits ? Preferences.skipOutroMode == .automatic : Preferences.skipIntroMode == .automatic,
-                    segment.isCredits ? Preferences.skipOutroMode == .off : Preferences.skipIntroMode == .off)
+            let kind = SkipKind(segment.kind)
+            return SkipDecision.decide(titleRules.mode(for: kind, settings: SkipSettings.mode(for: kind)), for: segment, titlesBefore: run.titlesBefore)
         }
-        return (WebSettings.sponsorMode == .automatic, WebSettings.sponsorMode == .off)
+        switch WebSettings.sponsorMode {
+        case .automatic: return segment.isCredits ? .offer : .skip
+        case .offer: return .offer
+        case .off: return .ignore
+        }
     }
 
     /// What the skip button says for `segment`: SponsorBlock's own name for a web video's stretch.

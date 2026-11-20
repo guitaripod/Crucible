@@ -126,8 +126,8 @@ extension PlayerScreen {
     }
 
 
-    /// Shows Skip Intro or Skip Credits inside a segment, or skips it at once when Settings say so (once per segment, so
-    /// seeking back into it plays it), then offers Undo Skip for a few seconds.
+    /// Shows Skip Intro, Skip Credits and the like inside a segment, or skips it at once when this title's rules or
+    /// Settings say so (once per segment, so seeking back into it plays it), then offers Undo Skip for a few seconds.
     func updateSkip() {
         if let undo {
             if ContinuousClock.now < undo.until { return }
@@ -135,15 +135,16 @@ extension PlayerScreen {
         }
         let now = position
         if let segment = segments.first(where: { now >= $0.startSecs && now < $0.endSecs - 1 }), card == nil {
-            let (automatic, off) = skipHandling(of: segment)
-            if off { return }
-            if automatic, !segment.isCredits, !autoSkipped.contains(segment) {
+            switch skipDecision(for: segment) {
+            case .ignore:
+                if !skip.isHidden { skip.isHidden = true }
+            case .skip where !autoSkipped.contains(segment):
                 autoSkipped.insert(segment)
                 seek(to: segment.endSecs)
                 offerUndo(returningTo: now)
-                return
+            case .skip, .offer:
+                showSkip(title: skipTitle(of: segment), symbol: "forward.end.fill")
             }
-            showSkip(title: skipTitle(of: segment), symbol: "forward.end.fill")
         } else if !skip.isHidden {
             skip.isHidden = true
         }

@@ -452,7 +452,15 @@ extension PlayerScreen {
 
     /// Whether Match Content acts for this title: on in Settings and turned on for this show or movie.
     var matchesContent: Bool {
-        Preferences.matchesContent && MatchContentTitles.isOn(showOrTitleKey)
+        Preferences.matchesContent && titleRules.matchContent
+    }
+
+    func toggleMute() {
+        guard let player else { return }
+        let muting = !player.state.isMuted
+        player.setMuted(muting)
+        say(muting ? String(localized: "Mute") : String(localized: "Unmute", comment: "Player button: turn the sound back on"),
+            symbol: muting ? "speaker.slash" : "speaker.wave.2")
     }
 
     /// Matches the screen to `stream` when Match Content is on for this title, and otherwise puts back what an earlier
@@ -467,7 +475,7 @@ extension PlayerScreen {
     }
 
     func setMatchContent(_ on: Bool) {
-        MatchContentTitles.set(on, for: showOrTitleKey)
+        changeTitleRules { $0.matchContent = on }
         if let stream, let window, window.isFullscreen, !isMini { engageMatchContent(stream) }
         say(on ? String(localized: "Match Content On", comment: "Player message") : String(localized: "Match Content Off", comment: "Player message"),
             symbol: "tv")

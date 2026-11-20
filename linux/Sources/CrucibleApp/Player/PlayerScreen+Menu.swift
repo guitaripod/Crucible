@@ -101,6 +101,7 @@ extension PlayerScreen {
         entries.append(.submenu(SleepTimer.title, detail: sleepTimer?.menuTitle(isEpisode: isEpisode), symbol: "moon") {
             [weak self] in self?.sleepEntries() ?? []
         })
+        if let rules = titleRulesSubmenu() { entries.append(rules) }
         entries.append(.separator)
         let fullscreen = window?.isFullscreen ?? false
         entries.append(.action(Action(String(localized: "Full Screen", comment: "Player menu"), shortcut: "F", isChecked: fullscreen) { [weak self] in
