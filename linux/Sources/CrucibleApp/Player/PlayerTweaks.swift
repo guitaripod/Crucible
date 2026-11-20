@@ -113,3 +113,24 @@ enum PlayerTweakStore {
         defaults.data(forKey: titlesKey).flatMap { try? JSONDecoder().decode([String: Kept].self, from: $0) } ?? [:]
     }
 }
+
+/// The shows and movies Match Content is on for. It is off for each one until the viewer turns it on in the player's
+/// Picture menu; a show's episodes share one choice. Keys are `PlayerTweakStore.key(ratingKey:)` of the show or movie.
+@MainActor
+enum MatchContentTitles {
+    private static let titlesKey = "player.matchContentTitles"
+
+    static func isOn(_ title: String, in defaults: UserDefaults = .standard) -> Bool {
+        titles(in: defaults).contains(title)
+    }
+
+    static func set(_ on: Bool, for title: String, in defaults: UserDefaults = .standard) {
+        var all = titles(in: defaults)
+        if on { all.insert(title) } else { all.remove(title) }
+        defaults.set(all.sorted(), forKey: titlesKey)
+    }
+
+    private static func titles(in defaults: UserDefaults) -> Set<String> {
+        Set(defaults.stringArray(forKey: titlesKey) ?? [])
+    }
+}

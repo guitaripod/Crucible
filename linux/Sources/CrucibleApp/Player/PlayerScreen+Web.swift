@@ -162,7 +162,7 @@ extension PlayerScreen {
         player?.set("user-agent", plan.userAgent ?? WebArtwork.userAgent)
         player?.load(location: plan.location, start: start, headers: plan.headers)
         player?.setPaused(paused)
-        if let window, let stream { MatchContent.engage(stream, in: window) }
+        if let stream { engageMatchContent(stream) }
         matchedFullscreen = window?.isFullscreen ?? false
         ScreenAwake.hold(true, in: window)
         let transport = plan.selection.video?.isProgressive == false ? "segments" : "one file"
@@ -182,7 +182,7 @@ extension PlayerScreen {
               abs(measured - declared) > 0.005, abs(measured - declared) < 1 else { return }
         let corrected = webStream(of: video, selection: selection, frameRate: measured)
         stream = corrected
-        if let window, window.isFullscreen, !isMini { MatchContent.engage(corrected, in: window) }
+        if let window, window.isFullscreen, !isMini { engageMatchContent(corrected) }
     }
 
     // MARK: The stream as the player reads it

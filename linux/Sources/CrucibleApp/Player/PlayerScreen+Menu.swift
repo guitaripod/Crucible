@@ -277,6 +277,11 @@ extension PlayerScreen {
         }
         entries.append(.separator)
         entries.append(.action(Action(String(localized: "Reset Picture", comment: "Player menu"), keepsOpen: true) { [weak self] in self?.resetPicture() }))
+        if Preferences.matchesContent {
+            entries.append(.action(Action(String(localized: "Match Content", comment: "Player menu: switch the screen to this show's or movie's frame rate and HDR"), isChecked: matchesContent, keepsOpen: true) {
+                [weak self] in self.map { $0.setMatchContent(!$0.matchesContent) }
+            }))
+        }
         entries.append(.action(Action(String(localized: "Calibrate Display…", comment: "Player menu: test patterns for black level and HDR peak"),
                                       detail: calibrationDetail) { [weak self] in self?.presentCalibration() }))
         return entries

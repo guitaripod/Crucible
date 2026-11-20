@@ -443,6 +443,35 @@ extension PlayerScreen {
         }
     }
 
+    /// The key Match Content's choice is kept under: the whole show for an episode, otherwise the title itself.
+    var matchContentKey: String {
+        if case .plex(_, let item, _) = source, let show = item.grandparentRatingKey { return PlayerTweakStore.key(ratingKey: show) }
+        return tweakKey
+    }
+
+    /// Whether Match Content acts for this title: on in Settings and turned on for this show or movie.
+    var matchesContent: Bool {
+        Preferences.matchesContent && MatchContentTitles.isOn(matchContentKey)
+    }
+
+    /// Matches the screen to `stream` when Match Content is on for this title, and otherwise puts back what an earlier
+    /// title in this sitting changed.
+    func engageMatchContent(_ stream: ResolvedStream) {
+        guard let window else { return }
+        if matchesContent {
+            MatchContent.engage(stream, in: window)
+        } else {
+            MatchContent.release()
+        }
+    }
+
+    func setMatchContent(_ on: Bool) {
+        MatchContentTitles.set(on, for: matchContentKey)
+        if let stream, let window, window.isFullscreen, !isMini { engageMatchContent(stream) }
+        say(on ? String(localized: "Match Content On", comment: "Player message") : String(localized: "Match Content Off", comment: "Player message"),
+            symbol: "tv")
+    }
+
     /// Reads what the viewer set for this title and in general, and hands it to mpv before the file opens.
     func loadTweaks() {
         tweaks.title = PlayerTweakStore.title(tweakKey)

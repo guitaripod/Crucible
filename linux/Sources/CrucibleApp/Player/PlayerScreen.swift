@@ -152,7 +152,7 @@ final class PlayerScreen: View {
         guard let window, (window.isFullscreen && !isMini) != matchedFullscreen, !closed else { return }
         matchedFullscreen = window.isFullscreen && !isMini
         if matchedFullscreen, let stream {
-            MatchContent.engage(stream, in: window)
+            engageMatchContent(stream)
         } else if !matchedFullscreen {
             MatchContent.release()
         }
@@ -368,7 +368,7 @@ final class PlayerScreen: View {
         player?.load(resolved.url, start: resolved.isDirectPlay ? start : 0, headers: headers,
                      options: resolved.isDirectPlay ? FileTracks(resolved).loadOptions : [:])
         player?.setPaused(paused)
-        if let window { MatchContent.engage(resolved, in: window) }
+        engageMatchContent(resolved)
         matchedFullscreen = window?.isFullscreen ?? false
         ScreenAwake.hold(true, in: window)
         MidgarLog.notice("Playing \(item.id) \(resolved.isDirectPlay ? "directly" : "converted") from \(Int(start)) s", category: .playback)
