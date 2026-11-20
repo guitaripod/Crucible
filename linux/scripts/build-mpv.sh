@@ -8,7 +8,7 @@ vendor="$root/Vendor/mpv"
 work="${MPV_WORK:-$root/.build/mpv-src}"
 prefix="${MPV_PREFIX:-$root/.build/mpv}"
 source "$vendor/VERSIONS"
-recipe="$(cat "$vendor/VERSIONS" "$vendor"/patches/*/*.patch | sha256sum | cut -c1-16)"
+recipe="$(cat "$0" "$vendor/VERSIONS" "$vendor"/patches/*/*.patch | sha256sum | cut -c1-16)"
 if [ "${1:-}" = "--if-stale" ] && [ -f "$prefix/lib/libmpv.so.2" ] && [ "$(cat "$prefix/.recipe" 2>/dev/null)" = "$recipe" ]; then
     exit 0
 fi
@@ -34,7 +34,7 @@ if [ ! -f /usr/include/vulkan/vulkan.h ] || [ ! -f "$registry" ]; then
 fi
 
 cd "$work/mpv"
-CFLAGS="-I$headers" LDFLAGS="-Wl,-rpath,\$ORIGIN" meson setup build --prefix="$prefix" -Dbuildtype=release -Dlibmpv=true -Dcplayer=false \
+CFLAGS="-I$headers" LDFLAGS="-Wl,-rpath,\$ORIGIN" meson setup build --prefix="$prefix" -Dbuildtype=release -Dlibmpv=true -Dcplayer=false -Dsndio=disabled --force-fallback-for=libplacebo \
     -Dlibplacebo:vulkan-registry="$registry" -Dlibplacebo:demos=false -Dlibplacebo:default_library=shared > "$work/setup.log"
 ninja -C build > "$work/build.log"
 rm -rf "$prefix"
