@@ -149,5 +149,6 @@ extension PlaybackSession {
         let kind = stream.map { $0.isDirectPlay ? "file" : "converted" } ?? "none"
         let ready = readyAfter.map { " ready=\($0) ms" } ?? ""
         MidgarLog.notice("Playing ratingKey=\(request.ratingKey) \(milliseconds) ms after Play\(ready) start=\(startedFrom.logName)\(startedPrimed ? "+primed" : "") stream=\(kind)", category: .playback)
+        logPicture()
     }
 }

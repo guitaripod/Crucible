@@ -38,6 +38,18 @@ struct DynamicRangeTests {
         #expect(try DynamicRange(video(["displayTitle": "1080p (H.264)"])) == .sdr)
     }
 
+    @Test func aTwoTrackDolbyVisionFileIsReadFromItsSecondVideoTrack() throws {
+        let base = try video(["colorTrc": "smpte2084", "displayTitle": "4K HDR10 (HEVC Main 10)"])
+        let enhancement = try video(["DOVIPresent": true, "DOVIProfile": 7, "DOVIBLCompatID": 6, "DOVIBLPresent": false, "DOVIELPresent": true])
+        let audio = try JSONDecoder().decode(PlexStream.self, from: Data(#"{"streamType": 2, "codec": "eac3"}"#.utf8))
+        #expect(DynamicRange(base) == .hdr10)
+        #expect(DynamicRange(file: [base, enhancement, audio]).isDualLayerDolbyVision)
+        #expect(DynamicRange(file: [base, enhancement, audio]).name == "Dolby Vision 7")
+        #expect(DynamicRange(file: [audio, base]) == .hdr10)
+        #expect(DynamicRange(file: [audio]) == .sdr)
+        #expect(DynamicRange(file: nil) == .sdr)
+    }
+
     @Test func pictureFactsDecodeFromNumbersOrStrings() throws {
         let stream = try video(["bitDepth": "10", "frameRate": "23.976", "colorTrc": "smpte2084", "DOVIPresent": 1])
         #expect(stream.bitDepth == 10)

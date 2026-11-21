@@ -169,10 +169,11 @@ package enum StreamResolver {
         )
 
         let capabilities = PlaybackCapabilities.current
+        let source = DynamicRange(file: part.Stream)
         let playsAsItIs = capabilities.playsEveryFile || (
             subtitleIsInFile
                 && !wantsNonDefaultAudio
-                && !DynamicRange(part.Stream?.first { $0.streamType == 1 }).isDualLayerDolbyVision
+                && !source.isDualLayerDolbyVision
                 && isDirectPlayable(container: metadata.mediaContainer, videoCodec: media.videoCodec, audioCodec: media.audioCodec,
                                     capabilities: capabilities)
         )
@@ -180,6 +181,7 @@ package enum StreamResolver {
            QualityPolicy.current(for: baseURL) == .original,
            playsAsItIs,
            let directURL = directPlayURL(baseURL: baseURL, partKey: part.key, token: token) {
+            MidgarLog.notice("Direct play ratingKey=\(ratingKey) source=\(source.name)", category: .playback)
             return ResolvedStream(
                 url: directURL,
                 isDirectPlay: true,
@@ -217,7 +219,7 @@ package enum StreamResolver {
         if delivery == .track, decision?.subtitleDecision == "burn" {
             delivery = .burned
         }
-        logDecision(decision, ratingKey: ratingKey, capabilities: capabilities)
+        logDecision(decision, ratingKey: ratingKey, source: source, capabilities: capabilities)
 
         return ResolvedStream(
             url: url,
@@ -266,10 +268,11 @@ package enum StreamResolver {
 
     /// What the server makes of the stream next to what the device asked for, the first thing to read when a picture arrives
     /// converted or in SDR.
-    private static func logDecision(_ decision: PlaybackDecision?, ratingKey: String, capabilities: PlaybackCapabilities) {
+    private static func logDecision(_ decision: PlaybackDecision?, ratingKey: String, source: DynamicRange, capabilities: PlaybackCapabilities) {
         MidgarLog.notice(
             "Transcode ratingKey=\(ratingKey) video=\(decision?.videoDecision ?? "unknown") transfer=\(decision?.videoTransfer ?? "none") "
-                + "audio=\(decision?.audioDecision ?? "unknown") hevc=\(capabilities.decodesHEVC) av1=\(capabilities.decodesAV1) hdr=\(capabilities.showsHDR)",
+                + "audio=\(decision?.audioDecision ?? "unknown") hevc=\(capabilities.decodesHEVC) av1=\(capabilities.decodesAV1) hdr=\(capabilities.showsHDR) "
+                + "source=\(source.name)",
             category: .playback
         )
     }

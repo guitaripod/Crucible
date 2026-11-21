@@ -124,6 +124,9 @@ package enum PlaybackTiming {
     package static let timelineInterval = 10.0
     package static let saveInterval = 5.0
     package static let transcodePingInterval: Duration = .seconds(20)
+    /// How long after the picture starts the log says what is being decoded: by then the item has its tracks and an Apple TV
+    /// has finished matching its output to them.
+    package static let pictureLogDelay: Duration = .seconds(4)
     package static let autoSkipUndoWindow: Duration = .seconds(4)
     /// How close to the resume position the playhead has to be for a prepared player's seek to count as landed.
     package static let resumeLandedTolerance = 5.0

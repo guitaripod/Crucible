@@ -319,8 +319,21 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
             revealWhenLoaded(session, item: player.currentItem)
         }
         observeEvents(of: session)
+        session.describesDisplay = { [weak self] in self?.displayNote }
         refreshTrackMenus()
         prepareUpNext(for: session)
+    }
+
+    /// What can be read of the television for the log's picture line: whether Match Content is on in Settings, whether the
+    /// output is still switching, and the headroom above SDR white the screen gives now and at most. tvOS does not say which
+    /// mode the output is in.
+    private var displayNote: String? {
+        guard let window = playerVC.viewIfLoaded?.window else { return nil }
+        let manager = window.avDisplayManager
+        let screen = window.screen
+        return "matching=\(manager.isDisplayCriteriaMatchingEnabled) switching=\(manager.isDisplayModeSwitchInProgress) "
+            + "criteria=\(manager.preferredDisplayCriteria != nil) "
+            + String(format: "headroom=%.2f/%.2f", screen.currentEDRHeadroom, screen.potentialEDRHeadroom)
     }
 
     private func observeEvents(of session: PlaybackSession) {

@@ -124,6 +124,8 @@ package final class PlaybackSession {
     /// The choice a running change is resolving, which a pick made meanwhile is merged with.
     var resolvingStreamChoice: StreamChoice?
     var isStopped = false
+    /// What the surface showing the player can say about the screen, for the picture line in the log.
+    package var describesDisplay: (@MainActor () -> String?)?
     var isUpNextVisible = false
     var isUndoVisible = false
     /// Set when a surface puts a prepared player on screen and asks it to start while the resume seek it

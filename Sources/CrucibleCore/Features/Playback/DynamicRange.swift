@@ -31,7 +31,20 @@ package enum DynamicRange: Equatable, Sendable {
         }
     }
 
+    /// The range of a file from every stream it holds. A Dolby Vision file written as two video tracks keeps the base layer in
+    /// the first, which reads as plain HDR10, and says it is Dolby Vision only on the second, so the first stream alone would
+    /// hide the profile.
+    package init(file streams: [PlexStream]?) {
+        let ranges = (streams ?? []).filter { $0.streamType == 1 }.map { DynamicRange($0) }
+        self = ranges.first(where: \.isDolbyVision) ?? ranges.first ?? .sdr
+    }
+
     package var isHDR: Bool { self != .sdr }
+
+    package var isDolbyVision: Bool {
+        if case .dolbyVision = self { return true }
+        return false
+    }
 
     /// Dolby Vision profile 7, the dual-layer kind on UHD Blu-ray remuxes, which Apple's player will not decode at all.
     package var isDualLayerDolbyVision: Bool {
