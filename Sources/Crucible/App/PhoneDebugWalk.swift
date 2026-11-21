@@ -17,6 +17,9 @@ import UIKit
 /// - `pro` has Crucible Pro arrive for this launch, as after a purchase, so a sealed answer opens where it stands.
 /// - `scroll` runs the front screen's list to its end and back.
 /// - `dismiss` closes whatever is presented, and `snapshot=<name>` writes the window.
+/// - `playlead` plays the title Home leads with, `title=<rating key>` opens a film's or (`title=<rating key>:episode`) an
+///   episode's page and `play` presses Play on it, `upnext` plays what the show page in front would play, and `close` ends
+///   the player. With the log's "ms after Play" lines these time a start; `CRUCIBLE_INSTANT=0` times it without Instant Start.
 ///
 /// A step that cannot run where the walk stands says so in the log instead of doing something else.
 @MainActor
@@ -92,6 +95,22 @@ enum PhoneDebugWalk {
             }
         case "pro":
             ProAccess.shared.apply(.pro(ProEntitlement(kind: .lifetime, productIdentifier: "debug.walk")))
+        case "playlead":
+            guard tabBar.open(.home) != nil, let home = tabBar.homeScreen else { return false }
+            home.playHighlightedTitle()
+        case "title":
+            guard let parts = step.argument?.split(separator: ":"), let key = parts.first, let navigation = tabBar.open(.home) else { return false }
+            let page = MediaDetailViewController(api: tabBar.api, ratingKey: String(key), mediaType: parts.count > 1 ? String(parts[1]) : "movie")
+            navigation.pushViewController(page, animated: true)
+        case "play":
+            guard let page = front as? MediaDetailViewController else { return false }
+            page.play()
+        case "upnext":
+            guard let page = front as? ShowDetailViewController, page.canPerform(.play) else { return false }
+            page.perform(.play)
+        case "close":
+            guard let player = PlayerCoordinator.current else { return false }
+            player.close()
         case "scroll":
             return scroll(front)
         case "dismiss":

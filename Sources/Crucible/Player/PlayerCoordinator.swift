@@ -12,6 +12,9 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     private static let spinnerDelay: TimeInterval = 0.3
     /// The player that started last. On iPad each window can hold a player; starting one pauses the other, so only one plays at a time.
     private static weak var playingCoordinator: PlayerCoordinator?
+    #if DEBUG
+    static var current: PlayerCoordinator? { playingCoordinator }
+    #endif
 
     typealias Metadata = PlaybackMetadata
 

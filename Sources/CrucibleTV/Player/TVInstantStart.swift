@@ -11,6 +11,14 @@ enum TVInstantStart {
         PlaybackWarmUp.shared.warm(api: env.api, request: request.playbackRequest, intent: intent, installsRemoteCommands: false)
     }
 
+    /// Home is on screen: the first time since the app was opened (`AppOpening`), what its first card plays is made ready
+    /// at once, before focus has even reached it, for a viewer who opened the app to carry on and is about to press Down
+    /// and then Select.
+    static func warmOnOpening(_ env: TVAppEnvironment, request: TVPlaybackRequest) {
+        guard AppOpening.take() else { return }
+        warm(env, request: request, intent: .poised)
+    }
+
     /// The viewer left the screen, or the card, that spoke for `ratingKey`.
     static func cool(_ ratingKey: String?) {
         guard let ratingKey else { return }

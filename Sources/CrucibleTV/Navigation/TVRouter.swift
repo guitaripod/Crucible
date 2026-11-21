@@ -19,6 +19,7 @@ final class TVRouter {
         self.tabBar = tabBar
         #if DEBUG
         TVDebugScreen.openIfRequested(on: tabBar)
+        TVDebugWalk.startIfRequested(on: tabBar)
         queueLaunchLink()
         #endif
         guard let link = pending else { return }

@@ -30,6 +30,8 @@ package final class PlaybackWarmUp {
     }
 
     private var held: Held?
+    /// Why the last ask was refused outright, so the log says so once when that changes and not at every ask.
+    private var lastRefusal: String?
     /// The title last handed to a player, and that player's session while it lives.
     private var lastPlayed: (ratingKey: String, session: () -> PlaybackSession?)?
     private var work: Task<Void, Never>?
@@ -51,7 +53,12 @@ package final class PlaybackWarmUp {
     /// `intent` for it makes it ready further.
     package func warm(api: APIClient, request: PlaybackRequest, intent: PlayIntent, installsRemoteCommands: Bool = true) {
         guard let key = WarmKey(request) else { return }
-        guard WarmStartRule.allows(conditions) else {
+        let refusal = conditions.refusal
+        if refusal != lastRefusal {
+            lastRefusal = refusal
+            MidgarLog.notice("Instant Start: \(refusal.map { "holding back, \($0)" } ?? "making titles ready again")", category: .playback)
+        }
+        guard refusal == nil else {
             cool()
             return
         }
@@ -92,6 +99,7 @@ package final class PlaybackWarmUp {
         expiry?.cancel()
         expiry = nil
         current.session.startedFrom = current.session.warmth
+        began(current.session)
         MidgarLog.notice("Instant Start: handing over ratingKey=\(request.ratingKey) start=\(current.session.warmth.logName) loaded=\(current.session.isLoaded)", category: .playback)
         return current.session
     }
@@ -141,7 +149,8 @@ package final class PlaybackWarmUp {
         guard let current = held, current.session === session, let stream = session.stream else { return }
         let cost = StreamCost(stream)
         let depth = WarmStartRule.depth(intent: current.intent, cost: cost, conditions: conditions)
-        MidgarLog.notice("Instant Start: ratingKey=\(current.key.ratingKey) cost=\(cost) intent=\(current.intent) depth=\(depth.logName)", category: .playback)
+        let milliseconds = Int((current.since.duration(to: .now).seconds * 1000).rounded())
+        MidgarLog.notice("Instant Start: ratingKey=\(current.key.ratingKey) cost=\(cost) intent=\(current.intent) depth=\(depth.logName) after \(milliseconds) ms", category: .playback)
         if depth == .loaded { session.preload() }
     }
 
@@ -162,10 +171,20 @@ package final class PlaybackWarmUp {
         !held.session.isSpent && held.since.duration(to: .now) < WarmStartRule.freshness
     }
 
+    /// `CRUCIBLE_INSTANT=0` starts a debug build with Instant Start off without touching the setting, so the same device
+    /// can be timed both ways.
+    private var isSwitchedOffForThisLaunch: Bool {
+        #if DEBUG
+        ProcessInfo.processInfo.environment["CRUCIBLE_INSTANT"] == "0"
+        #else
+        false
+        #endif
+    }
+
     private var conditions: WarmConditions {
         let process = ProcessInfo.processInfo
         return WarmConditions(
-            isEnabled: Preferences.instantStart,
+            isEnabled: Preferences.instantStart && !isSwitchedOffForThisLaunch,
             isCellular: NetworkConditions.isCellular,
             savesPower: process.isLowPowerModeEnabled,
             isHot: process.thermalState == .serious || process.thermalState == .critical,

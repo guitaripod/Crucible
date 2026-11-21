@@ -13,6 +13,11 @@ enum InstantStart {
         PlaybackWarmUp.shared.warm(api: api, request: PlaybackRequest(item: item), intent: intent)
     }
 
+    /// Whether Home is being looked at for the first time since the app was opened (`AppOpening`); asking uses it up.
+    static func opensTheApp() -> Bool {
+        AppOpening.take()
+    }
+
     /// The viewer left the screen that spoke for `ratingKey`.
     static func cool(_ ratingKey: String?) {
         guard let ratingKey else { return }

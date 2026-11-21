@@ -41,8 +41,10 @@ package enum StreamCost: Sendable, Equatable {
     /// The video encoded anew, which takes a good part of the server's processor or its encoder.
     case encode
 
+    /// A stream served from this device itself, as the built-in demo library's is, costs no server anything however it
+    /// is made.
     package init(_ stream: ResolvedStream) {
-        if stream.isDirectPlay {
+        if stream.isDirectPlay || ["127.0.0.1", "localhost", "::1"].contains(stream.url.host ?? "") {
             self = .file
         } else if let video = stream.decision?.videoDecision, video != "transcode" {
             self = .remux
@@ -64,6 +66,12 @@ package struct WarmConditions: Sendable, Equatable {
     package var isHot: Bool
     /// Something is already playing here, which the network and the server's transcoder belong to.
     package var isPlaying: Bool
+
+    /// Why nothing may be made ready at all, in a word for the log, or nil when it may.
+    package var refusal: String? {
+        if !isEnabled { return "switched off" }
+        return isHot ? "the device is hot" : nil
+    }
 
     package init(isEnabled: Bool = true, isCellular: Bool = false, savesPower: Bool = false, isHot: Bool = false, isPlaying: Bool = false) {
         self.isEnabled = isEnabled
@@ -87,14 +95,14 @@ package enum WarmStartRule {
     package static let rest: Duration = .milliseconds(400)
 
     /// How long a viewer has to stay on something that plays when chosen before they count as poised to choose it.
-    package static let settle: Duration = .milliseconds(1500)
+    package static let settle: Duration = .seconds(1)
 
     /// The seconds of stream a player loads ahead of Play, enough to start without a stall and little enough to throw away.
     package static let forwardBuffer = 10.0
 
     /// Whether anything may be made ready at all.
     package static func allows(_ conditions: WarmConditions) -> Bool {
-        conditions.isEnabled && !conditions.isHot
+        conditions.refusal == nil
     }
 
     /// How far a title whose stream costs `cost` is made ready for a viewer showing `intent`.

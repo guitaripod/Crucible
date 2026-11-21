@@ -142,6 +142,14 @@ package final class PlaybackSession {
     private var resolving: Task<ResolvedStream, any Error>?
     /// A paused player loading the prepared stream ahead of `begin()`, which then plays it (`preload()`).
     var preloaded: AVPlayer?
+    var preloadObserver: NSKeyValueObservation?
+    /// Whether the preloaded player has been primed to show its picture at once (`primePreload`).
+    var preloadIsPrimed = false
+    var startedPrimed = false
+    /// Follows the first item of a start until it can show a picture (`followStart`).
+    var startObserver: NSKeyValueObservation?
+    /// How long after Play the first item could show a picture, for the line that says how long the start took.
+    var readyAfter: Int?
     /// Whether the seek that puts a preloaded player at the place playback starts from is still on its way.
     var preloadSeekPending = false
     /// How far this session had been made ready when Play was pressed, and when that was, for the line that says how long the
@@ -403,6 +411,7 @@ package final class PlaybackSession {
         } else {
             startPreloaded(player, autoplay: autoplay)
         }
+        followStart(of: player)
         return player
     }
 
@@ -428,6 +437,7 @@ package final class PlaybackSession {
         restartItemObserver = nil
         offlineResumeObserver?.invalidate()
         offlineResumeObserver = nil
+        startObserver = nil
         rateObserver?.invalidate()
         rateObserver = nil
 

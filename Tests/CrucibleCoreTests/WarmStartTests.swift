@@ -42,6 +42,19 @@ struct WarmStartTests {
         #expect(StreamCost(stream(directPlay: false, video: "transcode")) == .encode)
     }
 
+    @Test func aStreamServedFromTheDeviceItselfCostsNothing() {
+        let demo = ResolvedStream(url: URL(string: "http://127.0.0.1:59298/video/start.m3u8")!, isDirectPlay: false, sessionId: "s",
+                                  subtitles: [], audioTracks: [], markers: [])
+        #expect(StreamCost(demo) == .file)
+    }
+
+    @Test func theLogIsToldWhyNothingIsMadeReady() {
+        #expect(WarmConditions().refusal == nil)
+        #expect(WarmConditions(isEnabled: false).refusal == "switched off")
+        #expect(WarmConditions(isHot: true).refusal == "the device is hot")
+        #expect(WarmConditions(isCellular: true, savesPower: true).refusal == nil)
+    }
+
     @Test func aConvertedStreamTheServerSaidNothingAboutIsTakenForAnEncode() {
         #expect(StreamCost(stream(directPlay: false)) == .encode)
     }

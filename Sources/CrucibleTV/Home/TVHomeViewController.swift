@@ -394,6 +394,20 @@ final class TVHomeViewController: TVScreenViewController {
         if wasHidden { showContent() }
         syncHero(animated: false)
         seeAll?.update(items: feed.arrangement.shelf(for: seeAll?.bucket ?? .upNext))
+        warmLead()
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        warmLead()
+    }
+
+    /// Instant Start for the first Continue Watching card, when the app has just been opened and a click on it plays.
+    private func warmLead() {
+        guard viewIfLoaded?.window != nil, presentedViewController == nil,
+              let media = feed.arrangement.shelf(for: .continueWatching).first,
+              HomeTapPolicy.action(for: media, in: .continueWatching) == .play else { return }
+        TVInstantStart.warmOnOpening(env, request: TVPlaybackRequest(item: media))
     }
 
     private func showEmpty() {
@@ -685,6 +699,23 @@ final class TVHomeViewController: TVScreenViewController {
         guard let target = cardTarget(at: next) else { return }
         showHero(for: target.media, bucket: target.bucket, animated: true)
     }
+
+    #if DEBUG
+    /// For a debug walk, which cannot move focus: has the first Continue Watching card count as the one focus came to rest
+    /// on, as it does once a viewer presses Down from the tab bar. False when there is none.
+    func landOnFirstCard() -> Bool {
+        guard let media = feed.arrangement.shelf(for: .continueWatching).first else { return false }
+        focusRested(on: (media, .continueWatching))
+        return true
+    }
+
+    /// Clicks the first Continue Watching card, as Select on the remote does with focus on it.
+    func selectFirstCard() -> Bool {
+        guard let media = feed.arrangement.shelf(for: .continueWatching).first else { return false }
+        actions.select(media, in: .continueWatching, from: self)
+        return true
+    }
+    #endif
 
     /// Instant Start: focus that stops on a card a click plays makes that title ready; anywhere else gives it back.
     private func focusRested(on target: (media: PlexMetadata, bucket: HomeBucket)?) {

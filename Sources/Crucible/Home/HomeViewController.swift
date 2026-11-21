@@ -44,6 +44,7 @@ final class HomeViewController: UICollectionViewController {
     private var skipNextAppearanceLoad = false
     private var playerCoordinator: PlayerCoordinator?
     private var pointerRest: PointerRest?
+    private let leadRest = RestWatch { InstantStart.cool($0) }
     /// Whether the title Home leads with has been made ready since Home last appeared (`warmLead`).
     private var hasWarmedLead = false
     private lazy var mediaDrag = MediaDragSource { [weak self] indexPath in self?.media(at: indexPath) }
@@ -178,6 +179,7 @@ final class HomeViewController: UICollectionViewController {
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         loadTask?.cancel()
+        leadRest.moved(onto: nil)
     }
 
     /// Anything that moves Continue Watching, Up Next or Recently Added, here or on another device, reloads Home while it or its
@@ -647,12 +649,17 @@ final class HomeViewController: UICollectionViewController {
     // MARK: - Interaction
 
     /// Instant Start for the title Home leads with, the one a viewer who opened the app to carry on is about to play: once
-    /// each time Home appears, and only while it is the screen in front.
+    /// each time Home appears, and only while it is the screen in front. A viewer still on Home a moment later is taken to
+    /// be poised to press it, as one who rests on a card is; one who has just opened the app is taken to be from the start,
+    /// since loading a stream takes a second or two (0.9 to 2.3 s on an iPad Pro M1 from a server in the house) and they
+    /// press within about that.
     private func warmLead() {
         guard !hasWarmedLead, viewIfLoaded?.window != nil, presentedViewController == nil,
               let lead = feed.arrangement.hero ?? feed.arrangement.continueRail.first else { return }
         hasWarmedLead = true
-        InstantStart.warm(api: api, item: lead, intent: .browsing)
+        let api = api
+        if InstantStart.opensTheApp() { InstantStart.warm(api: api, item: lead, intent: .poised) }
+        leadRest.moved(onto: lead.id) { intent in InstantStart.warm(api: api, item: lead, intent: intent) }
     }
 
     private func warm(id: String, intent: PlayIntent) {

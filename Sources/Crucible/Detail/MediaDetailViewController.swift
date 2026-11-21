@@ -774,7 +774,7 @@ final class MediaDetailViewController: UICollectionViewController {
         ), intent: .poised)
     }
 
-    private func play() {
+    func play() {
         guard let model else { return }
         let meta = playbackMetadata(model)
         let offlineAsset = DownloadManager.shared.offlineAsset(for: ratingKey)

@@ -206,16 +206,17 @@ extension PlaybackSession {
     func observeRate(of player: AVPlayer) {
         rateObserver = player.observe(\.timeControlStatus, options: [.new]) { @Sendable [weak self] observed, _ in
             let status = observed.timeControlStatus
-            Task { @MainActor in self?.timeControlChanged(to: status) }
+            let at = ContinuousClock.now
+            Task { @MainActor in self?.timeControlChanged(to: status, at: at) }
         }
     }
 
-    private func timeControlChanged(to status: AVPlayer.TimeControlStatus) {
+    private func timeControlChanged(to status: AVPlayer.TimeControlStatus, at instant: ContinuousClock.Instant) {
         guard !isStopped else { return }
         carriedTimes?.noteRate(playing: status == .playing, at: now())
         tellWatchers(status)
         guard !noticeAbsence(trigger: "player state") else { return }
-        if status == .playing { notePictureStarted() }
+        if status == .playing { notePictureStarted(at: instant) }
         switch status {
         case .paused:
             if isRestarting { keepPausedThroughRebuild() }
