@@ -115,4 +115,39 @@ struct ScrubStillsTests {
         truncated.removeLast(4)
         #expect(BIFIndex(Data(truncated)) == nil)
     }
+
+    @Test func theHeaderAndTableAloneGiveTheWholeIndex() throws {
+        let data = bif(stamps: [0, 1, 2], unit: 2000, stills: [[1, 2], [3, 4, 5], [6]])
+        let length = try #require(BIFIndex.tableLength(header: data.prefix(BIFIndex.headerSize)))
+        #expect(length == 64 + 4 * 8)
+        let index = try #require(BIFIndex(table: data.prefix(length)))
+        #expect(index == BIFIndex(data))
+        #expect(index.length == data.count)
+        #expect(BIFIndex(table: data.prefix(length - 1)) == nil)
+        #expect(BIFIndex.tableLength(header: Data(repeating: 0, count: 64)) == nil)
+        #expect(BIFIndex.tableLength(header: data.prefix(20)) == nil)
+    }
+
+    @Test func aTableWhoseStillsRunBackwardsIsRefused() {
+        var bytes = [UInt8](bif(stamps: [0, 1], unit: 1000, stills: [[1, 2, 3], [4, 5, 6]]))
+        bytes[64 + 12] = 64 + 24
+        #expect(BIFIndex(Data(bytes)) == nil)
+    }
+
+    @Test func stillsTravelInSpansFetchedOutwardFromWhereTheScrubberIs() throws {
+        let stills = (0..<10).map { [UInt8](repeating: UInt8($0), count: $0 + 1) }
+        let data = bif(stamps: Array(0..<10), unit: 1000, stills: stills)
+        let index = try #require(BIFIndex(data))
+        #expect(index.interval == 1)
+        #expect(index.spanCount(size: 4) == 3)
+        let middle = try #require(index.span(1, size: 4))
+        #expect(middle.frames == 4..<8)
+        #expect([UInt8](data[middle.bytes]) == stills[4..<8].flatMap { $0 })
+        #expect(index.span(2, size: 4)?.frames == 8..<10)
+        #expect(index.span(2, size: 4)?.bytes.upperBound == data.count)
+        #expect(index.span(3, size: 4) == nil)
+        #expect(index.spansOutward(from: 5, size: 4) == [1, 2, 0])
+        #expect(index.spansOutward(from: 0, size: 4) == [0, 1, 2])
+        #expect(index.spansOutward(from: 99, size: 4) == [2, 1, 0])
+    }
 }
