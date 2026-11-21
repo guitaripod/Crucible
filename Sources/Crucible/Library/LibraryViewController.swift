@@ -33,6 +33,10 @@ final class LibraryViewController: UIViewController, LibraryGridHosting {
         self?.reloadGrids()
     }
 
+    private lazy var foldersItem = LibraryFoldersButton.barButtonItem { [weak self] in
+        self?.openFolderBrowser()
+    }
+
     private func reloadGrids() {
         libraries.forEach { $0.grid.reloadGridLayout() }
     }
@@ -145,7 +149,7 @@ final class LibraryViewController: UIViewController, LibraryGridHosting {
         navigationItem.titleMenuProvider = { [weak self] _ in
             self?.libraryMenu()
         }
-        navigationItem.rightBarButtonItems = [optionsItem, gridSizeItem]
+        navigationItem.rightBarButtonItems = [optionsItem, gridSizeItem, foldersItem]
     }
 
     /// Opens the shown library's collections, as its title menu does.
@@ -153,7 +157,7 @@ final class LibraryViewController: UIViewController, LibraryGridHosting {
         currentChild?.openCollections()
     }
 
-    /// Opens the shown library's folders, as its title menu does.
+    /// Opens the shown library's folders, as its folder button and title menu do.
     func openFolderBrowser() {
         currentChild?.openFolderBrowser()
     }

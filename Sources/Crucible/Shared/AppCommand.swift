@@ -5,7 +5,7 @@
 enum AppCommand: String, CaseIterable {
     case home, library, downloads, you, search
     case back
-    case statistics, history, surpriseMe
+    case browseFolders, statistics, history, surpriseMe
     case refresh, largerPosters, smallerPosters
     case play, skip, playNext, closePlayer, toggleWatched, download, rate
     case settings, switchServer
@@ -19,6 +19,7 @@ enum AppCommand: String, CaseIterable {
         case .you: return String(localized: "You")
         case .search: return String(localized: "Search")
         case .back: return String(localized: "Back")
+        case .browseFolders: return String(localized: "Browse Folders")
         case .statistics: return String(localized: "Statistics")
         case .history: return String(localized: "Watch History")
         case .surpriseMe: return String(localized: "Surprise Me")
@@ -46,6 +47,7 @@ enum AppCommand: String, CaseIterable {
         case .you: return "person.crop.circle"
         case .search: return "magnifyingglass"
         case .back: return "chevron.backward"
+        case .browseFolders: return "folder"
         case .statistics: return "chart.bar"
         case .history: return "clock.arrow.circlepath"
         case .surpriseMe: return "shuffle"
@@ -74,6 +76,7 @@ enum AppCommand: String, CaseIterable {
         case .you: return ("4", .command)
         case .search: return ("f", .command)
         case .back: return ("[", .command)
+        case .browseFolders: return ("o", [.command, .shift])
         case .statistics: return ("s", [.command, .shift])
         case .history: return ("y", .command)
         case .surpriseMe: return ("s", [.command, .alternate])
@@ -176,7 +179,7 @@ enum AppMenu {
         var sections = [
             UIMenu(options: .displayInline, children: [AppCommand.home, .library, .downloads, .you, .search].map { $0.menuElement() }),
             UIMenu(options: .displayInline, children: [AppCommand.back.menuElement()]),
-            UIMenu(options: .displayInline, children: [AppCommand.statistics, .history, .surpriseMe].map { $0.menuElement() }),
+            UIMenu(options: .displayInline, children: [AppCommand.browseFolders, .statistics, .history, .surpriseMe].map { $0.menuElement() }),
         ]
         if !extras.isEmpty {
             sections.append(UIMenu(options: .displayInline, children: extras.map { $0.menuElement() }))

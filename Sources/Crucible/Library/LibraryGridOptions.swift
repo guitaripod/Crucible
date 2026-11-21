@@ -9,6 +9,17 @@ extension LibraryGridOptions {
     }
 }
 
+/// The trailing "folders" button shared by the library host and stand-alone grids: one tap to the library's folders.
+@MainActor
+enum LibraryFoldersButton {
+    static func barButtonItem(open: @escaping @MainActor () -> Void) -> UIBarButtonItem {
+        let item = UIBarButtonItem(title: nil, image: UIImage(systemName: "folder"), primaryAction: UIAction { _ in open() }, menu: nil)
+        item.accessibilityLabel = String(localized: "Browse Folders")
+        item.accessibilityIdentifier = "library.folders"
+        return item
+    }
+}
+
 /// The trailing "grid size" control shared by the library host and stand-alone grids. The menu is
 /// built lazily on every open so its checkmark always reflects the stored preference, and each
 /// choice names the columns it gives at the grid's current width (`width`) and card shape (`aspect`),

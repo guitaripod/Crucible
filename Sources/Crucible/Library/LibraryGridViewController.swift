@@ -49,6 +49,9 @@ class LibraryGridViewController: UIViewController {
     } onChange: { [weak self] in
         self?.reloadGridLayout()
     }
+    private lazy var foldersItem = LibraryFoldersButton.barButtonItem { [weak self] in
+        self?.openFolderBrowser()
+    }
     private var appliedColumns = Preferences.libraryColumns
 
     private lazy var artworkShape = ArtworkShapeTracker { [weak self] in
@@ -576,15 +579,15 @@ class LibraryGridViewController: UIViewController {
         return UIMenu(title: title, image: image, children: actions)
     }
 
-    /// Stand-alone grids (pushed from Settings) have no library host, so they carry the grid-size and
-    /// options buttons themselves.
+    /// Stand-alone grids (pushed from Settings) have no library host, so they carry the options, grid-size and
+    /// folders buttons themselves.
     private func installControls() {
         guard host == nil else {
             host?.libraryGridDidUpdateOptions(self)
             return
         }
         refreshOwnControls()
-        navigationItem.rightBarButtonItems = [optionsItem, gridSizeItem]
+        navigationItem.rightBarButtonItems = [optionsItem, gridSizeItem, foldersItem]
     }
 
     private func refreshOwnControls() {

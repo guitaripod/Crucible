@@ -392,7 +392,7 @@ final class TabBarController: UITabBarController {
         }
         guard !isShowingModal else { return false }
         switch command {
-        case .home, .library, .downloads, .you, .search, .statistics, .history, .surpriseMe, .settings:
+        case .home, .library, .downloads, .you, .search, .browseFolders, .statistics, .history, .surpriseMe, .settings:
             return true
         case .back:
             return (currentNavigation?.viewControllers.count ?? 0) > 1
@@ -413,6 +413,7 @@ final class TabBarController: UITabBarController {
         case .you: select(.you)
         case .search: activateSearch()
         case .back: currentNavigation?.popViewController(animated: true)
+        case .browseFolders: browseFolders()
         case .statistics: show(StatisticsViewController(api: api), onTopOf: .you)
         case .history: show(ActivityHistoryViewController(api: api), onTopOf: .you)
         case .settings: show(SettingsViewController(api: api), onTopOf: .you)
@@ -434,6 +435,16 @@ final class TabBarController: UITabBarController {
         let navigation = open(tab)
         guard type(of: navigation?.topViewController) != type(of: screen) else { return }
         navigation?.pushViewController(screen, animated: true)
+    }
+
+    /// Opens the folders of the library the Library tab is on, from wherever the command is given.
+    private func browseFolders() {
+        select(.library)
+        guard let navigation = currentNavigation,
+              let library = navigation.viewControllers.compactMap({ $0 as? LibraryViewController }).last else { return }
+        navigation.popToViewController(library, animated: false)
+        library.loadViewIfNeeded()
+        library.openFolderBrowser()
     }
 
     private func activateSearch() {
