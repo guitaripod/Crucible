@@ -163,7 +163,9 @@ package final class ServerScrubStills: ScrubStillSource {
     private func readIndex() async {
         let path = ScrubStills.indexPath(partID: partID)
         guard let (bytes, response) = try? await session.bytes(for: await request(path, range: 0..<Self.headLength)),
-              let http = response as? HTTPURLResponse, !Task.isCancelled else { return }
+              let http = response as? HTTPURLResponse, !Task.isCancelled else {
+            return giveUp()
+        }
         guard http.statusCode == 206 else {
             bytes.task.cancel()
             mode = http.statusCode == 200 ? .single : .none
@@ -175,14 +177,14 @@ package final class ServerScrubStills: ScrubStillSource {
         do {
             for try await byte in bytes { head.append(byte) }
         } catch {
-            return
+            return giveUp()
         }
         guard let tableLength = BIFIndex.tableLength(header: head) else {
             mode = .none
             return
         }
         if head.count < tableLength {
-            guard let rest = await data(path, range: head.count..<tableLength, unasked: false) else { return }
+            guard let rest = await data(path, range: head.count..<tableLength, unasked: false) else { return giveUp() }
             head.append(rest)
         }
         guard !Task.isCancelled, let index = BIFIndex(table: head), let file = StillFile(length: index.length) else {
@@ -194,6 +196,14 @@ package final class ServerScrubStills: ScrubStillSource {
         if let playhead { playheadMoved(to: playhead) }
         if wanted != nil { work() }
         onChange?()
+    }
+
+    /// The index could not be read, so this playback has no stills and the preview stops holding room for them. Not when
+    /// the title was closed first, which cancels the read.
+    private func giveUp() {
+        guard !Task.isCancelled else { return }
+        mode = .none
+        MidgarLog.info("Scrub stills: part \(partID)'s index could not be read", category: .playback)
     }
 
     // MARK: - Spans
