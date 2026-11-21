@@ -69,6 +69,9 @@ package final class PlaybackSession {
     var wasPlayingAtLastTick = false
     var resumesAfterReturn = false
     var returnedAt: Date?
+    /// Where the playhead was, on the player's clock, when the viewer put a finger on the scrubber; nil with no finger down.
+    var scrubOrigin: Double?
+    var scrubSettleTask: Task<Void, Never>?
     var isRestarting = false
     var pendingRestart: PendingRestart?
     var restartResumesPlayback = true

@@ -18,7 +18,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
 
     typealias Metadata = PlaybackMetadata
 
-    private let api: APIClient
+    let api: APIClient
     /// The item on screen, replaced without taking the player off screen when the next episode starts.
     private(set) var request: PlaybackRequest
     private(set) var session: PlaybackSession
@@ -44,6 +44,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     private var lastOfflineWrite: Double = 0
     private var skipPill: SkipPillView?
     private var moreButton: PlayerMoreButton?
+    var scrubPreview: ScrubPreview?
     private var shownSkip: (title: String, target: Double)?
     private var shownUpNext: UpNextOffer?
     private var skipToast: SkipToastView?
@@ -218,6 +219,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         let playerVC = makePlayerController(for: player)
         self.playerVC = playerVC
         installMoreButton(on: playerVC)
+        installScrubPreview(on: playerVC)
 
         updateNowPlaying()
         windowScene = viewController.view.window?.windowScene
@@ -282,6 +284,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
             nowPlaying?.updateElapsed(absolute, rate: rate)
             recordOfflineProgress(at: absolute)
             dock?.showPosition(of: self, at: absolute)
+            scrubPreview?.stills?.playheadMoved(to: absolute)
         case .viewerActed:
             viewerActed()
             removePostPlay()
@@ -314,6 +317,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
             moreButton?.refreshMenu()
         case .tracksChanged:
             moreButton?.refreshMenu()
+            followScrubStills()
         case .clockRemapped:
             break
         }
@@ -799,6 +803,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
             playerVC?.player = player
         }
         updateNowPlaying()
+        followScrubStills()
         isAdvancing = false
         observeEvents()
         if let title = request.metadata?.title {
@@ -909,6 +914,8 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         skipPill = nil
         moreButton?.remove()
         moreButton = nil
+        scrubPreview?.remove()
+        scrubPreview = nil
         shownSkip = nil
         removeSkipToast(animated: false)
         advanceIndicator?.hide()

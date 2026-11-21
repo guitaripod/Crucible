@@ -52,7 +52,7 @@ extension PlaybackSession {
     private func handleJump() {
         guard let player else { return }
         if player.rate == 0, pausedSince != nil, !isRecovering { pausedSince = now() }
-        guard stream?.isDirectPlay == false else { return }
+        guard stream?.isDirectPlay == false, scrubOrigin == nil else { return }
         guard !tracker.isHeld, !isRecovering, let item = player.currentItem, item.status == .readyToPlay else { return }
         let now = item.currentTime().seconds
         guard now.isFinite else { return }
@@ -77,6 +77,47 @@ extension PlaybackSession {
         noteViewerAction()
         let plays = player.rate > 0 || player.timeControlStatus == .waitingToPlayAtSpecifiedRate
         restartTranscode(atAbsolute: target, resumesPlayback: plays, reason: "scrub from \(Int(previous)) to \(Int(now))")
+    }
+
+    /// The viewer put a finger on the scrubber, or let go of it at `landing` on the title's timeline. The system player
+    /// moves the playhead under the finger all the way, and a transcode cannot follow that: every move past what it has
+    /// loaded would rebuild the stream and swap the item out from under the scrubber. So a transcode is left as it is while
+    /// the finger is down, and goes once, to where the finger let go, a moment later (`PlaybackTiming.scrubSettle`). A scrub
+    /// counts as the viewer at the controls from the moment it begins.
+    package func viewerScrubbing(_ scrubbing: Bool, landing: Double? = nil) {
+        scrubSettleTask?.cancel()
+        scrubSettleTask = nil
+        guard !scrubbing else {
+            if scrubOrigin == nil {
+                scrubOrigin = lastPlayhead
+                viewerNavigated()
+            }
+            return
+        }
+        guard scrubOrigin != nil else { return }
+        scrubSettleTask = Task { [weak self] in
+            try? await Task.sleep(for: PlaybackTiming.scrubSettle)
+            guard !Task.isCancelled, let self, let origin = scrubOrigin else { return }
+            scrubOrigin = nil
+            landScrub(from: origin, at: landing)
+        }
+    }
+
+    /// Takes a transcode to where a scrub ended, when its stream cannot show that place itself: ahead of what it has
+    /// loaded, or before where it started encoding. The place is the one the scrubber showed, not the player's clock,
+    /// which may still be on its way there; the jump the player reports when it arrives is then no news.
+    private func landScrub(from origin: Double, at landing: Double?) {
+        guard let player, let item = player.currentItem, stream?.isDirectPlay == false, !isStopped, !tracker.isHeld, !isRecovering else { return }
+        let reading = item.currentTime().seconds
+        let now = max(0, landing.map { $0 - streamOffset } ?? (reading.isFinite ? reading : origin))
+        guard TranscodeSeekPolicy.isJump(from: origin, to: now) else { return }
+        lastPlayhead = now
+        let target = streamOffset + now
+        let rebuilds = isRestarting || TranscodeSeekPolicy.isBeforeStream(target, streamStart: streamStart)
+            || TranscodeSeekPolicy.needsRestart(from: origin, to: now, loaded: item.loadedRanges)
+        MidgarLog.notice("Scrub let go ratingKey=\(request.ratingKey) from=\(Int(origin + streamOffset)) to=\(Int(target)) playing=\(intendsToPlay) rebuilds=\(rebuilds)", category: .playback)
+        guard rebuilds else { return }
+        restartTranscode(atAbsolute: target, resumesPlayback: intendsToPlay, reason: "scrub from \(Int(origin)) to \(Int(now))")
     }
 
     /// The system player moves a rebuilt item to where its previous item was, as if that were still the

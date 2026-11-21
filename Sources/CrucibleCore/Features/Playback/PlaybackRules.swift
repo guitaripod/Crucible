@@ -128,6 +128,9 @@ package enum PlaybackTiming {
     /// has finished matching its output to them.
     package static let pictureLogDelay: Duration = .seconds(4)
     package static let autoSkipUndoWindow: Duration = .seconds(4)
+    /// How long after the viewer lets go of the scrubber a transcode is moved to where they let go: by then the system
+    /// player has made its last move and plays again if it was playing.
+    package static let scrubSettle: Duration = .milliseconds(150)
     /// How close to the resume position the playhead has to be for a prepared player's seek to count as landed.
     package static let resumeLandedTolerance = 5.0
 }

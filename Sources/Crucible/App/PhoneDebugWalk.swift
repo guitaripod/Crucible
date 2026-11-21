@@ -1,4 +1,5 @@
 #if DEBUG
+import AVFoundation
 import CrucibleCore
 import MidgarCore
 import QuartzCore
@@ -20,6 +21,8 @@ import UIKit
 /// - `playlead` plays the title Home leads with, `title=<rating key>` opens a film's or (`title=<rating key>:episode`) an
 ///   episode's page and `play` presses Play on it, `upnext` plays what the show page in front would play, and `close` ends
 ///   the player. With the log's "ms after Play" lines these time a start; `CRUCIBLE_INSTANT=0` times it without Instant Start.
+/// - `scrub=<from>-<to>:<seconds>` drags the player's scrubber between two places along it (0 to 1), as a finger would, and
+///   `point=<place>` rests a pointer on it there.
 ///
 /// A step that cannot run where the walk stands says so in the log instead of doing something else.
 @MainActor
@@ -108,6 +111,11 @@ enum PhoneDebugWalk {
         case "upnext":
             guard let page = front as? ShowDetailViewController, page.canPerform(.play) else { return false }
             page.perform(.play)
+        case "scrub":
+            return scrub(step.argument)
+        case "point":
+            guard let place = step.argument.flatMap(Double.init), let preview = PlayerCoordinator.current?.scrubPreview else { return false }
+            return preview.debugPoint(at: place)
         case "close":
             guard let player = PlayerCoordinator.current else { return false }
             player.close()
@@ -121,6 +129,69 @@ enum PhoneDebugWalk {
             return false
         }
         return true
+    }
+
+    /// Scrubs the player on screen from one place along its scrubber to another: `scrub=0.1-0.9:4` goes from a tenth of the
+    /// way to nine tenths over four seconds, pausing and seeking the player to where the scrubber is the way the system
+    /// player does under a finger (one seek at a time, each to the newest place) and playing on afterwards.
+    /// `scrub=0.1-0.9:4:dry` moves the scrubber and its preview alone, which tells the preview's cost from the player's.
+    /// The frame watch reports the stretch before the scrub and the scrub itself.
+    private static func scrub(_ argument: String?) -> Bool {
+        let parts = (argument ?? "").split(separator: ":")
+        let ends = (parts.first ?? "").split(separator: "-").compactMap { Double($0) }
+        guard ends.count == 2, let coordinator = PlayerCoordinator.current, let preview = coordinator.scrubPreview,
+              let player = coordinator.session.player, let length = player.currentItem?.duration.seconds, length.isFinite else { return false }
+        let seconds = parts.count > 1 ? TimeInterval(parts[1]) ?? 3 : 3
+        let seeks = !(parts.count > 2 && parts[2] == "dry")
+        let wasPlaying = player.rate > 0
+        let chase = SeekChase(player: player, length: length)
+        PhoneFrameWatch.shared.report("until the scrub")
+        let began = preview.debugScrub(from: ends[0], to: ends[1], over: seconds) { place in
+            if seeks { chase.go(to: place) }
+        }
+        guard began else { return false }
+        DispatchQueue.main.asyncAfter(deadline: .now() + seconds + 0.05) {
+            if seeks, wasPlaying { player.play() }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + seconds + 0.5) {
+            PhoneFrameWatch.shared.report("the scrub\(seeks ? ", \(chase.seeks) seeks" : ", no seeks")")
+        }
+        return true
+    }
+
+    /// Seeks a paused player to the newest place asked, one seek at a time, as a scrubber does.
+    @MainActor
+    private final class SeekChase {
+        private let player: AVPlayer
+        private let length: Double
+        private var wanted: Double?
+        private var isSeeking = false
+        private(set) var seeks = 0
+
+        init(player: AVPlayer, length: Double) {
+            self.player = player
+            self.length = length
+        }
+
+        func go(to place: Double) {
+            wanted = place
+            guard !isSeeking else { return }
+            player.pause()
+            next()
+        }
+
+        private func next() {
+            guard let place = wanted else { return }
+            wanted = nil
+            isSeeking = true
+            seeks += 1
+            player.seek(to: CMTime(seconds: place * length, preferredTimescale: 600)) { @Sendable [weak self] _ in
+                Task { @MainActor in
+                    self?.isSeeking = false
+                    self?.next()
+                }
+            }
+        }
     }
 
     /// Closes only what was presented last, so a paywall over a sheet leaves the sheet up.
@@ -158,7 +229,7 @@ enum PhoneDebugWalk {
     /// Writes the window as it stands to `Library/Logs/<name>.png`. The frame watch reports first and leaves the drawing out
     /// of the next stretch, so it is not held against the app.
     private static func snapshot(_ name: String, of tabBar: TabBarController) -> Bool {
-        guard let window = tabBar.view.window else { return false }
+        guard let window = PlayerCoordinator.current?.playerVC?.view.window ?? tabBar.view.window else { return false }
         PhoneFrameWatch.shared.report("until \(name)")
         let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
             window.drawHierarchy(in: window.bounds, afterScreenUpdates: false)
