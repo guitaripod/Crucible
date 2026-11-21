@@ -70,6 +70,38 @@ struct DemoMediaTests {
         }
     }
 
+    @Test func aTitleHasPreviewStillsForItsWholeLengthServedWholeOrInSlices() async throws {
+        try await withDemo { demo in
+            let movie = try await demo.metadata("1001")
+            let part = try #require(ScrubStills.part(of: movie.Media?.first))
+            let path = ScrubStills.indexPath(partID: part.id)
+
+            let whole = try await demo.get(path)
+            #expect(whole.1.statusCode == 200)
+            let index = try #require(BIFIndex(whole.0))
+            #expect(index.length == whole.0.count)
+            #expect(index.interval == 2)
+            let seconds = Double(try #require(movie.duration)) / 1000
+            #expect(try #require(index.frames.last).seconds >= seconds - 2)
+            #expect(index.frames.allSatisfy { isJPEG(whole.0.subdata(in: $0.bytes)) })
+
+            let table = try #require(BIFIndex.tableLength(header: whole.0.prefix(BIFIndex.headerSize)))
+            let head = try await demo.get(path, headers: ["Range": "bytes=0-\(table - 1)"])
+            #expect(head.1.statusCode == 206)
+            #expect(head.1.value(forHTTPHeaderField: "Content-Range") == "bytes 0-\(table - 1)/\(whole.0.count)")
+            #expect(BIFIndex(table: head.0) == index)
+
+            let span = try #require(index.span(index.spanCount(size: 24) / 2, size: 24))
+            let slice = try await demo.get(path, headers: ["Range": "bytes=\(span.bytes.lowerBound)-\(span.bytes.upperBound - 1)"])
+            #expect(slice.1.statusCode == 206)
+            #expect(slice.0 == whole.0.subdata(in: span.bytes))
+
+            let straddling = try await demo.get(path, headers: ["Range": "bytes=\(table - 8)-\(table + 7)"])
+            #expect(straddling.0 == whole.0.subdata(in: table - 8..<table + 8))
+            #expect(try await demo.get(ScrubStills.indexPath(partID: 1)).1.statusCode == 404)
+        }
+    }
+
     @Test func directPlayPartAnswersRangesWithTheRightBytes() async throws {
         try await withDemo { demo in
             let movie = try await demo.metadata("1001")

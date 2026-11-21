@@ -71,13 +71,20 @@ extension DemoLibrary {
         item.viewOffset < clipMilliseconds - Self.transcodeOnlyMargin
     }
 
+    /// How long the title whose file is part `partID` runs, for its preview stills.
+    func durationMilliseconds(ofPart partID: Int) -> Int? {
+        items[String(partID - Self.partIDBase)].flatMap { $0.media == nil ? nil : $0.durationMs }
+    }
+
+    private static let partIDBase = 50000
+
     private func mediaJSON(_ item: DemoItem) -> [DemoJSON] {
         guard let facts = item.media else { return [] }
         let key = item.ratingKey
         let id = Int(key) ?? 0
         let isMovie = item.kind == .movie
         let channels = isMovie ? 8 : 6
-        let partID = 50000 + id
+        let partID = Self.partIDBase + id
         let uhd = facts.height >= 2160
         var streams: [DemoJSON] = [
             ["id": id * 10 + 1, "streamType": 1, "codec": "h264", "language": "English", "languageCode": "eng",
@@ -114,6 +121,7 @@ extension DemoLibrary {
             "videoProfile": facts.hdr ? "main 10" : "high",
             "Part": [[
                 "id": partID, "key": "/library/parts/\(partID)/\(Self.partTimestamp + id)/file.mp4", "duration": item.durationMs,
+                "indexes": "sd",
                 "file": "/media/\(isMovie ? "movie" : "episode")s/\(key).\(container)", "size": facts.size, "container": container,
                 "Stream": streams,
             ] as DemoJSON],

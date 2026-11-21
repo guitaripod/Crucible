@@ -151,6 +151,8 @@ struct DemoRouter: Sendable {
         case ("parts", 3):
             guard request.method == "PUT" else { return .empty() }
             return await library.selectStreams(partID: Int(parts[2]) ?? 0, audio: request.int("audioStreamID"), subtitle: request.int("subtitleStreamID"))
+        case ("parts", 5) where parts[3] == "indexes":
+            return await stillIndexResponse(partID: Int(parts[2]) ?? 0, request)
         case ("parts", 5):
             return partResponse(parts[4], request)
         case ("streams", 3):
@@ -274,6 +276,14 @@ struct DemoRouter: Sendable {
         return DemoFiles.respond(assets.clip, contentType: "video/mp4", request: request)
     }
 
+    /// A title's preview stills in one file (`DemoStillIndex`), whole or the slice a `Range` header asks for.
+    private func stillIndexResponse(partID: Int, _ request: DemoRequest) async -> DemoResponse {
+        guard let duration = await library.durationMilliseconds(ofPart: partID),
+              let clip = try? Data(contentsOf: assets.stills, options: .mappedIfSafe),
+              let index = DemoStillIndex(clip: clip, durationMs: duration) else { return .notFound() }
+        return DemoFiles.respond(length: index.length, contentType: "application/octet-stream", request: request, slice: index.bytes)
+    }
+
     /// The universal transcoder: a master playlist on start, then the media playlist and segments of the session, and the WebVTT
     /// rendition of a text subtitle picked for the file unless the start asks for none. The offset is not honoured; every title is the
     /// same short clip.
@@ -323,15 +333,21 @@ enum DemoFiles {
     /// Serves a file whole, or the slice a `Range` header asks for with 206 and `Content-Range`. A missing file is a 404.
     static func respond(_ url: URL, contentType: String, request: DemoRequest?) -> DemoResponse {
         guard let data = try? Data(contentsOf: url, options: .mappedIfSafe) else { return .notFound() }
+        return respond(length: data.count, contentType: contentType, request: request) { data.subdata(in: $0) }
+    }
+
+    /// Serves `length` bytes that `slice` cuts on demand, whole or the slice a `Range` header asks for, so a file that is
+    /// only ever read in pieces is never put together whole.
+    static func respond(length: Int, contentType: String, request: DemoRequest?, slice: (Range<Int>) -> Data) -> DemoResponse {
         var headers = ["Accept-Ranges": "bytes"]
         guard let header = request?.headers["range"], header.hasPrefix("bytes="), !header.contains(",") else {
-            return DemoResponse(contentType: contentType, headers: headers, body: data)
+            return DemoResponse(contentType: contentType, headers: headers, body: slice(0..<length))
         }
-        guard let range = parseRange(header, total: data.count) else {
-            return DemoResponse(status: 416, headers: ["Content-Range": "bytes */\(data.count)"])
+        guard let range = parseRange(header, total: length) else {
+            return DemoResponse(status: 416, headers: ["Content-Range": "bytes */\(length)"])
         }
-        headers["Content-Range"] = "bytes \(range.lowerBound)-\(range.upperBound - 1)/\(data.count)"
-        return DemoResponse(status: 206, contentType: contentType, headers: headers, body: data.subdata(in: range))
+        headers["Content-Range"] = "bytes \(range.lowerBound)-\(range.upperBound - 1)/\(length)"
+        return DemoResponse(status: 206, contentType: contentType, headers: headers, body: slice(range))
     }
 
     /// The byte range of `bytes=a-b`, `bytes=a-` or `bytes=-n`; nil when it is not one range or lies outside the file.

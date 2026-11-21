@@ -14,6 +14,8 @@ struct DemoAssets: Sendable {
     var catalogue: URL { root.appendingPathComponent("library.json") }
     var answers: URL { root.appendingPathComponent("answers.json") }
     var clip: URL { root.appendingPathComponent("video/clip.mp4") }
+    /// The clip's preview stills, one every two seconds, in one BIF file.
+    var stills: URL { root.appendingPathComponent("video/stills.bif") }
 
     func image(_ name: String) -> URL {
         root.appendingPathComponent("images").appendingPathComponent(name)
