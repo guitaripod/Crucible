@@ -8,6 +8,8 @@ import MidgarCore
 @MainActor
 final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerDelegate {
     private static weak var resolvingCoordinator: PlayerCoordinator?
+    /// How long a start may take before a spinner says so: a title that was made ready, or resolves quickly, shows none.
+    private static let spinnerDelay: TimeInterval = 0.3
     /// The player that started last. On iPad each window can hold a player; starting one pauses the other, so only one plays at a time.
     private static weak var playingCoordinator: PlayerCoordinator?
 
@@ -86,12 +88,13 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     init(api: APIClient, request: PlaybackRequest) {
         self.api = api
         self.request = request
-        self.session = Self.makeSession(api: api, request: request)
+        self.session = Self.makeSession(api: api, request: request, takesWarm: true)
     }
 
-    /// A session whose every item carries the title and episode line the system player shows above the video.
-    private static func makeSession(api: APIClient, request: PlaybackRequest) -> PlaybackSession {
-        let session = PlaybackSession(api: api, request: request)
+    /// A session whose every item carries the title and episode line the system player shows above the video. The first one
+    /// of a playback is the one Instant Start made ready for the title, when it did.
+    private static func makeSession(api: APIClient, request: PlaybackRequest, takesWarm: Bool = false) -> PlaybackSession {
+        let session = (takesWarm ? PlaybackWarmUp.shared.take(api: api, request: request) : nil) ?? PlaybackSession(api: api, request: request)
         let titles = titleMetadata(for: request.metadata)
         session.configureItem = { item in item.externalMetadata = titles }
         return session
@@ -133,6 +136,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
             resolving.cancel()
         }
         MidgarLog.notice("Play requested ratingKey=\(request.ratingKey) type=\(request.mediaType) resumeSecs=\(Int(request.resumePosition))", category: .playback)
+        session.askedAt = .now
 
         if request.offline != nil {
             MidgarLog.notice("Playing offline asset for ratingKey=\(request.ratingKey)", category: .playback)
@@ -144,8 +148,10 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         spinner.color = .white
         spinner.translatesAutoresizingMaskIntoConstraints = false
         spinner.startAnimating()
+        spinner.alpha = 0
         viewController.view.addSubview(spinner)
         spinnerView = spinner
+        UIView.animate(withDuration: 0.2, delay: Self.spinnerDelay) { spinner.alpha = 1 }
         NSLayoutConstraint.activate([
             spinner.centerXAnchor.constraint(equalTo: viewController.view.centerXAnchor),
             spinner.centerYAnchor.constraint(equalTo: viewController.view.centerYAnchor),

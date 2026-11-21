@@ -16,6 +16,7 @@ final class HomeScreen: ScreenView {
     }
 
     private let payload: LaunchPayload
+    private let restWatch = StreamWarmUp.restWatch()
     private let feed: HomeFeed
     private let backdrop = BackdropView()
     private let hero = HeroInfoView()
@@ -262,10 +263,12 @@ final class HomeScreen: ScreenView {
             if let shelf { self.bringHeroBack(focusing: shelf) }
             guard let bucket = Self.bucket(row), let media = self.feed.item(id: item.id) else { return }
             self.feature(media, bucket: bucket, animated: true)
+            self.rested(on: media, in: bucket)
         }
         shelf.onHover = { [weak self] item in
             guard let self, let bucket = Self.bucket(row), let media = self.feed.item(id: item.id) else { return }
             self.feature(media, bucket: bucket, animated: true)
+            self.rested(on: media, in: bucket)
         }
         shelf.onActivate = { [weak self] item in self?.activate(item.id, in: row) }
         shelf.onPlay = { [weak self] item in
@@ -281,6 +284,16 @@ final class HomeScreen: ScreenView {
         shelf.onContextMenu = { [weak self] item, point in self?.presentMenu(for: item.id, in: row, at: point) }
         shelves[row] = shelf
         return shelf
+    }
+
+    /// Instant Start: focus or the pointer that stops on a card which plays when chosen has that title's stream resolved.
+    private func rested(on media: PlexMetadata, in bucket: HomeBucket) {
+        guard HomeTapPolicy.action(for: media, in: bucket) == .play else {
+            restWatch.moved(onto: nil)
+            return
+        }
+        let api = payload.api
+        restWatch.moved(onto: media.id) { _ in StreamWarmUp.shared.warm(api: api, item: media) }
     }
 
     private static func bucket(_ row: Row) -> HomeBucket? {

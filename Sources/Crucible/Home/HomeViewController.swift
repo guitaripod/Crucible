@@ -43,6 +43,9 @@ final class HomeViewController: UICollectionViewController {
     private var isShowingSkeleton = false
     private var skipNextAppearanceLoad = false
     private var playerCoordinator: PlayerCoordinator?
+    private var pointerRest: PointerRest?
+    /// Whether the title Home leads with has been made ready since Home last appeared (`warmLead`).
+    private var hasWarmedLead = false
     private lazy var mediaDrag = MediaDragSource { [weak self] indexPath in self?.media(at: indexPath) }
     private weak var sectionGrid: HomeSectionGridViewController?
     private var heroHeight: CGFloat = 0
@@ -106,6 +109,7 @@ final class HomeViewController: UICollectionViewController {
         collectionView.backgroundColor = Theme.Color.canvas
         collectionView.allowsKeyboardFocus()
         collectionView.dragDelegate = mediaDrag
+        pointerRest = PointerRest(on: collectionView, api: api) { [weak self] in self?.playedByTap(at: $0) }
         collectionView.showsVerticalScrollIndicator = false
         configureNavButtons()
         configureDataSource()
@@ -158,11 +162,17 @@ final class HomeViewController: UICollectionViewController {
         loadAsks()
         loadReleases(force: false)
         _ = serverState?.takeStale()
+        hasWarmedLead = false
         if skipNextAppearanceLoad {
             skipNextAppearanceLoad = false
         } else {
             loadData()
         }
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        warmLead()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -452,6 +462,7 @@ final class HomeViewController: UICollectionViewController {
         config.spokenLabel = model.spokenLabel
         config.minimumHeight = Theme.heroHeight(width: collectionView.bounds.width, height: collectionView.bounds.height)
         config.onPrimary = { [weak self] in self?.play(id: id) }
+        config.onPrimaryTouch = { [weak self] in self?.warm(id: id, intent: .poised) }
         config.onDetails = { [weak self] in self?.openDetail(id: id) }
         return config
     }
@@ -622,6 +633,7 @@ final class HomeViewController: UICollectionViewController {
     private func presentLoadedContent(animated: Bool) {
         rebuildSnapshot(animated: animated)
         endRefreshing()
+        warmLead()
 
         contentUnavailableConfiguration = feed.isEmpty ? Self.emptyHomeConfiguration() : nil
     }
@@ -633,6 +645,33 @@ final class HomeViewController: UICollectionViewController {
     }
 
     // MARK: - Interaction
+
+    /// Instant Start for the title Home leads with, the one a viewer who opened the app to carry on is about to play: once
+    /// each time Home appears, and only while it is the screen in front.
+    private func warmLead() {
+        guard !hasWarmedLead, viewIfLoaded?.window != nil, presentedViewController == nil,
+              let lead = feed.arrangement.hero ?? feed.arrangement.continueRail.first else { return }
+        hasWarmedLead = true
+        InstantStart.warm(api: api, item: lead, intent: .browsing)
+    }
+
+    private func warm(id: String, intent: PlayIntent) {
+        guard let media = feed.item(id: id) else { return }
+        InstantStart.warm(api: api, item: media, intent: intent)
+    }
+
+    /// What a tap or click on the card at `indexPath` plays, or nil when it opens something instead.
+    private func playedByTap(at indexPath: IndexPath) -> PlexMetadata? {
+        guard case .media(let id, let bucket) = dataSource.itemIdentifier(for: indexPath), let media = feed.item(id: id),
+              HomeTapPolicy.action(for: media, in: bucket) == .play else { return nil }
+        return media
+    }
+
+    /// A finger that is down on a card that plays is about to play it.
+    override func collectionView(_ collectionView: UICollectionView, didHighlightItemAt indexPath: IndexPath) {
+        guard let media = playedByTap(at: indexPath) else { return }
+        InstantStart.warm(api: api, item: media, intent: .poised)
+    }
 
     override func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         collectionView.deselectItem(at: indexPath, animated: true)

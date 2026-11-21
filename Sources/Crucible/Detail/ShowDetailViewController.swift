@@ -124,6 +124,7 @@ final class ShowDetailViewController: UICollectionViewController {
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         multiSelect.setEditing(false)
+        InstantStart.cool(model?.upNext?.episode.id)
         loadTask?.cancel()
         seasonTask?.cancel()
         gapsTask?.cancel()
@@ -696,6 +697,7 @@ final class ShowDetailViewController: UICollectionViewController {
 
     func applySnapshot(animated: Bool = false) async {
         guard let model else { return }
+        if playerCoordinator == nil, viewIfLoaded?.window != nil, let episode = model.upNext?.episode { InstantStart.warm(api: api, item: episode, intent: .poised) }
 
         var snapshot = NSDiffableDataSourceSnapshot<Section, Item>()
         snapshot.appendSections([.hero, .actions])

@@ -153,7 +153,7 @@ extension PlaybackSession {
     }
 
     /// Plays after a resume seek when the viewer or the surface asked for playback.
-    private func playIfAsked(autoplay: Bool) {
+    func playIfAsked(autoplay: Bool) {
         if autoplay || playsAfterResume { player?.play() }
         playsAfterResume = false
     }
@@ -215,6 +215,7 @@ extension PlaybackSession {
         carriedTimes?.noteRate(playing: status == .playing, at: now())
         tellWatchers(status)
         guard !noticeAbsence(trigger: "player state") else { return }
+        if status == .playing { notePictureStarted() }
         switch status {
         case .paused:
             if isRestarting { keepPausedThroughRebuild() }

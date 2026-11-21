@@ -92,6 +92,9 @@ final class PlayerScreen: View {
     let transport = TransportView()
     let skip = ButtonView(style: .glass, title: nil, symbol: "forward.end.fill", symbolTrailing: true)
     var preroll: PrerollView?
+    /// When the player opened and whether Instant Start had its stream, for the line that says how long the picture took.
+    var askedAt: ContinuousClock.Instant?
+    var startedWarm = false
     var infoPanel: PlayerInfoPanel?
     var postPlay: PostPlayView?
     var stream: ResolvedStream?
@@ -274,6 +277,7 @@ final class PlayerScreen: View {
     func start() {
         guard let window, let loop = window.loop else { return }
         PlayerScreen.active = self
+        askedAt = .now
         if run.beganWindowed == nil { run.beganWindowed = !window.isFullscreen }
         sleepTimer = run.sleepTimer
         applyTestPresets()
@@ -315,22 +319,20 @@ final class PlayerScreen: View {
         resolveFirstStream()
     }
 
-    /// Resolves the stream the title starts with: the tracks a title page chose, else the languages the episode before or
-    /// the show last played in, else what the server and the viewer's settings pick.
+    /// Resolves the stream the title starts with (`FirstStreamPlan`), or takes the one Instant Start resolved for it.
     func resolveFirstStream() {
         guard case .plex(let api, let item, let resumePosition) = source else { return }
-        let tracks = chosenTracks
-        let languages = tracks == nil ? startingLanguages : nil
+        let plan = FirstStreamPlan(item: item, resume: resumePosition, tracks: chosenTracks, carried: run.trackLanguages)
+        let warm = convertsAfterFailure ? nil : StreamWarmUp.shared.take(plan, api: api)
+        startedWarm = warm != nil
         resolveTask?.cancel()
         resolveTask = Task { [weak self] in
             guard let self else { return }
             do {
-                let resolved = try await StreamResolver.resolve(api: api, ratingKey: item.id, startSecs: resumePosition,
-                                                                selectedSubtitleId: tracks?.subtitle, selectedAudioStreamId: tracks?.audio,
-                                                                languages: languages, honorsServerSelection: tracks == nil && languages == nil,
-                                                                forceTranscode: convertsAfterFailure)
+                let ready = try? await warm?.value
+                let resolved = if let ready { ready } else { try await plan.resolve(api: api, startSecs: resumePosition, forceTranscode: convertsAfterFailure) }
                 guard !Task.isCancelled, !closed else { return }
-                subtitlesTurnedOff = resolved.chosenSubtitleId == nil && languages?.subtitlesOff == true
+                subtitlesTurnedOff = resolved.chosenSubtitleId == nil && plan.languages?.subtitlesOff == true
                 load(resolved)
             } catch {
                 guard !Task.isCancelled else { return }

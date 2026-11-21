@@ -296,11 +296,6 @@ extension PlayerScreen {
         return nil
     }
 
-    /// The languages a fresh start begins in: the episode before's, else the ones last chosen on the show.
-    var startingLanguages: TrackLanguages? {
-        run.trackLanguages ?? (isEpisode ? ShowTrackMemory.languages(forShow: showKey, server: serverID) : nil)
-    }
-
     /// The audio and subtitle playing now, as languages the next episode can find among its own streams.
     var trackLanguages: TrackLanguages? {
         guard let stream else { return run.trackLanguages }

@@ -10,6 +10,7 @@ import UIKit
 /// Content comes from the shared `HomeFeed`; the launch payload paints the first frame and every
 /// later appearance refreshes it, keeping what is on screen when a refresh fails.
 final class TVHomeViewController: TVScreenViewController {
+    private let focusWatch = TVInstantStart.focusWatch()
     private final class LayoutSource {
         weak var screen: TVHomeViewController?
     }
@@ -676,12 +677,25 @@ final class TVHomeViewController: TVScreenViewController {
         with coordinator: UIFocusAnimationCoordinator
     ) {
         super.collectionView(collectionView, didUpdateFocusIn: context, with: coordinator)
+        focusRested(on: context.nextFocusedIndexPath.flatMap { cardTarget(at: $0) })
         guard let next = context.nextFocusedIndexPath else { return }
         if next.section == firstRailSectionIndex {
             homeCollectionView.bringHeroBack()
         }
         guard let target = cardTarget(at: next) else { return }
         showHero(for: target.media, bucket: target.bucket, animated: true)
+    }
+
+    /// Instant Start: focus that stops on a card a click plays makes that title ready; anywhere else gives it back.
+    private func focusRested(on target: (media: PlexMetadata, bucket: HomeBucket)?) {
+        guard let target, HomeTapPolicy.action(for: target.media, in: target.bucket) == .play else {
+            focusWatch.moved(onto: nil)
+            return
+        }
+        let env = env
+        focusWatch.moved(onto: target.media.id) { intent in
+            TVInstantStart.warm(env, request: TVPlaybackRequest(item: target.media), intent: intent)
+        }
     }
 
     func collectionView(_ collectionView: UICollectionView, shouldUpdateFocusIn context: UICollectionViewFocusUpdateContext) -> Bool {

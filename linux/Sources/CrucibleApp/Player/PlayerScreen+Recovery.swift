@@ -158,5 +158,15 @@ extension PlayerScreen {
         preroll.reveal()
         self.preroll = nil
         showChrome(autoHide: true)
+        notePictureStarted()
+    }
+
+    /// Says in the log how long the picture took from Play, once, and whether Instant Start had the stream by then.
+    private func notePictureStarted() {
+        guard let asked = askedAt, case .plex(_, let item, _) = source else { return }
+        askedAt = nil
+        let elapsed = asked.duration(to: .now).components
+        let milliseconds = Int(elapsed.seconds) * 1000 + Int(elapsed.attoseconds / 1_000_000_000_000_000)
+        MidgarLog.notice("Playing ratingKey=\(item.id) \(milliseconds) ms after Play start=\(startedWarm ? "resolved" : "cold")", category: .playback)
     }
 }

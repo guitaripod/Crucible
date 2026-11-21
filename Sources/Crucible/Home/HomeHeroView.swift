@@ -21,6 +21,8 @@ struct HomeHeroConfiguration: UIContentConfiguration, Hashable {
     var minimumHeight: CGFloat = Theme.Size.heroCardHeight
     var spokenLabel: String = ""
     var onPrimary: (() -> Void)?
+    /// Runs when a finger goes down on the primary button, before it is known to be a tap.
+    var onPrimaryTouch: (() -> Void)?
     var onDetails: (() -> Void)?
 
     static func == (lhs: HomeHeroConfiguration, rhs: HomeHeroConfiguration) -> Bool {
@@ -68,6 +70,7 @@ final class HomeHeroContentView: UIView, UIContentView {
     private var imageTask: Task<Void, Never>?
     private var currentArtwork: HomeHeroArtwork?
     private var onPrimary: (() -> Void)?
+    private var onPrimaryTouch: (() -> Void)?
     private var onDetails: (() -> Void)?
 
     init(configuration: HomeHeroConfiguration) {
@@ -125,6 +128,7 @@ final class HomeHeroContentView: UIView, UIContentView {
         trailingLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
         primaryButton.addAction(UIAction { [weak self] _ in self?.onPrimary?() }, for: .primaryActionTriggered)
+        primaryButton.addAction(UIAction { [weak self] _ in self?.onPrimaryTouch?() }, for: .touchDown)
         primaryButton.isPointerInteractionEnabled = true
         primaryButton.setContentHuggingPriority(.required, for: .horizontal)
         primaryButton.setContentCompressionResistancePriority(.required, for: .horizontal)
@@ -217,6 +221,7 @@ final class HomeHeroContentView: UIView, UIContentView {
     private func apply() {
         guard let config = configuration as? HomeHeroConfiguration else { return }
         onPrimary = config.onPrimary
+        onPrimaryTouch = config.onPrimaryTouch
         onDetails = config.onDetails
         minimumHeightConstraint?.constant = config.minimumHeight
 

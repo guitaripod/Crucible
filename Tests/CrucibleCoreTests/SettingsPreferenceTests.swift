@@ -199,7 +199,7 @@ struct SettingsCatalogTests {
 
     @Test func sectionsKeepTheirOrderAndGroupTheirRows() {
         let sections = SettingsCatalog.sections(of: .playback, on: .phone)
-        #expect(sections.map(\.title) == ["Streaming Quality", "Up Next", "Skipping", "Subtitles"])
+        #expect(sections.map(\.title) == ["Streaming Quality", "Starting", "Up Next", "Skipping", "Subtitles"])
         #expect(sections.first?.entries.map(\.item) == [.preference(.streamingQuality), .preference(.remoteQuality), .preference(.cellularQuality)])
     }
 

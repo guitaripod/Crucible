@@ -208,6 +208,7 @@ package enum SettingsCatalog {
 
     private static var specs: [Spec] {
         let quality = String(localized: "Streaming Quality", comment: "Settings section for the three streaming quality settings")
+        let starting = String(localized: "Starting", comment: "Settings section for how quickly playback starts")
         let upNext = String(localized: "Up Next")
         let skipping = String(localized: "Skipping", comment: "Settings section for skip intro and skip credits")
         let subtitles = String(localized: "Subtitles")
@@ -219,6 +220,7 @@ package enum SettingsCatalog {
             Spec(item: .preference(.streamingQuality), category: .playback, section: quality, platforms: all),
             Spec(item: .preference(.remoteQuality), category: .playback, section: quality, platforms: all),
             Spec(item: .preference(.cellularQuality), category: .playback, section: quality, platforms: phone),
+            Spec(item: .preference(.instantStart), category: .playback, section: starting, platforms: all),
             Spec(item: .preference(.autoplayNextEpisode), category: .playback, section: upNext, platforms: all),
             Spec(item: .preference(.upNextCountdown), category: .playback, section: upNext, platforms: all),
             Spec(item: .preference(.stillWatching), category: .playback, section: upNext, platforms: all),
@@ -468,6 +470,8 @@ package enum SettingsCatalog {
                 return String(localized: "binge, next episode, autoplay, countdown, sleep", comment: "Search keywords for the Up Next settings, comma separated")
             case .rewindAfterBreak:
                 return String(localized: "resume, pause, back", comment: "Search keywords for Rewind After a Break, comma separated")
+            case .instantStart:
+                return String(localized: "fast, preload, buffer, loading, wait, start", comment: "Search keywords for Instant Start, comma separated")
             case .skipIntro, .skipOutro:
                 return String(localized: "intro, credits, outro, opening, automatic", comment: "Search keywords for the skip intro and credits settings, comma separated")
             case .subtitleSize:

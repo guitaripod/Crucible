@@ -613,8 +613,12 @@ final class TVShowDetailViewController: TVDetailViewController {
     }
 
     private func playUpNext() {
-        guard let episode = model?.upNext?.episode else { return }
-        play(TVPlaybackRequest(item: episode))
+        guard let request = poisedRequest else { return }
+        play(request)
+    }
+
+    override var poisedRequest: TVPlaybackRequest? {
+        (model?.upNext?.episode).map { TVPlaybackRequest(item: $0) }
     }
 
     /// Selecting the season already shown does nothing unless its fetch failed, in which case it is the retry.

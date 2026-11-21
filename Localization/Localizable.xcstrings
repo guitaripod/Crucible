@@ -85969,6 +85969,100 @@
         }
       }
     },
+    "Gets a title ready while you look at it, so it plays the moment you press Play. Nothing is loaded ahead on mobile data or in Low Power Mode." : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gør en titel klar, mens du kigger på den, så den afspilles i det øjeblik, du trykker på Afspil. Intet indlæses på forhånd via mobildata eller i Energibesparelse."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bereitet einen Titel vor, während du ihn ansiehst, sodass er sofort startet, wenn du auf „Wiedergabe“ drückst. Über mobile Daten oder im Stromsparmodus wird nichts vorab geladen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prepara un título mientras lo miras, para que empiece en cuanto pulses Reproducir. No se carga nada por adelantado con datos móviles ni en el modo de bajo consumo."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valmistelee nimikkeen, kun katselet sitä, joten se alkaa heti, kun painat Toista. Mitään ei ladata etukäteen mobiilidatalla tai virransäästötilassa."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prépare un titre pendant que vous le regardez, pour qu’il démarre dès que vous appuyez sur Lecture. Rien n’est chargé à l’avance en données cellulaires ni en mode économie d’énergie."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gerir titil tilbúinn á meðan þú skoðar hann, svo hann byrjar um leið og þú ýtir á Spila. Ekkert er sótt fyrirfram á farsímagögnum eða í orkusparnaðarham."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prepara un titolo mentre lo guardi, così parte nell’istante in cui premi Riproduci. Niente viene caricato in anticipo con i dati cellulare o in modalità Risparmio energetico."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タイトルを見ている間に準備しておき、再生を押した瞬間に始まります。モバイルデータ通信中や低電力モードでは先読みしません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "타이틀을 보는 동안 미리 준비해 두어 재생을 누르는 즉시 시작됩니다. 셀룰러 데이터나 저전력 모드에서는 미리 불러오지 않습니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gjør en tittel klar mens du ser på den, så den starter i det øyeblikket du trykker på Spill av. Ingenting lastes på forhånd over mobildata eller i strømsparingsmodus."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przygotowuje tytuł, gdy na niego patrzysz, aby ruszył w chwili naciśnięcia Odtwórz. Nic nie jest wczytywane z wyprzedzeniem przez sieć komórkową ani w trybie niskiego zużycia energii."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prepara um título enquanto você olha para ele, para que comece no instante em que você tocar em Reproduzir. Nada é carregado antes com dados celulares ou no Modo Pouca Energia."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gör en titel redo medan du tittar på den, så att den startar i samma stund som du trycker på Spela upp. Inget läses in i förväg via mobildata eller i strömsparläge."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在你查看影片时提前准备，按下播放即刻开始。使用蜂窝数据或低电量模式时不会预先加载。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在你查看影片時預先準備，按下播放即刻開始。使用行動數據或低耗電模式時不會預先載入。"
+          }
+        }
+      }
+    },
     "Getting a code…" : {
       "comment" : "Status while Crucible asks Trakt for a code",
       "localizations" : {
@@ -95467,6 +95561,101 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在安裝…"
+          }
+        }
+      }
+    },
+    "Instant Start" : {
+      "comment" : "Setting: get a title ready before Play is pressed",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Øjeblikkelig start"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sofortstart"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inicio instantáneo"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pikakäynnistys"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Démarrage instantané"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tafarlaus byrjun"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avvio istantaneo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "インスタントスタート"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "즉시 시작"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Umiddelbar start"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Natychmiastowy start"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Início instantâneo"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Direktstart"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "即时开始"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "即時開始"
           }
         }
       }
@@ -186172,6 +186361,101 @@
         }
       }
     },
+    "Starting" : {
+      "comment" : "Settings section for how quickly playback starts",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inicio"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aloitus"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Démarrage"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Byrjun"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avvio"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開始"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "시작"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uruchamianie"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Início"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开始播放"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開始播放"
+          }
+        }
+      }
+    },
     "Starting the demo" : {
       "localizations" : {
         "da" : {
@@ -237715,6 +237999,101 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已足夠領先"
+          }
+        }
+      }
+    },
+    "fast, preload, buffer, loading, wait, start" : {
+      "comment" : "Search keywords for Instant Start, comma separated",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "hurtig, forudindlæs, buffer, indlæser, vent, start"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "schnell, vorladen, puffern, laden, warten, start"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "rápido, precarga, búfer, cargando, espera, inicio"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "nopea, esilataus, puskuri, lataus, odotus, aloitus"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "rapide, préchargement, tampon, chargement, attente, démarrage"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "hratt, forhleðsla, biðminni, hleður, bið, byrjun"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "veloce, precaricamento, buffer, caricamento, attesa, avvio"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "高速, 先読み, バッファ, 読み込み, 待ち, 開始"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "빠른, 미리 불러오기, 버퍼, 로딩, 대기, 시작"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "rask, forhåndslast, buffer, laster, vent, start"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "szybko, wstępne wczytywanie, bufor, ładowanie, czekanie, start"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "rápido, pré-carregamento, buffer, carregando, espera, início"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "snabb, förladda, buffert, laddar, vänta, start"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "快速, 预加载, 缓冲, 加载, 等待, 开始"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "快速, 預先載入, 緩衝, 載入, 等待, 開始"
           }
         }
       }

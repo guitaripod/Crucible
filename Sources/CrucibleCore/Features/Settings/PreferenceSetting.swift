@@ -27,6 +27,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
     case stillWatching
     case postPlaySuggestions
     case rewindAfterBreak
+    case instantStart
     case skipIntro
     case skipOutro
     case subtitleSize
@@ -76,6 +77,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         case .stillWatching: return String(localized: "Ask If Still Watching")
         case .postPlaySuggestions: return String(localized: "Suggest What to Watch Next", comment: "Setting: show titles like the one that just ended")
         case .rewindAfterBreak: return String(localized: "Rewind After a Break")
+        case .instantStart: return String(localized: "Instant Start", comment: "Setting: get a title ready before Play is pressed")
         case .skipIntro: return String(localized: "Skip Intro")
         case .skipOutro: return String(localized: "Skip Credits", comment: "Setting: what happens when the end credits start")
         case .subtitleSize: return String(localized: "Subtitle Size", comment: "Setting: how big subtitles are drawn")
@@ -116,6 +118,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         case .skipIntro: return String(localized: "Skip Intro can show a button, skip automatically, or stay out of the way.")
         case .skipOutro: return String(localized: "Skip Credits decides what the credits do: show the Up Next card, start the next episode automatically, or stay out of the way.")
         case .rewindAfterBreak: return String(localized: "After a break, playback backs up a few seconds, more the longer you were away.")
+        case .instantStart: return String(localized: "Gets a title ready while you look at it, so it plays the moment you press Play. Nothing is loaded ahead on mobile data or in Low Power Mode.")
         case .stillWatching: return String(localized: "Asks before the next episode once this many have played in a row without the remote.")
         case .postPlaySuggestions: return String(localized: "When a movie or the last episode of a show ends, titles like it wait on the screen instead of the player closing.")
         case .subtitleSize: return String(localized: "Applies to subtitles the server draws into the picture and to the ones the player draws.")
@@ -157,6 +160,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         case .stillWatching: return "moon.zzz"
         case .postPlaySuggestions: return "sparkles.tv"
         case .rewindAfterBreak: return "gobackward"
+        case .instantStart: return "bolt.fill"
         case .skipIntro: return "forward.end"
         case .skipOutro: return "forward.end.circle"
         case .subtitleSize: return "textformat.size"
@@ -222,6 +226,8 @@ package enum PreferenceSetting: CaseIterable, Sendable {
             })
         case .rewindAfterBreak:
             return .toggle(isOn: Preferences.rewindAfterBreak)
+        case .instantStart:
+            return .toggle(isOn: Preferences.instantStart)
         case .skipIntro:
             return .choice(Self.choices(Preferences.SkipIntroMode.allCases, current: Preferences.skipIntroMode, rawValue: \.rawValue, title: \.title))
         case .skipOutro:
@@ -368,6 +374,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         case .autoplayNextEpisode: Preferences.autoplayNextEpisode = isOn
         case .postPlaySuggestions: Preferences.postPlaySuggestions = isOn
         case .rewindAfterBreak: Preferences.rewindAfterBreak = isOn
+        case .instantStart: Preferences.instantStart = isOn
         case .downloadOverCellular: Preferences.downloadOverCellular = isOn
         case .deleteWatchedDownloads: Preferences.deleteWatchedDownloads = isOn
         case .quietHours: Preferences.quietHours = isOn
@@ -416,6 +423,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         .stillWatching: .choice(StillWatchingRule.choices.map { SettingChoice(id: $0, title: StillWatchingRule.label(for: $0), isSelected: $0 == StillWatchingRule.defaultLimit) }),
         .postPlaySuggestions: .toggle(isOn: true),
         .rewindAfterBreak: .toggle(isOn: true),
+        .instantStart: .toggle(isOn: true),
         .skipIntro: .choice(choices(Preferences.SkipIntroMode.allCases, current: .button, rawValue: \.rawValue, title: \.title)),
         .skipOutro: .choice(choices(Preferences.SkipOutroMode.allCases, current: .button, rawValue: \.rawValue, title: \.title)),
         .subtitleSize: .choice(choices(SubtitleSize.allCases, current: .standard, rawValue: \.rawValue, title: \.title)),

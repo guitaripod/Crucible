@@ -125,6 +125,7 @@ final class MediaDetailViewController: UICollectionViewController {
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
+        InstantStart.cool(ratingKey)
         loadTask?.cancel()
         community.cancel()
         if let downloadObserver {
@@ -403,6 +404,7 @@ final class MediaDetailViewController: UICollectionViewController {
                 self?.selectedAudioTrackId = option.id
                 self?.tracksPicked = true
                 self?.reconfigure([.tracks])
+                self?.warmPlay()
             }
             action.subtitle = option.detail
             return action
@@ -416,6 +418,7 @@ final class MediaDetailViewController: UICollectionViewController {
             self?.selectedSubtitleId = nil
             self?.tracksPicked = true
             self?.reconfigure([.tracks])
+            self?.warmPlay()
         }
         let actions = options.map { option in
             let action = UIAction(
@@ -428,6 +431,7 @@ final class MediaDetailViewController: UICollectionViewController {
                 self?.selectedSubtitleId = option.id
                 self?.tracksPicked = true
                 self?.reconfigure([.tracks])
+                self?.warmPlay()
             }
             action.subtitle = option.detail
             return action
@@ -505,6 +509,7 @@ final class MediaDetailViewController: UICollectionViewController {
         )
         await applySnapshot()
         revealLoadedPage()
+        warmPlay()
     }
 
     /// Starts fetching Trakt's scores alongside the page, when Trakt is connected and none are cached.
@@ -738,10 +743,9 @@ final class MediaDetailViewController: UICollectionViewController {
         coordinator.present(from: self)
     }
 
-    private func play() {
-        guard let model else { return }
+    private func playbackMetadata(_ model: MovieDetailModel) -> PlayerCoordinator.Metadata {
         let metadata = model.item
-        let meta = PlayerCoordinator.Metadata(
+        return PlayerCoordinator.Metadata(
             title: metadata.title,
             showName: metadata.grandparentTitle,
             seasonNumber: metadata.parentIndex,
@@ -749,6 +753,30 @@ final class MediaDetailViewController: UICollectionViewController {
             posterPath: metadata.thumb ?? metadata.grandparentThumb,
             duration: metadata.durationSecs
         )
+    }
+
+    /// Instant Start: with the page open and Play on it, the title is made ready in the tracks chosen here, the way `play()`
+    /// will ask for it. Not for a downloaded title, a page shown from a download, or once the viewer has already played from
+    /// this page and come back.
+    private func warmPlay() {
+        guard loadedFromServer, playerCoordinator == nil, viewIfLoaded?.window != nil, let model,
+              DownloadManager.shared.offlineAsset(for: ratingKey) == nil else { return }
+        PlaybackWarmUp.shared.warm(api: api, request: PlaybackRequest(
+            ratingKey: ratingKey,
+            mediaType: mediaType,
+            showRatingKey: model.showKey,
+            seasonRatingKey: model.seasonKey,
+            resumePosition: model.resumePosition(offlineResumeSecs: nil),
+            metadata: playbackMetadata(model),
+            selectedSubtitleId: selectedSubtitleId,
+            selectedAudioStreamId: selectedAudioTrackId,
+            serverStart: .resume
+        ), intent: .poised)
+    }
+
+    private func play() {
+        guard let model else { return }
+        let meta = playbackMetadata(model)
         let offlineAsset = DownloadManager.shared.offlineAsset(for: ratingKey)
         let offlineResume = offlineAsset != nil ? DownloadManager.shared.item(for: ratingKey)?.resumeSecs : nil
         let resumePosition = model.resumePosition(offlineResumeSecs: offlineResume)

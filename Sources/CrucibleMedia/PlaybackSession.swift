@@ -138,6 +138,16 @@ package final class PlaybackSession {
     var rebuildTask: Task<Void, Never>?
     var hasCheckedRouteAfterFailure = false
     var routeObservation: UUID?
+    /// The resolve in flight, which a second `prepare()` joins instead of asking the server again.
+    private var resolving: Task<ResolvedStream, any Error>?
+    /// A paused player loading the prepared stream ahead of `begin()`, which then plays it (`preload()`).
+    var preloaded: AVPlayer?
+    /// Whether the seek that puts a preloaded player at the place playback starts from is still on its way.
+    var preloadSeekPending = false
+    /// How far this session had been made ready when Play was pressed, and when that was, for the line that says how long the
+    /// picture took.
+    package var startedFrom: WarmDepth = .none
+    package var askedAt: ContinuousClock.Instant?
 
     /// `installsRemoteCommands` is false for a player whose system UI already owns the remote
     /// commands (the tvOS player): a second set of handlers would double-toggle play and pause.
@@ -184,6 +194,17 @@ package final class PlaybackSession {
         let ratingKey = request.ratingKey
         Task { @MainActor in PlaybackResumeSync.ended(ratingKey) }
     }
+
+    /// The sessions that have a player on a surface, held weakly, for `isAnyPlaying`.
+    private static let begun = NSHashTable<PlaybackSession>.weakObjects()
+
+    /// Whether any session has a player that has not been stopped, playing or paused.
+    package static var isAnyPlaying: Bool {
+        begun.allObjects.contains { $0.player != nil && !$0.isStopped }
+    }
+
+    /// Whether the session is over (`stop()` or `discard()`), so it can play nothing any more.
+    package var isSpent: Bool { isStopped }
 
     /// The item's timeline position of the playhead, or nil before playback starts.
     package var absolutePosition: Double? {
@@ -238,10 +259,19 @@ package final class PlaybackSession {
     }
 
     /// Resolves the stream to play. A cancelled caller gets `CancellationError` and any transcode the
-    /// server already started is stopped. A downloaded item is ready without a network round trip.
+    /// server already started is stopped. A downloaded item is ready without a network round trip. A session
+    /// resolves once: a call made while another is still resolving waits for the same answer, which is how a Play
+    /// pressed while the title was being made ready picks up where that got to.
     package func prepare() async throws -> ResolvedStream {
         if isStopped { throw CancellationError() }
         if let stream { return stream }
+        let task = resolving ?? Task { try await self.resolveStream() }
+        resolving = task
+        return try await withTaskCancellationHandler { try await task.value } onCancel: { task.cancel() }
+    }
+
+    private func resolveStream() async throws -> ResolvedStream {
+        defer { resolving = nil }
         await catchUpWithServer()
         if isStopped || Task.isCancelled { throw CancellationError() }
         let languages = startingLanguages
@@ -255,7 +285,7 @@ package final class PlaybackSession {
             honorsServerSelection: languages == nil,
             captionLanguage: SystemCaptions.alwaysOnLanguage
         )
-        guard !Task.isCancelled else {
+        guard !Task.isCancelled, !isStopped else {
             discardTranscode(of: resolved)
             throw CancellationError()
         }
@@ -303,6 +333,8 @@ package final class PlaybackSession {
     package func discard() {
         guard player == nil, !isStopped else { return }
         isStopped = true
+        resolving?.cancel()
+        dropPreload()
         if let stream { discardTranscode(of: stream) }
         stream = nil
         continuation.finish()
@@ -319,10 +351,13 @@ package final class PlaybackSession {
         tracker.beginStream(start: start, isTranscode: !stream.isDirectPlay)
         tracker.moved(to: request.resumePosition)
         if !stream.isDirectPlay { lastPlayhead = start - streamOffset }
-        let player = AVPlayer(url: stream.url)
+        let ready = takePreload()
+        let player = ready ?? AVPlayer(url: stream.url)
         player.allowsExternalPlayback = true
         player.appliesMediaSelectionCriteriaAutomatically = false
         self.player = player
+        Self.begun.add(self)
+        PlaybackWarmUp.shared.began(self)
         if !request.isExtra {
             PlaybackResumeSync.began(request.ratingKey)
             holdsPlayingTitle = true
@@ -363,7 +398,11 @@ package final class PlaybackSession {
         observeRate(of: player)
         startHeartbeat()
         watchCurrentItem()
-        startPlayback(player: player, stream: stream, resumePosition: request.resumePosition, autoplay: autoplay)
+        if ready == nil {
+            startPlayback(player: player, stream: stream, resumePosition: request.resumePosition, autoplay: autoplay)
+        } else {
+            startPreloaded(player, autoplay: autoplay)
+        }
         return player
     }
 

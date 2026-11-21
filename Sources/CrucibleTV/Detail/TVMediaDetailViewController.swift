@@ -457,16 +457,23 @@ final class TVMediaDetailViewController: TVDetailViewController {
     }
 
     private func play(startingAt position: Double?) {
-        guard let model else { return }
+        guard let request = request(startingAt: position) else { return }
+        play(request)
+    }
+
+    private func request(startingAt position: Double?) -> TVPlaybackRequest? {
+        guard let model else { return nil }
         let resume = position ?? model.resumePosition(offlineResumeSecs: nil)
-        play(TVPlaybackRequest(
+        return TVPlaybackRequest(
             item: model.item,
             resumeSeconds: resume,
             selectedAudioStreamID: audioID,
             selectedSubtitleStreamID: subtitleID,
             following: position == nil ? .resume : nil
-        ))
+        )
     }
+
+    override var poisedRequest: TVPlaybackRequest? { request(startingAt: nil) }
 
     private func goToNextEpisode() {
         guard let seasonKey = model?.seasonKey else { return }

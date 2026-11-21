@@ -16,6 +16,7 @@ import UIKit
 /// place and never moves the focus.
 @MainActor
 class TVDetailViewController: TVScreenViewController {
+    private var hasPlayed = false
     enum Section: Int, Hashable, Sendable {
         case header
         case synopsis
@@ -205,7 +206,23 @@ class TVDetailViewController: TVScreenViewController {
     }
 
     func play(_ request: TVPlaybackRequest) {
+        hasPlayed = true
         TVDetailNavigation.play(request, env: env, from: self)
+    }
+
+    /// What the page's Play button would start right now, for Instant Start; nil while the page plays nothing.
+    var poisedRequest: TVPlaybackRequest? { nil }
+
+    /// Instant Start: the page opens with focus on Play, so what Play would start is made ready. Not once the viewer has
+    /// already played from this page and come back to it.
+    private func warmPlay() {
+        guard !hasPlayed, viewIfLoaded?.window != nil, let request = poisedRequest else { return }
+        TVInstantStart.warm(env, request: request, intent: .poised)
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        TVInstantStart.cool(poisedRequest?.ratingKey)
     }
 
     /// Marks `ratingKey` (a movie, episode, season or show) watched or unwatched, then refreshes the screen.
@@ -246,6 +263,7 @@ class TVDetailViewController: TVScreenViewController {
         backdrop.show(path: content.artwork.path, kind: content.artwork.isBackdrop ? .backdrop : .poster, immediate: true)
         applySnapshot(for: content)
         showContent()
+        warmPlay()
     }
 
     /// Fades the loading skeleton out under the first content, the way tvOS dissolves a placeholder into the page.

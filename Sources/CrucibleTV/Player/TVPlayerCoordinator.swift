@@ -155,14 +155,16 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
     func startSession() {
         MidgarLog.notice("Play requested ratingKey=\(request.ratingKey) type=\(request.mediaType) resumeSecs=\(Int(request.resumePosition))", category: .playback)
         isAdvancing = false
-        let session = PlaybackSession(api: api, request: request, installsRemoteCommands: false)
+        let session = PlaybackWarmUp.shared.take(api: api, request: request) ?? PlaybackSession(api: api, request: request, installsRemoteCommands: false)
+        session.askedAt = .now
         session.configureItem = { [weak self] item in self?.configure(item: item) }
         session.adoptSleepTimer(carriedSleepTimer)
         #if DEBUG
         presetSleepTimerForUITests(on: session)
         #endif
         self.session = session
-        if preroll?.presentingViewController == nil { showPreroll() }
+        let picturesAtOnce = session.isLoaded && playerVC.presentingViewController == nil
+        if preroll?.presentingViewController == nil, !picturesAtOnce { showPreroll() }
         loadInfo()
         prepareTask = Task { [weak self] in
             do {
@@ -256,6 +258,16 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         }
     }
 
+    /// A title Instant Start had already loaded has its picture waiting, so the player dissolves in straight over the screen
+    /// it was started from, with no pre-roll in between.
+    private func revealAtOnce() {
+        guard let rootPresenter else { return }
+        isRevealing = true
+        rootPresenter.present(playerVC, animated: !UIAccessibility.isReduceMotionEnabled) { [weak self] in
+            self?.playerRevealed()
+        }
+    }
+
     /// Holds the pre-roll until the stream has loaded enough to show a picture, so the dissolve lands
     /// on video instead of a black player that is still buffering. A failed or slow load reveals the
     /// player anyway, where the engine's own failure or buffering handling takes over.
@@ -300,8 +312,12 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         playerVC.player = player
         playerVC.showsPlaybackControls = true
         DemoTour.shared.record(.play)
-        isAwaitingReveal = true
-        revealWhenLoaded(session, item: player.currentItem)
+        if preroll == nil, playerVC.presentingViewController == nil {
+            revealAtOnce()
+        } else {
+            isAwaitingReveal = true
+            revealWhenLoaded(session, item: player.currentItem)
+        }
         observeEvents(of: session)
         refreshTrackMenus()
         prepareUpNext(for: session)
