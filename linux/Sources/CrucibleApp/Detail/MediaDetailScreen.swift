@@ -112,7 +112,7 @@ final class MediaDetailScreen: DetailScreen {
         guard let model else { return }
         let item = model.item
         StreamWarmUp.shared.warm(api: api, item: item, resume: model.resumePosition(offlineResumeSecs: nil),
-                                 tracks: tracksPicked ? (audioID, subtitleID) : nil)
+                                 tracks: tracksPicked ? (audioID, subtitleID) : nil, in: window)
         extras.setItems(model.extras.map {
             CardItem(id: "extra.\($0.id)", artwork: $0.thumb.map { .path($0, .backdrop) }, title: $0.title, subtitle: DetailExtras.subtitle($0),
                      placeholderSymbol: "film")

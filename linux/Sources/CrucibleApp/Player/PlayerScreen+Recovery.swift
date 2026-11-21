@@ -167,6 +167,6 @@ extension PlayerScreen {
         askedAt = nil
         let elapsed = asked.duration(to: .now).components
         let milliseconds = Int(elapsed.seconds) * 1000 + Int(elapsed.attoseconds / 1_000_000_000_000_000)
-        MidgarLog.notice("Playing ratingKey=\(item.id) \(milliseconds) ms after Play start=\(startedWarm ? "resolved" : "cold")", category: .playback)
+        MidgarLog.notice("Playing ratingKey=\(item.id) \(milliseconds) ms after Play start=\(startedFrom.logName)", category: .playback)
     }
 }

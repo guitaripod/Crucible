@@ -92,9 +92,11 @@ final class PlayerScreen: View {
     let transport = TransportView()
     let skip = ButtonView(style: .glass, title: nil, symbol: "forward.end.fill", symbolTrailing: true)
     var preroll: PrerollView?
-    /// When the player opened and whether Instant Start had its stream, for the line that says how long the picture took.
+    /// When the player opened and how ready Instant Start had its title, for the line that says how long the picture took.
     var askedAt: ContinuousClock.Instant?
-    var startedWarm = false
+    var startedFrom = WarmDepth.none
+    /// What Instant Start made ready for this title, until the first stream is loaded (`takeWarmPlayer`).
+    var warm: StreamWarmUp.Ready?
     var infoPanel: PlayerInfoPanel?
     var postPlay: PostPlayView?
     var stream: ResolvedStream?
@@ -282,7 +284,7 @@ final class PlayerScreen: View {
         sleepTimer = run.sleepTimer
         applyTestPresets()
         do {
-            let player = try VideoPlayer(gpu: window.gpu, loop: loop)
+            let player = try takeWarmPlayer() ?? VideoPlayer(gpu: window.gpu, loop: loop)
             let view = VideoView(player: player)
             insertSubview(view, at: 0)
             view.frame = bounds
@@ -323,8 +325,7 @@ final class PlayerScreen: View {
     func resolveFirstStream() {
         guard case .plex(let api, let item, let resumePosition) = source else { return }
         let plan = FirstStreamPlan(item: item, resume: resumePosition, tracks: chosenTracks, carried: run.trackLanguages)
-        let warm = convertsAfterFailure ? nil : StreamWarmUp.shared.take(plan, api: api)
-        startedWarm = warm != nil
+        let warm = convertsAfterFailure ? nil : warm?.stream
         resolveTask?.cancel()
         resolveTask = Task { [weak self] in
             guard let self else { return }
@@ -375,8 +376,10 @@ final class PlayerScreen: View {
         applyDisplay()
         reapplyLoop()
         let headers = PlexHeaders.allHeaders(token: api.token)
-        player?.load(resolved.url, start: resolved.isDirectPlay ? start : 0, headers: headers,
-                     options: resolved.isDirectPlay ? FileTracks(resolved).loadOptions : [:])
+        let opensAt = resolved.isDirectPlay ? start : 0
+        if !adoptsWarmFile(resolved.url, start: opensAt) {
+            player?.load(resolved.url, start: opensAt, headers: headers, options: resolved.isDirectPlay ? FileTracks(resolved).loadOptions : [:])
+        }
         player?.setPaused(paused)
         engageMatchContent(resolved)
         matchedFullscreen = window?.isFullscreen ?? false
@@ -432,7 +435,7 @@ final class PlayerScreen: View {
         return false
     }
 
-    private func stateChanged(_ playerState: VideoPlayer.State) {
+    func stateChanged(_ playerState: VideoPlayer.State) {
         if let preroll, !preroll.isRevealed, playerState.videoWidth > 0 { revealPicture() }
         transport.update(position: position, duration: duration, buffered: playerState.cachedSeconds, paused: playerState.isPaused,
                          buffering: playerState.isBuffering)
@@ -493,7 +496,7 @@ final class PlayerScreen: View {
     /// Checks the tracks a file playing directly opened on against what it carries, since the server can list streams the file
     /// lacks: a missing audio track falls back to mpv's own pick and a missing subtitle to none. A chosen subtitle beside the
     /// file is fetched and added now that the file is open.
-    private func settleFileTracks() {
+    func settleFileTracks() {
         if web != nil {
             settleWebTracks()
             return

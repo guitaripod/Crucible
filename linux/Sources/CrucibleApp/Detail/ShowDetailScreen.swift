@@ -173,7 +173,7 @@ final class ShowDetailScreen: DetailScreen {
     private func rebuild() {
         builtDensity = Theme.current.density
         guard let model else { return }
-        if let episode = model.upNext?.episode { StreamWarmUp.shared.warm(api: api, item: episode) }
+        if let episode = model.upNext?.episode { StreamWarmUp.shared.warm(api: api, item: episode, in: window) }
         let shield = SpoilerShield.isOn(showKey)
         let highlightKeys = model.highlightKeys
         let rows = model.episodeRows(showingSkipped: showsSkipped, highlights: highlightsOnly && model.essentials == nil ? highlightKeys : nil)

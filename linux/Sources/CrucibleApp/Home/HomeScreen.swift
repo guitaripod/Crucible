@@ -117,9 +117,12 @@ final class HomeScreen: ScreenView {
         }
     }
 
+    /// Leaving Home also gives back the title made ready for the card focus was on, and lets the same card count afresh
+    /// when Home comes back with focus still on it.
     override func screenWillDisappear() {
         liveTask?.cancel()
         liveTask = nil
+        restWatch.moved(onto: nil)
     }
 
     /// Ctrl+R and the server's change events.
@@ -286,14 +289,15 @@ final class HomeScreen: ScreenView {
         return shelf
     }
 
-    /// Instant Start: focus or the pointer that stops on a card which plays when chosen has that title's stream resolved.
+    /// Instant Start: focus or the pointer that stops on a card which plays when chosen has that title made ready, while
+    /// Home is the screen in the window; Home is also built, and given focus, behind another tab the app opened on.
     private func rested(on media: PlexMetadata, in bucket: HomeBucket) {
-        guard HomeTapPolicy.action(for: media, in: bucket) == .play else {
+        guard window != nil, HomeTapPolicy.action(for: media, in: bucket) == .play else {
             restWatch.moved(onto: nil)
             return
         }
         let api = payload.api
-        restWatch.moved(onto: media.id) { _ in StreamWarmUp.shared.warm(api: api, item: media) }
+        restWatch.moved(onto: media.id) { [weak self] _ in StreamWarmUp.shared.warm(api: api, item: media, in: self?.window) }
     }
 
     private static func bucket(_ row: Row) -> HomeBucket? {
