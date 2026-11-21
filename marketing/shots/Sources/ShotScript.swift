@@ -237,8 +237,26 @@ enum ShotScript {
             await ShotHarness.settle(1)
             await ShotHarness.capture(name)
         }
+        await scrubPreview(on: tabBar)
         DemoShotScript.rotate(to: .portrait)
         withExtendedLifetime(coordinator) {}
+    }
+
+    /// The player paused past the middle of the episode with its controls up and the scrubber's preview standing over
+    /// the thumb under a finger: the picture, the time and the chapter of that moment. The system player shows its
+    /// controls and its scrubbing state only for a touch, so the runner is asked to bring the scrubber up, put a finger on
+    /// it and hold it through the capture.
+    private static func scrubPreview(on tabBar: TabBarController) async {
+        guard let player = tabBar.presentedViewController as? AVPlayerViewController, let item = player.player?.currentItem,
+              item.duration.seconds.isFinite else { return }
+        let place = 0.62
+        await player.player?.seek(to: CMTime(seconds: item.duration.seconds * place, preferredTimescale: 600))
+        player.player?.pause()
+        await ShotHarness.settle(1.5)
+        await ShotHarness.capture("press-scrubber")
+        await ShotHarness.settle(1.2)
+        await ShotHarness.capture("09c-scrub-preview")
+        await ShotHarness.capture("release-scrubber")
     }
 
     static func navigation(_ tabBar: TabBarController) -> UINavigationController? {

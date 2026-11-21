@@ -6,6 +6,7 @@ import random
 import re
 import socketserver
 import string
+import struct
 import subprocess
 import sys
 import threading
@@ -63,6 +64,34 @@ def index_still(offset_ms):
 
 
 
+INDEX_FILE = None
+INDEX_SECONDS = 3 * 3600
+
+
+def index_file():
+    """The whole preview index a server keeps for a part, in one BIF file: the clip's stills over and over for three
+    hours, which outlasts every title here. Built once and kept in memory, and served by byte range like a server's."""
+    global INDEX_FILE
+    with LOCK:
+        if INDEX_FILE is not None:
+            return INDEX_FILE
+    cycle = [index_still(second * 1000) for second in range(0, 150, STILL_INTERVAL_S)]
+    if not all(cycle):
+        return None
+    count = INDEX_SECONDS // STILL_INTERVAL_S
+    stills = [cycle[frame % len(cycle)] for frame in range(count)]
+    table = bytearray(b"\x89BIF\r\n\x1a\n" + struct.pack("<III", 0, count, STILL_INTERVAL_S * 1000) + bytes(44))
+    offset = 64 + (count + 1) * 8
+    for frame, still in enumerate(stills):
+        table += struct.pack("<II", frame, offset)
+        offset += len(still)
+    table += struct.pack("<II", 0xFFFFFFFF, offset)
+    built = bytes(table) + b"".join(stills)
+    with LOCK:
+        INDEX_FILE = built
+    return built
+
+
 def apply_flags():
     library.CLIP_MARKERS = FLAGS["clip_markers"]
     library.NO_CREDITS = FLAGS["no_credits"]
@@ -79,6 +108,7 @@ MOCK_TOKEN = "mock-token"
 PUBLIC_ADDRESS = "203.0.113.7"
 LIB = library.Library()
 LOCK = threading.Lock()
+threading.Thread(target=index_file, daemon=True).start()
 SCANS = {}
 STOPPED = set()
 SHOW_PREFS = {}
@@ -533,6 +563,34 @@ class Handler(BaseHTTPRequestHandler):
     def not_found(self):
         self.send_json(container(size=0, error="not found"), 404)
 
+    def send_bytes(self, body, content_type):
+        """Bytes held in memory, whole or the slice a Range header asks for."""
+        size = len(body)
+        start, end, status = 0, size - 1, 200
+        m = re.match(r"bytes=(\d+)-(\d*)", self.headers.get("Range") or "")
+        if m:
+            start = int(m.group(1))
+            end = min(int(m.group(2)), size - 1) if m.group(2) else size - 1
+            if start >= size or start > end:
+                self.send_response(416)
+                self.send_header("Content-Range", f"bytes */{size}")
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+                return
+            status = 206
+        self.send_response(status)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(end - start + 1))
+        self.send_header("Accept-Ranges", "bytes")
+        if status == 206:
+            self.send_header("Content-Range", f"bytes {start}-{end}/{size}")
+        self.end_headers()
+        if self.command != "HEAD":
+            try:
+                self.wfile.write(body[start:end + 1])
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+
     def send_file(self, path, content_type, ranged=False):
         if not path or not os.path.isfile(path):
             return self.not_found()
@@ -982,6 +1040,10 @@ class Handler(BaseHTTPRequestHandler):
             if FLAGS["fail_parts"]:
                 return self.send_json(container(size=0, error="mock part failure"), 500)
             return self.send_file(os.path.join(ASSETS, "clip.mp4"), "video/mp4", ranged=True)
+
+        if re.match(r"^/library/parts/\d+/indexes/sd$", p):
+            index = None if FLAGS["no_indexes"] else index_file()
+            return self.send_bytes(index, "application/octet-stream") if index else self.not_found()
 
         m = re.match(r"^/library/parts/\d+/indexes/sd/(\d+)$", p)
         if m:

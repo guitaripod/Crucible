@@ -119,6 +119,65 @@ shoot() {
   fi
 }
 
+# A tap in the middle of the screen, which the harness asks for (a signal named tap-center…) where only a real touch
+# will do: the system player shows its controls for one. The middle is the same point however the device is turned.
+tap_center() {
+  local size
+  if [ -n "$DUO_STATE" ]; then
+    size=$(duoctl -d "$UDID" state | python3 -c 'import json,sys
+width,height=json.load(sys.stdin)["sizePoints"]
+print(width/2, height/2)') || return 0
+    duoctl -d "$UDID" tap ${size% *} ${size#* } > /dev/null 2>&1 || true
+    return 0
+  fi
+  size=$(axe describe-ui --udid "$UDID" 2>/dev/null | python3 -c 'import json,sys
+node=json.load(sys.stdin)
+node=node[0] if isinstance(node,list) else node
+frame=node["frame"]
+print(frame["width"]/2, frame["height"]/2)' 2>/dev/null) || return 0
+  axe tap -x "${size% *}" -y "${size#* }" --udid "$UDID" > /dev/null 2>&1 || true
+}
+
+# A finger put down on the system player's scrubber and held (press-scrubber), then lifted (release-scrubber), for the
+# harness: only a real touch brings up the player's scrubbing state. The scrubber is the widest slider on screen, and
+# the finger goes down on its thumb, so nothing moves. Not on an iPhone Duo: its simulator takes taps through duoctl but
+# no touch that is held, so the Duo set keeps the player without the scrubbing state.
+touch_scrubber() {
+  local attempt
+  [ -z "$DUO_STATE" ] || return 0
+  if [ "$1" = release-scrubber ]; then
+    [ -z "${SCRUB_POINT:-}" ] || axe touch -x "${SCRUB_POINT% *}" -y "${SCRUB_POINT#* }" --up --udid "$UDID" > /dev/null 2>&1 || true
+    return 0
+  fi
+  SCRUB_POINT=
+  for attempt in 1 2 3 4; do
+    SCRUB_POINT=$(axe describe-ui --udid "$UDID" 2>/dev/null | python3 -c 'import json,sys
+best=None
+def walk(node):
+    global best
+    if isinstance(node,list):
+        for child in node: walk(child)
+        return
+    frame=node.get("frame") or {}
+    if node.get("type")=="Slider" and frame.get("width",0)>200 and (best is None or frame["width"]>best[0]["width"]):
+        best=(frame, node.get("AXValue"))
+    for child in node.get("children",[]): walk(child)
+walk(json.load(sys.stdin))
+frame,value=best
+try: place=float(value)
+except Exception: place=0.62
+print(frame["x"]+frame["width"]*place, frame["y"]+frame["height"]/2)' 2>/dev/null) || SCRUB_POINT=
+    if [ -n "$SCRUB_POINT" ]; then
+      axe touch -x "${SCRUB_POINT% *}" -y "${SCRUB_POINT#* }" --down --udid "$UDID" > /dev/null 2>&1 || true
+      echo "finger on the scrubber at $SCRUB_POINT"
+      return 0
+    fi
+    tap_center
+    sleep 0.3
+  done
+  echo "the scrubber never showed" >&2
+}
+
 xcrun simctl terminate "$UDID" "$APP_ID" 2>/dev/null || true
 [ -z "$DUO_STATE" ] || pose_duo
 [ "${KEEP_INSTALL:-0}" = 1 ] || xcrun simctl uninstall "$UDID" "$APP_ID" 2>/dev/null || true
@@ -151,6 +210,18 @@ while [ $SECONDS -lt $deadline ]; do
       cp "$SIGNALS"/*.png "$SIGNALS"/*.txt "$RAW"/ 2>/dev/null || true
       xcrun simctl status_bar "$UDID" clear
       exit 0
+    fi
+    if [ "$name" = press-scrubber ] || [ "$name" = release-scrubber ]; then
+      touch_scrubber "$name"
+      rm -f "$ready"
+      touch "$SIGNALS/$name.ack"
+      continue
+    fi
+    if [ "${name#tap-center}" != "$name" ]; then
+      tap_center
+      rm -f "$ready"
+      touch "$SIGNALS/$name.ack"
+      continue
     fi
     sleep 0.6
     shoot "$RAW/$name.png"

@@ -76,6 +76,8 @@ enum ShotHarness {
                         await StoreShotScript.run()
                     } else if environment["CRUCIBLE_SHOT_SCRIPT"] == "community" {
                         await StoreShotScript.runCommunity()
+                    } else if environment["CRUCIBLE_SHOT_SCRIPT"] == "fresh" {
+                        await StoreShotScript.runFresh()
                     } else {
                         await ShotScript.run()
                     }

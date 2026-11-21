@@ -48,6 +48,21 @@ enum StoreShotScript {
         await ShotHarness.capture("done")
     }
 
+    /// Only the library and the player, the screens 2.14.0 changed (the folder button, the scrubber's preview), for
+    /// shooting them again on every display and in every language without the whole store run.
+    static func runFresh() async {
+        guard let tabBar = await ShotHarness.waitForTabBar() else { return }
+        let api = APIClient(baseURL: ServerBootstrap.connection()!.serverURI, token: "mock-token")
+        await ShotHarness.settle(3)
+        tabBar.select(.library)
+        await ShotHarness.settle(8.5)
+        await ShotHarness.capture("02b-library-settled")
+        tabBar.select(.home)
+        await ShotHarness.settle(1)
+        await ShotScript.playRecap(api: api, tabBar: tabBar)
+        await ShotHarness.capture("done")
+    }
+
     /// Only the title's Trakt community, for adding its screen to a set, on every Duo display and in every language, without
     /// the whole store run.
     static func runCommunity() async {
