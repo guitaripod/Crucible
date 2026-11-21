@@ -71,6 +71,7 @@ extension PlaybackSession {
         }
         tracker.moved(to: target)
         if !stream.isDirectPlay { lastPlayhead = playerTime }
+        expectPicture(at: playerTime)
         let wasPlaying = player.rate > 0
         player.seek(to: CMTime(seconds: playerTime, preferredTimescale: 600), toleranceBefore: .zero, toleranceAfter: .zero) { @Sendable [weak self] _ in
             Task { @MainActor in self?.playAfterSeek(asked: plays, wasPlaying: wasPlaying) }

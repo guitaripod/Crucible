@@ -81,6 +81,8 @@ package final class ServerScrubStills: ScrubStillSource {
 
     /// How many stills travel in one request: a span is about 300 KB of a typical index, 48 seconds of a film.
     private static let spanSize = 24
+    /// How many stills past the one wanted are decoded with it, in the direction the scrub is going.
+    private static let decodedAhead = 3
     /// How many spans one request of the background fill asks for.
     private static let fillRun = 4
     /// How much of an index the background fill fetches: every still of all but the longest titles.
@@ -99,6 +101,7 @@ package final class ServerScrubStills: ScrubStillSource {
     private var loaded: Set<Int> = []
     private var fetching: [Int: Task<Bool, Never>] = [:]
     private var wanted: Int?
+    private var lastWanted: Int?
     private var isWorking = false
     private var playhead: Double?
     private var playheadSpan: Int?
@@ -213,24 +216,28 @@ package final class ServerScrubStills: ScrubStillSource {
         work()
     }
 
-    /// Fetches and decodes the still wanted, one at a time; a still asked for meanwhile waits, and only the newest one
-    /// waiting is worked on next, so a fast scrub decodes where it is and not everywhere it has been.
+    /// Fetches and decodes the still wanted, one batch at a time; a still asked for meanwhile waits, and only the newest
+    /// one waiting is worked on next, so a fast scrub decodes where it is and not everywhere it has been. The stills the
+    /// scrub is heading for are decoded with the one wanted, in the same pass, so the next few frames of a drag find theirs
+    /// already held instead of a neighbour standing in.
     private func work() {
         guard !isWorking, let frame = wanted, case .spans(let index, let file) = mode else { return }
         wanted = nil
         guard !held.holds(frame), frame < index.frames.count else { return }
         isWorking = true
+        let heading = frame >= (lastWanted ?? frame) ? 1 : -1
+        lastWanted = frame
         let span = frame / Self.spanSize
-        let bytes = index.frames[frame].bytes
+        let batch = (0...Self.decodedAhead).map { frame + $0 * heading }
+            .filter { $0 >= 0 && $0 < index.frames.count && $0 / Self.spanSize == span && !held.holds($0) }
+            .map { (frame: $0, bytes: index.frames[$0].bytes) }
         Task { [weak self] in
             let isHeld = await self?.hold(span) ?? false
-            let image = isHeld ? await file.image(in: bytes) : nil
+            let images = isHeld ? await file.images(in: batch) : []
             guard let self else { return }
             isWorking = false
-            if let image {
-                held.keep(image, at: frame)
-                onChange?()
-            }
+            for (frame, image) in images { held.keep(image, at: frame) }
+            if !images.isEmpty { onChange?() }
             work()
         }
     }
@@ -388,11 +395,15 @@ private actor StillFile {
         }
     }
 
-    /// The still whose JPEG bytes are at `bytes`, decoded and ready to draw.
-    func image(in bytes: Range<Int>) -> UIImage? {
-        guard (try? handle.seek(toOffset: UInt64(bytes.lowerBound))) != nil,
-              let data = try? handle.read(upToCount: bytes.count), data.count == bytes.count else { return nil }
-        return Self.decode(data)
+    /// The stills whose JPEG bytes are at each of `stills`, decoded and ready to draw, the first one first; one that
+    /// cannot be read or decoded is left out.
+    func images(in stills: [(frame: Int, bytes: Range<Int>)]) -> [(frame: Int, image: UIImage)] {
+        stills.compactMap { still in
+            guard (try? handle.seek(toOffset: UInt64(still.bytes.lowerBound))) != nil,
+                  let data = try? handle.read(upToCount: still.bytes.count), data.count == still.bytes.count,
+                  let image = Self.decode(data) else { return nil }
+            return (still.frame, image)
+        }
     }
 
     /// Decodes a still here, off the main thread, so showing it costs the main thread nothing.

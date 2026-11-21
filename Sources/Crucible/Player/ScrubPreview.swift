@@ -312,6 +312,9 @@ extension ScrubPreview {
         return true
     }
 
+    /// Whether a scrub is under way, for a harness that has to know its touch took.
+    var debugIsScrubbing: Bool { isScrubbing }
+
     /// Rests a pointer on the scrubber at `place` along it, for a debug walk; false when the scrubber is not on screen.
     func debugPoint(at place: Double) -> Bool {
         guard let slider = timeline(), let track = track(of: slider) else { return false }

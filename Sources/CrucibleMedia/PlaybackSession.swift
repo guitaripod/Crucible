@@ -72,6 +72,7 @@ package final class PlaybackSession {
     /// Where the playhead was, on the player's clock, when the viewer put a finger on the scrubber; nil with no finger down.
     var scrubOrigin: Double?
     var scrubSettleTask: Task<Void, Never>?
+    var hurryTask: Task<Void, Never>?
     var isRestarting = false
     var pendingRestart: PendingRestart?
     var restartResumesPlayback = true
@@ -409,6 +410,7 @@ package final class PlaybackSession {
         observeInterruptions()
         observePlayhead(of: player)
         observeRate(of: player)
+        expectPicture()
         startHeartbeat()
         watchCurrentItem()
         if ready == nil {

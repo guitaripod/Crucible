@@ -79,13 +79,20 @@ extension PlaybackSession {
         return player
     }
 
-    /// Gives a primed player its wait against stalls back once its start is behind it: by then it plays from seconds of
-    /// loaded stream, and from there on a stall is the player's to wait out as in any other playback.
+    /// Gives a primed player its wait against stalls back once its start is behind it: two seconds after it is seen
+    /// playing, when it plays from seconds of loaded stream and a stall is the player's to wait out as in any other
+    /// playback. Not before it plays: a player that had to load its first seconds again after the press, as on a weak
+    /// link, would be handed its caution in the middle of its start and sit on what it has loaded.
     private func settleStallWait() {
         guard preloadIsPrimed else { return }
         preloadIsPrimed = false
         Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .seconds(2))
+            for _ in 0..<30 {
+                try? await Task.sleep(for: .seconds(2))
+                guard let player = self?.player, self?.isStopped == false else { return }
+                guard player.timeControlStatus == .playing else { continue }
+                break
+            }
             self?.player?.automaticallyWaitsToMinimizeStalling = true
         }
     }

@@ -51,6 +51,7 @@ extension PlaybackSession {
     /// place the rebuild goes to instead of being lost when the rebuild lands.
     private func handleJump() {
         guard let player else { return }
+        if scrubOrigin == nil, !isRestarting { expectPicture(at: player.currentItem?.currentTime().seconds) }
         if player.rate == 0, pausedSince != nil, !isRecovering { pausedSince = now() }
         guard stream?.isDirectPlay == false, scrubOrigin == nil else { return }
         guard !tracker.isHeld, !isRecovering, let item = player.currentItem, item.status == .readyToPlay else { return }
@@ -99,6 +100,7 @@ extension PlaybackSession {
             try? await Task.sleep(for: PlaybackTiming.scrubSettle)
             guard !Task.isCancelled, let self, let origin = scrubOrigin else { return }
             scrubOrigin = nil
+            if stream?.isDirectPlay == true { expectPicture(at: landing) }
             landScrub(from: origin, at: landing)
         }
     }
@@ -116,7 +118,7 @@ extension PlaybackSession {
         let rebuilds = isRestarting || TranscodeSeekPolicy.isBeforeStream(target, streamStart: streamStart)
             || TranscodeSeekPolicy.needsRestart(from: origin, to: now, loaded: item.loadedRanges)
         MidgarLog.notice("Scrub let go ratingKey=\(request.ratingKey) from=\(Int(origin + streamOffset)) to=\(Int(target)) playing=\(intendsToPlay) rebuilds=\(rebuilds)", category: .playback)
-        guard rebuilds else { return }
+        guard rebuilds else { return expectPicture(at: now) }
         restartTranscode(atAbsolute: target, resumesPlayback: intendsToPlay, reason: "scrub from \(Int(origin)) to \(Int(now))")
     }
 
@@ -402,7 +404,10 @@ extension PlaybackSession {
                 selectionCarry = nil
                 Task { await carry.apply(to: item) }
             }
-            if restartResumesPlayback, pendingRestart == nil { player?.play() }
+            if restartResumesPlayback, pendingRestart == nil {
+                expectPicture()
+                player?.play()
+            }
         }
         isRestarting = false
         pausedSince = player?.rate == 0 ? now() : nil

@@ -91,9 +91,13 @@ package final class PlaybackWarmUp {
     }
 
     /// The session made ready for `request`, if there is one, for the player that is about to play it. It is the
-    /// caller's from here on. Anything else that was held stays held: it was not what the viewer chose this time.
+    /// caller's from here on. Anything else that was held is given back: a stream the server is starting for a title
+    /// nobody is about to play takes from the start of the one that is.
     package func take(api: APIClient, request: PlaybackRequest) -> PlaybackSession? {
-        guard let current = held, let key = WarmKey(request), current.key == key, current.api === api, isUsable(current) else { return nil }
+        guard let current = held, let key = WarmKey(request), current.key == key, current.api === api, isUsable(current) else {
+            cool()
+            return nil
+        }
         held = nil
         work = nil
         expiry?.cancel()
