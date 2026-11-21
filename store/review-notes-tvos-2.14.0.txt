@@ -1,0 +1,19 @@
+WHAT'S NEW IN 2.14.0 (Apple TV; follows 2.13.0 on the store)
+- Instant Start: the title a viewer is about to play (focus resting on a card that plays, a title's page opening on Play, the first Continue Watching card when the app opens) is made ready before Play, so the picture is there with the click. Settings > Playback > Starting switches it off.
+- Without Crucible Pro, What to Watch and a written recap each give one real answer before the paywall: the first pick or the recap's opening, the rest sealed.
+- Fixed: Play after the Apple TV slept through a pause started the episode over; a Dolby Vision profile 7 file in two video tracks failed once before it played; Diagnostics shows the app's log again.
+
+Crucible is a client for the user's own Plex Media Server and has no content of its own. Plex needs a Plex Pass or Remote Watch Pass to stream away from home, so I cannot give App Review a working account and server. The demo runs a fictional Plex server inside the app (Guideline 2.1(a)): no account, server or network needed.
+
+START THE DEMO
+Welcome screen > "Try the demo" > "Start exploring". Account types and settings are under You.
+
+WHERE THE NEW THINGS ARE
+- Instant Start: in the demo rest focus on a Continue Watching card for a second and click: the picture is there at once.
+- The free taste: on an install without Crucible Pro, open What to Watch and ask: the first pick shows, the rest is sealed and opens the paywall.
+
+CRUCIBLE PRO
+com.guitaripod.crucible.pro.lifetime, non-consumable, $17.99 (rises to $39.99 on December 7, 2026); com.guitaripod.crucible.pro.yearly, auto-renewable, $7.99 a year ($14.99 for new subscribers from December 7, 2026), no free trial. Both approved; universal purchase covers iPhone and iPad. Playback is never gated.
+
+OTHER NOTES
+Local network access reaches servers on the home network; App Transport Security allows arbitrary loads because Plex servers on private addresses use HTTP or self-signed HTTPS. No third-party SDK. Data: an anonymous Midgar ID for purchases and, only when the person asks Crucible's AI, what the privacy policy and App Privacy answers describe; what they write in Trakt Community goes to their own Trakt account. Crucible uses Trakt but is not endorsed or certified by Trakt.
