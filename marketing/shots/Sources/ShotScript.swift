@@ -245,7 +245,8 @@ enum ShotScript {
     /// The player paused past the middle of the episode with its controls up and the scrubber's preview standing over
     /// the thumb under a finger: the picture, the time and the chapter of that moment. The system player shows its
     /// controls and its scrubbing state only for a touch, so the runner is asked to bring the scrubber up, put a finger on
-    /// it and hold it through the capture.
+    /// it and hold it through the capture, again until the preview says the scrub took: a finger that comes down after
+    /// the controls have faded only brings them back.
     private static func scrubPreview(on tabBar: TabBarController) async {
         guard let player = tabBar.presentedViewController as? AVPlayerViewController, let item = player.player?.currentItem,
               item.duration.seconds.isFinite else { return }
@@ -253,8 +254,14 @@ enum ShotScript {
         await player.player?.seek(to: CMTime(seconds: item.duration.seconds * place, preferredTimescale: 600))
         player.player?.pause()
         await ShotHarness.settle(1.5)
-        await ShotHarness.capture("press-scrubber")
-        await ShotHarness.settle(1.2)
+        for _ in 0..<8 {
+            await ShotHarness.capture("press-scrubber")
+            await ShotHarness.settle(0.9)
+            if PlayerCoordinator.current?.scrubPreview?.debugIsScrubbing == true { break }
+            await ShotHarness.capture("release-scrubber")
+            await ShotHarness.settle(0.5)
+        }
+        await ShotHarness.settle(0.5)
         await ShotHarness.capture("09c-scrub-preview")
         await ShotHarness.capture("release-scrubber")
     }

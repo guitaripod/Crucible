@@ -149,7 +149,10 @@ touch_scrubber() {
     [ -z "${SCRUB_POINT:-}" ] || axe touch -x "${SCRUB_POINT% *}" -y "${SCRUB_POINT#* }" --up --udid "$UDID" > /dev/null 2>&1 || true
     return 0
   fi
-  SCRUB_POINT=
+  if [ -n "${SCRUB_POINT:-}" ]; then
+    axe touch -x "${SCRUB_POINT% *}" -y "${SCRUB_POINT#* }" --down --udid "$UDID" > /dev/null 2>&1 || true
+    return 0
+  fi
   for attempt in 1 2 3 4; do
     SCRUB_POINT=$(axe describe-ui --udid "$UDID" 2>/dev/null | python3 -c 'import json,sys
 best=None
