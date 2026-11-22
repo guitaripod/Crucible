@@ -21,6 +21,10 @@ hosted model.
   Wi-Fi only by default, and full offline playback with skips and resume.
 - **Browse**: a Resume hero, Continue Watching, Up Next, collections, playlists, watchlist, cast filmographies,
   trailers, subtitle search and what your server is missing.
+- **Live TV** (beta): one guide for Plex's free channels, the tuner on your Plex server (with recordings), and channel
+  playlists you add (M3U with their XMLTV guides, duplicates merged), with search, favourites and channel up and down;
+  a bare MPEG transport stream plays through an on-device relay on Apple and straight through mpv on Linux, where
+  resting the pointer on an airing also asks your own model what the programme is. Crucible ships no channels.
 - **Remember**: half-star ratings saved to Plex, Rate What You Watched, Watch History, Statistics, a Year in Review and
   share cards.
 - **Integrations**: Trakt (scrobbling, ratings, scores, and each title's community: reviews, replies, reactions, What

@@ -9,7 +9,8 @@ reach CrucibleCore's package-level API. Design and plan: `../docs/LINUX.md`.
 - `CrucibleUI`: the Apple TV design system on Kiln: tokens, cards, shelves, grids, backdrop, hero, buttons, chips, the
   glass tab bar, rows and states.
 - `crucible`: the app. Sign-in through plex.tv in the browser (code and QR code for another device), server choice,
-  Home, the libraries, title pages, Search, You and the player (libmpv's gpu-next on Kiln's Vulkan device).
+  Home, the libraries, title pages, Search, You, Live TV (the guide in `CrucibleUI/Guide`, its screens in
+  `Sources/CrucibleApp/LiveTV`) and the player (libmpv's gpu-next on Kiln's Vulkan device).
   `linux/scripts/install.sh` builds it in release with a static Swift runtime and installs it to `~/.local/lib/crucible`
   with `~/.local/bin/crucible`, a desktop entry and the icon.
   `linux/scripts/steam-shortcut.py` (with Steam closed) adds `crucible --steam-deck` to Steam for Big Picture, with
