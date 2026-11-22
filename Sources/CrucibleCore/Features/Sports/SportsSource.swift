@@ -10,6 +10,8 @@ package protocol SportsSource: Sendable {
     func changeSports(on: Bool?, libraries: [String]?, kinds: [String: SportsKind], agree: Bool?) async throws(CompanionError)
     func recheckSports() async throws(CompanionError)
     func runSports() async throws(CompanionError)
+    /// Sets the hours research may run, or any time for nil.
+    func scheduleSports(_ schedule: SportsSchedule?) async throws(CompanionError)
     func redoSports(ratingKey: String) async throws(CompanionError)
     /// Takes research back from one file, or from every file of a library.
     func undoSports(ratingKey: String) async throws(CompanionError)
@@ -42,6 +44,7 @@ package struct SportsFixture: SportsSource {
     package func changeSports(on: Bool?, libraries: [String]?, kinds: [String: SportsKind], agree: Bool?) async throws(CompanionError) {}
     package func recheckSports() async throws(CompanionError) {}
     package func runSports() async throws(CompanionError) {}
+    package func scheduleSports(_ schedule: SportsSchedule?) async throws(CompanionError) {}
     package func redoSports(ratingKey: String) async throws(CompanionError) {}
     package func undoSports(ratingKey: String) async throws(CompanionError) {}
     package func undoSports(library: String) async throws(CompanionError) {}

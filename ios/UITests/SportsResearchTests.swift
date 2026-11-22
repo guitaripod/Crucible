@@ -96,6 +96,42 @@ final class SportsResearchTests: XCTestCase {
         IOSTest.capture("free-1", in: self)
     }
 
+    /// Waiting for its hours: the pill says when research starts again; the schedule opens with the grid, a ready-made
+    /// schedule replaces the hours, a sideways drag paints them and a tap on a day clears it.
+    func testTheScheduleIsPaintedAndChosenFromTheReadyMadeOnes() {
+        let opens = Int(Date().timeIntervalSince1970) + 11 * 3600
+        let scheduled = Self.running
+            .replacingOccurrences(of: #""agreed": true}, "libraries""#, with: #""agreed": true, "schedule": [126, 126, 126, 126, 126, 126, 126], "timeZone": "Europe/Helsinki", "utcOffset": 7200, "weekday": 2, "hour": 14}, "libraries""#)
+            .replacingOccurrences(of: #""status": {"phase": "researching""#, with: #""status": {"phase": "scheduled", "opensAt": \#(opens)"#)
+        let app = open(scheduled, named: "scheduled")
+        IOSTest.capture("scheduled-pill", in: self)
+        let row = IOSTest.element(app, "settings.sports.schedule")
+        for _ in 0..<8 where !(row.exists && row.isHittable) {
+            IOSTest.element(app, "settings.sports").swipeUp(velocity: .slow)
+            IOSTest.settle(0.6)
+        }
+        XCTAssertTrue(row.isHittable, "the Schedule row never showed")
+        IOSTest.capture("scheduled-row", in: self)
+        row.tap()
+        let grid = IOSTest.element(app, "settings.sports.schedule.grid")
+        XCTAssertTrue(grid.waitForExistence(timeout: 10), "the schedule never opened")
+        IOSTest.settle(1)
+        XCTAssertTrue(IOSTest.element(app, "settings.sports.schedule.preset.overnight").exists, "the ready-made schedules never showed")
+        IOSTest.capture("schedule-overnight", in: self)
+        IOSTest.element(app, "settings.sports.schedule.preset.weekends").tap()
+        IOSTest.settle(1)
+        IOSTest.capture("schedule-weekends", in: self)
+        let start = grid.coordinate(withNormalizedOffset: CGVector(dx: 0.45, dy: 0.25))
+        let end = grid.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.25))
+        start.press(forDuration: 0.05, thenDragTo: end)
+        IOSTest.settle(1)
+        IOSTest.capture("schedule-painted", in: self)
+        XCTAssertTrue(IOSTest.element(app, "settings.sports.schedule.custom").exists, "painting did not make a custom schedule")
+        grid.coordinate(withNormalizedOffset: CGVector(dx: 0.02, dy: 0.95)).tap()
+        IOSTest.settle(1)
+        IOSTest.capture("schedule-day-cleared", in: self)
+    }
+
     private static let setup = #"""
 {"owner": true, "ready": false, "checks": [{"id": "owner", "group": "plex", "state": "done", "detail": "Signed in as guitaripod, who may edit the library.", "fix": null}, {"id": "model", "group": "model", "state": "done", "detail": "nemotron-3.5-bolt-74b-a9b-24gb-abliterated-gguf on 127.0.0.1.", "fix": null}, {"id": "tools", "group": "model", "state": "done", "detail": "nemotron-3.5-bolt-74b-a9b-24gb-abliterated-gguf calls tools on its own.", "fix": null}, {"id": "thinking", "group": "model", "state": "done", "detail": "nemotron-3.5-bolt-74b-a9b-24gb-abliterated-gguf thinks before it answers.", "fix": null}, {"id": "context", "group": "model", "state": "done", "detail": "256K tokens, room for several pages.", "fix": null}, {"id": "search", "group": "web", "state": "missing", "detail": "SearXNG at http://127.0.0.1:8888 is set, and is tried once you agree to where searches go.", "fix": "Agree in Crucible, or on the server: crucible-server sports --agree"}, {"id": "agreement", "group": "web", "state": "missing", "detail": "Searches go to your SearXNG.", "fix": "Agree in Crucible, or on the server: crucible-server sports --agree"}, {"id": "libraries", "group": "library", "state": "missing", "detail": "No library is chosen.", "fix": "Choose an Other Videos library in Crucible, or on the server: crucible-server sports --library <name>"}, {"id": "on", "group": "library", "state": "missing", "detail": "Research is off.", "fix": "Turn it on in Crucible, or on the server: crucible-server sports --on"}], "settings": {"on": false, "engine": "SearXNG at http://127.0.0.1:8888", "destination": "your SearXNG at http://127.0.0.1:8888, which asks the search engines it is set to use", "agreed": false}, "libraries": [{"key": "4", "title": "Sports", "chosen": false, "kind": "sports"}, {"key": "3", "title": "Holy Grail", "chosen": false, "kind": "sports"}, {"key": "7", "title": "Game Cinematics", "chosen": false, "kind": "sports"}], "status": {"phase": "waiting", "current": null, "queued": 0, "lastPass": null, "lastError": null}, "counts": {}, "items": [], "model": {"name": "nemotron-3.5-bolt-74b-a9b-24gb-abliterated-gguf", "host": "127.0.0.1"}}
 """#

@@ -16,6 +16,7 @@ final class SportsResearchScreen: SettingsScaffold {
         static let step = "sports.step."
         static let need = "sports.need."
         static let switchedOn = "sports.on"
+        static let schedule = "sports.schedule"
         static let agreement = "sports.agreement"
         static let checkAgain = "sports.checkAgain"
         static let lookNow = "sports.lookNow"
@@ -147,11 +148,17 @@ final class SportsResearchScreen: SettingsScaffold {
             if status.isPausedForSearch {
                 return RowItem(id: ID.summary, title: SportsCopy.phase(status), subtitle: SportsCopy.searchPaused(status), symbol: "pause.circle.fill")
             }
+            if status.isWaitingForHours {
+                let lastLooked = status.lastPass.map { SportsCopy.lastLooked(Date(timeIntervalSince1970: TimeInterval($0))) }
+                let detail = [status.opensAt.map { SportsCopy.startsAgain($0) }, lastLooked].compactMap { $0 }.joined(separator: "\n")
+                return RowItem(id: ID.summary, title: SportsCopy.waitingForHours, subtitle: detail, symbol: "moon.zzz.fill")
+            }
             if let error = status.lastError, !error.isEmpty, !status.isWorking {
                 return RowItem(id: ID.summary, title: SportsCopy.phase(status), subtitle: error, symbol: "exclamationmark.triangle.fill")
             }
             let lastLooked = status.lastPass.map { SportsCopy.lastLooked(Date(timeIntervalSince1970: TimeInterval($0))) }
-            let detail = [status.isWorking ? nil : SportsCopy.phase(status), lastLooked].compactMap { $0 }.joined(separator: " · ")
+            let hours = status.byHand ? SportsCopy.lookingOutsideHours : status.closesAt.map { SportsCopy.runsUntil($0) }
+            let detail = [status.isWorking ? nil : SportsCopy.phase(status), hours, lastLooked].compactMap { $0 }.joined(separator: " · ")
             return RowItem(id: ID.summary, title: SportsCopy.allReady, subtitle: detail, symbol: "checkmark.seal.fill")
         }
     }
@@ -172,6 +179,10 @@ final class SportsResearchScreen: SettingsScaffold {
 
     private func choiceRows(_ report: SportsReport) -> [RowItem] {
         var rows = [RowItem.onOff(id: ID.switchedOn, title: SportsCopy.researchNewFiles, isOn: report.settings.on, symbol: "power", isEnabled: !busy)]
+        if report.settings.schedules {
+            rows.append(RowItem(id: ID.schedule, title: SportsCopy.schedule, subtitle: SportsCopy.summary(report.settings.schedule),
+                                value: SportsCopy.scheduleValue(report.settings.schedule), symbol: "clock", accessory: .chevron, isEnabled: !busy))
+        }
         rows += report.libraries.map { library in
             RowItem(id: ID.library + library.key, title: library.title, value: library.chosen ? SportsCopy.kind(library.kind) : String(localized: "Off"),
                     symbol: "film.stack", isEnabled: !busy)
@@ -186,7 +197,8 @@ final class SportsResearchScreen: SettingsScaffold {
         }
         rows.append(RowItem(id: ID.checkAgain, title: SportsCopy.checkAgain, subtitle: busy ? CompanionCopy.checking : nil, symbol: "arrow.triangle.2.circlepath",
                             isEnabled: !busy))
-        rows.append(RowItem(id: ID.lookNow, title: SportsCopy.lookNow, symbol: "magnifyingglass", isEnabled: !busy))
+        rows.append(RowItem(id: ID.lookNow, title: SportsCopy.lookNow, subtitle: report.status.isWaitingForHours ? SportsCopy.lookNowOutsideHours : nil,
+                            symbol: "magnifyingglass", isEnabled: !busy))
         return rows
     }
 
@@ -211,6 +223,10 @@ final class SportsResearchScreen: SettingsScaffold {
             stage.show(itemContent(item), key: id)
         } else if id == ID.switchedOn {
             stage.show(SportsStageContent(heading: SportsCopy.researchNewFiles, body: SportsCopy.why(.on)), key: id)
+        } else if id == ID.schedule {
+            let body = [SportsCopy.summary(report.settings.schedule), report.status.opensAt.map { SportsCopy.startsAgain($0) },
+                        report.status.closesAt.map { SportsCopy.runsUntil($0) }, SportsCopy.scheduleExplanation]
+            stage.show(SportsStageContent(heading: SportsCopy.schedule, body: body.compactMap { $0 }.joined(separator: "\n\n")), key: id)
         } else if id.hasPrefix(ID.library), let library = report.libraries.first(where: { ID.library + $0.key == id }) {
             stage.show(SportsStageContent(heading: library.title, body: SportsCopy.why(.libraries)), key: id)
         } else if id == ID.agreement, let destination = report.settings.destination {
@@ -306,6 +322,12 @@ final class SportsResearchScreen: SettingsScaffold {
         switch id {
         case ID.switchedOn:
             change(on: !report.settings.on)
+        case ID.schedule:
+            navigation?.push(SportsScheduleScreen(source: source, settings: report.settings) { [weak self] saved in
+                guard let self, let board = self.board else { return }
+                self.board = SportsBoard(report: board.report.expecting(schedule: saved))
+                self.render()
+            })
         case ID.agreement:
             report.settings.agreed ? change(agree: false) : askToAgree()
         case ID.checkAgain:

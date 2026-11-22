@@ -88,6 +88,12 @@ func runCrucible() -> Int32 {
         let stack = NavigationView(root: SportsResearchScreen(source: SportsFixture(url: URL(fileURLWithPath: fixture))))
         window.contentView = stack
         window.focus.focus(stack, animated: false)
+    } else if ProcessInfo.processInfo.environment["CRUCIBLE_SCREEN"] == "sports-schedule", let fixture = ProcessInfo.processInfo.environment["CRUCIBLE_SPORTS_FIXTURE"],
+              let report = (try? Data(contentsOf: URL(fileURLWithPath: fixture))).flatMap({ try? JSONDecoder().decode(SportsReport.self, from: $0) }) {
+        let source = SportsFixture(url: URL(fileURLWithPath: fixture))
+        let stack = NavigationView(root: SportsScheduleScreen(source: source, settings: report.settings) { _ in })
+        window.contentView = stack
+        window.focus.focus(stack, animated: false)
     } else if ProcessInfo.processInfo.environment["CRUCIBLE_SCREEN"] == "settings" {
         let api = APIClient(baseURL: URL(string: "http://127.0.0.1:9")!, token: "")
         let stack = NavigationView(root: SettingsScreen(api: api))

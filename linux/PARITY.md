@@ -12,10 +12,10 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | Player and What to Watch | 68 | 0 | 0 | 1 |
 | Search, Pro features (free on Linux) and demo | 55 | 0 | 0 | 8 |
 | You, profiles, history, statistics and manage | 84 | 0 | 0 | 3 |
-| Settings and integrations | 67 | 0 | 0 | 2 |
+| Settings and integrations | 68 | 0 | 0 | 2 |
 | Design system | 97 | 0 | 0 | 0 |
 | Linux-only requirements (docs/LINUX.md) | 104 | 1 | 0 | 0 |
-| **All** | 691 | 1 | 0 | 16 |
+| **All** | 692 | 1 | 0 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -519,6 +519,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `companion-pair-with-iphone` (S) n/a: Pair with iPhone: the system picker of nearby iPhones and iPads running Crucible, then a hand-off of the pairing _Apple TV: Sources/CrucibleTV/Settings/TVCompanionViewController.swift:pairWithIPhone, handOff (DDDevicePickerViewController)_
 - [x] `companion-status-and-unpair` (S) Paired status line from the server's brain status (checking, then the status text or the error), and Unpair after a confirmation _Apple TV: Sources/CrucibleTV/Settings/TVCompanionViewController.swift:refresh (CompanionClient.brain), confirmUnpair (presentConfirmation)_
 - [x] `companion-sports-research` (L) Sports Research, opened from the paired Crucible Server: four setup steps, switch on research for new files, choose libraries, agree to the terms (withdraw), Check Again, Look Now, a results board with per-item states, Research Again after a confirmation, and a Pro pitch for non-Pro users _Apple TV: Sources/CrucibleTV/Settings/TVSportsResearchViewController.swift_
+- [x] `companion-sports-schedule` (L) Library Research schedule: ready-made schedules, each day's hours (all day, none, copy to every day or weekdays, every hour on or off) and a week grid the pointer paints; the main screen says when research starts again or stops _Apple TV: Sources/CrucibleTV/Settings/TVSportsScheduleViewController.swift_
 - [x] `linux-own-model-settings` (M) Model address and key for What to Watch and described recaps on the person's own model (D1, D38), a Linux-only settings entry _Apple TV: Sources/CrucibleCore/Features/Hosted/HostedBrain.swift (HostedBrainProviding, line 24)_
 - [x] `linux-match-content-setting` (L) Match Content: switch the display to the video's frame rate and range (Linux-only, docs/LINUX.md section 7.4)
 - [x] `linux-audio-passthrough-setting` (M) Audio passthrough: Auto, On or Off for the bitstream codecs sent to the receiver (docs/LINUX.md section 7.6, Linux-only settings entry)

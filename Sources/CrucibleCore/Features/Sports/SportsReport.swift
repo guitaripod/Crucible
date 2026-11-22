@@ -76,13 +76,29 @@ package struct SportsSettings: Decodable, Equatable, Sendable {
     package var engine: String?
     package var destination: String?
     package var agreed: Bool
+    /// The hours research may run, seven masks from Monday, or nil for any time.
+    package var scheduleMasks: [UInt32]?
+    /// The server's time zone as people know it, such as Europe/Helsinki, when its machine names one.
+    package var timeZone: String?
+    /// The server clock's offset from UTC in seconds; a server from before schedules sends none.
+    package var utcOffset: Int?
+    /// The day (Monday 0) and hour on the server's clock when it answered, to mark now on the week.
+    package var weekday: Int?
+    package var hour: Int?
 
-    package init(on: Bool, engine: String? = nil, destination: String? = nil, agreed: Bool) {
+    package init(on: Bool, engine: String? = nil, destination: String? = nil, agreed: Bool, scheduleMasks: [UInt32]? = nil, timeZone: String? = nil, utcOffset: Int? = nil, weekday: Int? = nil, hour: Int? = nil) {
         self.on = on
         self.engine = engine
         self.destination = destination
         self.agreed = agreed
+        self.scheduleMasks = scheduleMasks
+        self.timeZone = timeZone
+        self.utcOffset = utcOffset
+        self.weekday = weekday
+        self.hour = hour
     }
+
+    enum CodingKeys: String, CodingKey { case on, engine, destination, agreed, scheduleMasks = "schedule", timeZone, utcOffset, weekday, hour }
 }
 
 /// What a library holds, which decides how research looks its files up.
@@ -224,8 +240,17 @@ package struct SportsStatus: Decodable, Equatable, Sendable {
     package var pausedUntil: Int?
     /// The search engines that turned research away, by the names people know them by.
     package var limited: [String]
+    /// When the owner's schedule lets research start again, while it waits for its hours (`phase` is `scheduled`).
+    package var opensAt: Int?
+    /// When the owner's schedule stops research, while it may run.
+    package var closesAt: Int?
+    /// Whether the pass under way runs because the owner asked for it outside the schedule's hours.
+    package var byHand: Bool
 
-    package init(phase: String, current: Current? = nil, queued: Int = 0, lastPass: Int? = nil, lastError: String? = nil, undoing: Int = 0, pausedUntil: Int? = nil, limited: [String] = []) {
+    package init(phase: String, current: Current? = nil, queued: Int = 0, lastPass: Int? = nil, lastError: String? = nil, undoing: Int = 0, pausedUntil: Int? = nil, limited: [String] = [], opensAt: Int? = nil, closesAt: Int? = nil, byHand: Bool = false) {
+        self.opensAt = opensAt
+        self.closesAt = closesAt
+        self.byHand = byHand
         self.pausedUntil = pausedUntil
         self.limited = limited
         self.phase = phase
@@ -236,7 +261,7 @@ package struct SportsStatus: Decodable, Equatable, Sendable {
         self.undoing = undoing
     }
 
-    enum CodingKeys: String, CodingKey { case phase, current, queued, lastPass, lastError, undoing, pausedUntil, limited }
+    enum CodingKeys: String, CodingKey { case phase, current, queued, lastPass, lastError, undoing, pausedUntil, limited, opensAt, closesAt, byHand }
 
     package init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -248,12 +273,18 @@ package struct SportsStatus: Decodable, Equatable, Sendable {
         undoing = try container.decodeIfPresent(Int.self, forKey: .undoing) ?? 0
         pausedUntil = try container.decodeIfPresent(Int.self, forKey: .pausedUntil)
         limited = try container.decodeIfPresent([String].self, forKey: .limited) ?? []
+        opensAt = try container.decodeIfPresent(Int.self, forKey: .opensAt)
+        closesAt = try container.decodeIfPresent(Int.self, forKey: .closesAt)
+        byHand = try container.decodeIfPresent(Bool.self, forKey: .byHand) ?? false
     }
 
     package var isWorking: Bool { phase == "looking" || phase == "researching" || phase == "writing" }
 
     /// Whether research waits because the search engines turned it away.
     package var isPausedForSearch: Bool { phase == "paused" }
+
+    /// Whether research waits for the hours the owner's schedule gives it.
+    package var isWaitingForHours: Bool { phase == "scheduled" }
 }
 
 /// The event research found for a file.

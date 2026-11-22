@@ -11,7 +11,7 @@ final class SportsResearchViewController: UICollectionViewController {
     }
 
     private enum Choice: Hashable {
-        case on, library(String), takeBack(String), agreement, checkAgain, lookNow
+        case on, schedule, library(String), takeBack(String), agreement, checkAgain, lookNow
     }
 
     private enum Row: Hashable {
@@ -320,6 +320,7 @@ final class SportsResearchViewController: UICollectionViewController {
         if mode == .ready {
             snapshot.appendSections([.choices])
             var rows: [Row] = [.choice(.on)]
+            if board.report.settings.schedules { rows.append(.choice(.schedule)) }
             rows += board.report.libraries.map { Row.choice(.library($0.key)) }
             rows += board.report.libraries.filter { !$0.chosen && $0.researched > 0 }.map { Row.choice(.takeBack($0.key)) }
             if board.report.settings.destination != nil { rows.append(.choice(.agreement)) }
@@ -425,10 +426,15 @@ extension SportsResearchViewController {
             if status.isPausedForSearch {
                 return SportsPillConfiguration(symbol: "pause.circle.fill", tint: .systemOrange, title: SportsCopy.phase(status), detail: SportsCopy.searchPaused(status), progress: nil, working: false, action: showsSetup ? SportsCopy.hideSetup : SportsCopy.showSetup)
             }
+            if status.isWaitingForHours {
+                let detail = [status.opensAt.map { SportsCopy.startsAgain($0) }, lastLooked].compactMap { $0 }.joined(separator: "\n")
+                return SportsPillConfiguration(symbol: "moon.zzz.fill", tint: Theme.Color.accent, title: SportsCopy.waitingForHours, detail: detail, progress: nil, working: false, action: showsSetup ? SportsCopy.hideSetup : SportsCopy.showSetup)
+            }
             if let error = status.lastError, !error.isEmpty, !status.isWorking {
                 return SportsPillConfiguration(symbol: "exclamationmark.triangle.fill", tint: .systemOrange, title: SportsCopy.phase(status), detail: error, progress: nil, working: false, action: showsSetup ? SportsCopy.hideSetup : SportsCopy.showSetup)
             }
-            let detail = [status.isWorking ? nil : SportsCopy.phase(status), lastLooked].compactMap { $0 }.joined(separator: " · ")
+            let hours = status.byHand ? SportsCopy.lookingOutsideHours : status.closesAt.map { SportsCopy.runsUntil($0) }
+            let detail = [status.isWorking ? nil : SportsCopy.phase(status), hours, lastLooked].compactMap { $0 }.joined(separator: " · ")
             return SportsPillConfiguration(symbol: "checkmark.seal.fill", tint: Theme.Color.statusOK, title: SportsCopy.allReady, detail: detail, progress: nil, working: false, action: showsSetup ? SportsCopy.hideSetup : SportsCopy.showSetup)
         }
     }
@@ -467,6 +473,8 @@ extension SportsResearchViewController {
             return IconRowContentConfiguration(symbol: filter == .needsALook ? "checkmark.circle" : "tray", title: filter == .needsALook ? SportsCopy.nothingNeedsALook : SportsCopy.nothingYet)
         case .choice(.on):
             return IconRowContentConfiguration(symbol: "power", title: SportsCopy.researchNewFiles, toggle: .init(isOn: report.settings.on, isEnabled: !busy) { [weak self] wanted in self?.setOn(wanted) })
+        case .choice(.schedule):
+            return IconRowContentConfiguration(symbol: "clock", title: SportsCopy.schedule, subtitle: SportsCopy.summary(report.settings.schedule), value: SportsCopy.scheduleValue(report.settings.schedule), isActionable: true)
         case .choice(.library(let key)):
             let library = report.libraries.first { $0.key == key }
             return IconRowContentConfiguration(symbol: "film.stack", title: library?.title ?? key, subtitle: library.flatMap { $0.chosen ? SportsCopy.kind($0.kind) : nil }, isActionable: true)
@@ -478,7 +486,7 @@ extension SportsResearchViewController {
         case .choice(.checkAgain):
             return IconRowContentConfiguration(symbol: "arrow.triangle.2.circlepath", title: SportsCopy.checkAgain, subtitle: busy ? CompanionCopy.checking : nil, isActionable: true)
         case .choice(.lookNow):
-            return IconRowContentConfiguration(symbol: "magnifyingglass", title: SportsCopy.lookNow, isActionable: true)
+            return IconRowContentConfiguration(symbol: "magnifyingglass", title: SportsCopy.lookNow, subtitle: report.status.isWaitingForHours ? SportsCopy.lookNowOutsideHours : nil, isActionable: true)
         case .need(let index):
             let need = SportsCopy.needs[index]
             return IconRowContentConfiguration(symbol: need.symbol, symbolColor: Theme.Color.accent, title: need.title, subtitle: need.detail)
@@ -491,6 +499,7 @@ extension SportsResearchViewController {
     }
 
     private func accessories(_ row: Row) -> [UICellAccessory] {
+        if row == .choice(.schedule) { return [.disclosureIndicator()] }
         guard case .choice(.library(let key)) = row, board?.report.libraries.first(where: { $0.key == key })?.chosen == true else { return [] }
         return [.checkmark(options: .init(tintColor: Theme.Color.accent))]
     }
@@ -499,7 +508,7 @@ extension SportsResearchViewController {
         switch dataSource.itemIdentifier(for: indexPath) {
         case .result, .banner: true
         case .pill: mode != .viewer
-        case .choice(.library), .choice(.takeBack), .choice(.agreement), .choice(.checkAgain), .choice(.lookNow): !busy
+        case .choice(.schedule), .choice(.library), .choice(.takeBack), .choice(.agreement), .choice(.checkAgain), .choice(.lookNow): !busy
         default: false
         }
     }
@@ -520,6 +529,7 @@ extension SportsResearchViewController {
             default: break
             }
         case .banner: startRefreshing()
+        case .choice(.schedule): openSchedule(board.report.settings)
         case .choice(.library(let key)):
             if let library = board.report.libraries.first(where: { $0.key == key }) { toggle(library) }
         case .choice(.takeBack(let key)):
@@ -553,6 +563,16 @@ extension SportsResearchViewController {
             sheet.prefersScrollingExpandsWhenScrolledToEdge = true
         }
         present(navigation, animated: true)
+    }
+
+    /// The week's hours; what the owner saves there shows here at once, before the server's next report.
+    private func openSchedule(_ settings: SportsSettings) {
+        let schedule = SportsScheduleViewController(source: source, settings: settings) { [weak self] saved in
+            guard let self, let board else { return }
+            self.board = SportsBoard(report: board.report.expecting(schedule: saved))
+            applySnapshot()
+        }
+        navigationController?.pushViewController(schedule, animated: true)
     }
 
     /// Turning research on is part of Crucible Pro; turning it off never is.

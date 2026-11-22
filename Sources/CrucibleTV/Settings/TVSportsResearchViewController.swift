@@ -15,6 +15,7 @@ final class TVSportsResearchViewController: TVSettingsScaffold {
         static let how = "sports.how."
         static let need = "sports.need."
         static let switchedOn = "sports.on"
+        static let schedule = "sports.schedule"
         static let agreement = "sports.agreement"
         static let checkAgain = "sports.checkAgain"
         static let lookNow = "sports.lookNow"
@@ -168,11 +169,17 @@ final class TVSportsResearchViewController: TVSettingsScaffold {
             if status.isPausedForSearch {
                 return TVRowItem(id: ID.summary, title: SportsCopy.phase(status), subtitle: SportsCopy.searchPaused(status), symbol: "pause.circle.fill")
             }
+            if status.isWaitingForHours {
+                let lastLooked = status.lastPass.map { SportsCopy.lastLooked(Date(timeIntervalSince1970: TimeInterval($0))) }
+                let detail = [status.opensAt.map { SportsCopy.startsAgain($0) }, lastLooked].compactMap { $0 }.joined(separator: "\n")
+                return TVRowItem(id: ID.summary, title: SportsCopy.waitingForHours, subtitle: detail, symbol: "moon.zzz.fill")
+            }
             if let error = status.lastError, !error.isEmpty, !status.isWorking {
                 return TVRowItem(id: ID.summary, title: SportsCopy.phase(status), subtitle: error, symbol: "exclamationmark.triangle.fill")
             }
             let lastLooked = status.lastPass.map { SportsCopy.lastLooked(Date(timeIntervalSince1970: TimeInterval($0))) }
-            let detail = [status.isWorking ? nil : SportsCopy.phase(status), lastLooked].compactMap { $0 }.joined(separator: " · ")
+            let hours = status.byHand ? SportsCopy.lookingOutsideHours : status.closesAt.map { SportsCopy.runsUntil($0) }
+            let detail = [status.isWorking ? nil : SportsCopy.phase(status), hours, lastLooked].compactMap { $0 }.joined(separator: " · ")
             return TVRowItem(id: ID.summary, title: SportsCopy.allReady, subtitle: detail, symbol: "checkmark.seal.fill")
         }
     }
@@ -197,6 +204,9 @@ final class TVSportsResearchViewController: TVSettingsScaffold {
 
     private func choiceRows(_ report: SportsReport) -> [TVRowItem] {
         var rows = [TVRowItem(id: ID.switchedOn, title: SportsCopy.researchNewFiles, value: report.settings.on ? String(localized: "On") : String(localized: "Off"), symbol: "power", isEnabled: !busy)]
+        if report.settings.schedules {
+            rows.append(TVRowItem(id: ID.schedule, title: SportsCopy.schedule, value: SportsCopy.scheduleValue(report.settings.schedule), symbol: "clock", accessory: .chevron, isEnabled: !busy))
+        }
         rows += report.libraries.map { library in
             TVRowItem(id: ID.library + library.key, title: library.title, value: library.chosen ? SportsCopy.kind(library.kind) : String(localized: "Off"), symbol: "film.stack", isEnabled: !busy)
         }
@@ -207,7 +217,7 @@ final class TVSportsResearchViewController: TVSettingsScaffold {
             rows.append(TVRowItem(id: ID.agreement, title: report.settings.agreed ? SportsCopy.withdraw : SportsCopy.agree, symbol: report.settings.agreed ? "hand.raised.slash" : "hand.raised", isEnabled: !busy))
         }
         rows.append(TVRowItem(id: ID.checkAgain, title: SportsCopy.checkAgain, subtitle: busy ? CompanionCopy.checking : nil, symbol: "arrow.triangle.2.circlepath", isEnabled: !busy))
-        rows.append(TVRowItem(id: ID.lookNow, title: SportsCopy.lookNow, symbol: "magnifyingglass", isEnabled: !busy))
+        rows.append(TVRowItem(id: ID.lookNow, title: SportsCopy.lookNow, subtitle: report.status.isWaitingForHours ? SportsCopy.lookNowOutsideHours : nil, symbol: "magnifyingglass", isEnabled: !busy))
         return rows
     }
 
@@ -231,6 +241,9 @@ final class TVSportsResearchViewController: TVSettingsScaffold {
             stage.show(itemContent(item), key: id)
         } else if id == ID.switchedOn {
             stage.show(TVSportsStageContent(heading: SportsCopy.researchNewFiles, body: SportsCopy.why(.on)), key: id)
+        } else if id == ID.schedule {
+            let body = [SportsCopy.summary(report.settings.schedule), report.status.opensAt.map { SportsCopy.startsAgain($0) }, report.status.closesAt.map { SportsCopy.runsUntil($0) }, SportsCopy.scheduleExplanation]
+            stage.show(TVSportsStageContent(heading: SportsCopy.schedule, body: body.compactMap { $0 }.joined(separator: "\n\n")), key: id)
         } else if id.hasPrefix(ID.library), let library = report.libraries.first(where: { ID.library + $0.key == id }) {
             stage.show(TVSportsStageContent(heading: library.title, body: SportsCopy.why(.libraries)), key: id)
         } else if id == ID.agreement, let destination = report.settings.destination {
@@ -333,6 +346,13 @@ final class TVSportsResearchViewController: TVSettingsScaffold {
         guard !busy, let report = board?.report, report.owner, mode != .notPro, mode != .viewer else { return }
         switch id {
         case ID.switchedOn: setOn(!report.settings.on)
+        case ID.schedule:
+            let schedule = TVSportsScheduleViewController(source: source, settings: report.settings) { [weak self] saved in
+                guard let self, let board else { return }
+                self.board = SportsBoard(report: board.report.expecting(schedule: saved))
+                render()
+            }
+            TVNavigation.push(schedule, from: self)
         case ID.agreement: report.settings.agreed ? change(agree: false) : askToAgree()
         case ID.checkAgain: perform { source throws(CompanionError) in try await source.recheckSports() }
         case ID.lookNow: perform { source throws(CompanionError) in try await source.runSports() }

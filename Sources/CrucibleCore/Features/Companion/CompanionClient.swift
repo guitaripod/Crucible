@@ -639,6 +639,18 @@ package struct CompanionClient: Sendable {
         }
     }
 
+    private struct SportsScheduleChange: Encodable {
+        let schedule: [UInt32]
+    }
+
+    /// The owner sets the hours research may run on the server's clock, or any time for nil.
+    package func scheduleSports(_ schedule: SportsSchedule?) async throws(CompanionError) {
+        let change = SportsScheduleChange(schedule: schedule.flatMap { $0.isAlways ? nil : $0.days } ?? [])
+        let _: SportsChanged = try await onFirstHost(timeout: 15) { connection throws(CompanionError) in
+            try await connection.send("PUT", "sports", body: change, headers: headers)
+        }
+    }
+
     private struct SportsRechecked: Decodable {
         let ready: Bool
     }

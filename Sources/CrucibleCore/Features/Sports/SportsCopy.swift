@@ -96,6 +96,7 @@ package enum SportsCopy {
         case "writing": String(localized: "Writing to Plex", comment: "Sports Research server phase")
         case "waiting": String(localized: "Waiting until everything is ready", comment: "Sports Research server phase")
         case "paused": String(localized: "Searching paused", comment: "Library Research server phase: the search engines turned research away for a while")
+        case "scheduled": waitingForHours
         default: String(localized: "Up to date", comment: "Sports Research server phase: nothing left to research")
         }
     }
