@@ -13,6 +13,7 @@ final class LivePlaylistsScreen: SettingsScaffold {
         static let destination = "livetv.destination"
         static let add = "livetv.add"
         static let plex = "livetv.plex"
+        static let merge = "livetv.merge"
         static let refresh = "livetv.refresh"
         static let playlistPrefix = "livetv.playlist."
     }
@@ -44,6 +45,8 @@ final class LivePlaylistsScreen: SettingsScaffold {
         items.append(RowItem(id: RowID.add, title: isChecking ? LiveTVCopy.checkingPlaylist : LiveTVCopy.addPlaylist, symbol: "plus", isEnabled: !isChecking))
         items.append(RowItem.onOff(id: RowID.plex, title: LiveTVCopy.showPlexChannels, subtitle: LiveTVCopy.showPlexChannelsFooter,
                                    isOn: LiveTVPreferences.showsPlexChannels, symbol: "tv"))
+        items.append(RowItem.onOff(id: RowID.merge, title: LiveTVCopy.mergeDuplicates, subtitle: LiveTVCopy.mergeDuplicatesFooter,
+                                   isOn: LiveTVPreferences.mergesDuplicates, symbol: "square.on.square"))
         items.append(RowItem(id: RowID.refresh, title: LiveTVCopy.refreshPlaylists, symbol: "arrow.clockwise"))
         setRows(items)
     }
@@ -56,6 +59,9 @@ final class LivePlaylistsScreen: SettingsScaffold {
         case RowID.add: presentAdd()
         case RowID.plex:
             LiveTVPreferences.showsPlexChannels.toggle()
+            render()
+        case RowID.merge:
+            LiveTVPreferences.mergesDuplicates.toggle()
             render()
         case RowID.refresh:
             LiveTVPreferences.reset()

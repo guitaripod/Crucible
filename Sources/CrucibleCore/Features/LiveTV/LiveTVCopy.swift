@@ -103,6 +103,9 @@ package enum LiveTVCopy {
     package static let checkingPlaylist = String(localized: "Checking the playlist…", comment: "Shown while a new channel playlist is loaded to check it")
     package static let showPlexChannels = String(localized: "Plex’s Free Channels", comment: "Setting that shows or hides Plex's free live channels in the guide")
     package static let showPlexChannelsFooter = String(localized: "Hundreds of free channels from Plex, with ads, available on every Plex account.", comment: "Footer under the setting for Plex's free live channels")
+    package static let mergeDuplicates = String(localized: "Merge Duplicate Channels", comment: "Setting that shows each channel once when several sources or feeds carry it")
+    package static let mergeDuplicatesFooter = String(localized: "Shows a channel once when several playlists, Plex or HD and backup feeds carry it, playing the best copy and switching to another if it fails.",
+                                                      comment: "Footer under the setting that merges duplicate live channels")
     package static let sendToDevice = String(localized: "Send to Another Device", comment: "Button that shares a link adding this channel playlist on another device")
     package static let sendToDeviceFooter = String(localized: "A link that adds this playlist in Crucible on another device. It carries the playlist’s address, so share it only with yourself.",
                                                    comment: "Explains the link that adds a channel playlist on another device")

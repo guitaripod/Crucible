@@ -14,6 +14,8 @@ final class LiveSession {
     var previous: LiveChannel?
     /// Digits typed to go to a channel by its number.
     var typed = ""
+    /// The copies of the station tried since the viewer chose it, so a failing one falls over to each other copy once.
+    var triedCopies: Set<String> = []
     var typingTask: Task<Void, Never>?
 
     init(channel: LiveChannel, guide: LiveTVGuide?) {
@@ -35,9 +37,11 @@ extension PlayerScreen {
         tune(live.channel)
     }
 
-    /// Plays `channel`, ending the previous one's tuner session first.
-    func tune(_ channel: LiveChannel) {
+    /// Plays `channel`, ending the previous one's tuner session first; when it fails, a copy of its station from another
+    /// source plays instead, if the guide merged any.
+    func tune(_ channel: LiveChannel, failingOver: Bool = false) {
         guard let live else { return }
+        if failingOver { live.triedCopies.insert(channel.id) } else { live.triedCopies = [channel.id] }
         let ending = live.plan
         let api = live.api
         let token = live.token
@@ -57,6 +61,11 @@ extension PlayerScreen {
             } catch {
                 guard let self, !Task.isCancelled, !self.closed else { return }
                 MidgarLog.error("Live channel \(channel.id) failed: \(error)", category: .liveTV)
+                if let live = self.live, let next = live.guide?.alternates(of: channel.id).first(where: { !live.triedCopies.contains($0.id) }) {
+                    MidgarLog.notice("Trying its copy \(next.id)", category: .liveTV)
+                    self.tune(next, failingOver: true)
+                    return
+                }
                 self.presentFailure((error as? LocalizedError)?.errorDescription ?? ConnectionError.message(for: error), retry: { [weak self] in self?.tune(channel) })
             }
         }

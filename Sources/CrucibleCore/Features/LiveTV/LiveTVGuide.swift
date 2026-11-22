@@ -55,7 +55,12 @@ package final class LiveTVGuide {
     package private(set) var state: State = .loading
     package private(set) var sources: [any LiveChannelSource] = []
     package private(set) var summaries: [LiveSourceSummary] = []
+    /// The channels in the guide, each station once when duplicates are merged.
     package private(set) var channels: [LiveChannel] = []
+    /// Every channel every source has, copies included, for a single source's view.
+    package private(set) var allChannels: [LiveChannel] = []
+    private var alternateChannels: [String: [LiveChannel]] = [:]
+    private var canonicalIDs: [String: String] = [:]
     package private(set) var programs: [String: [LiveProgram]] = [:]
     /// Sources that failed to load, with why, so the screen can say so beside the channels that did.
     package private(set) var failures: [LiveSourceID: String] = [:]
@@ -100,12 +105,13 @@ package final class LiveTVGuide {
         switch filter {
         case .all: return channels
         case .favorites:
-            let favorites = LiveTVPreferences.favorites
+            let favorites = Set(LiveTVPreferences.favorites.map(canonicalID))
             return channels.filter { favorites.contains($0.id) }
         case .recent:
             let byID = Dictionary(channels.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-            return LiveTVPreferences.recentChannels.compactMap { byID[$0] }
-        case .source(let id): return channels.filter { $0.source == id }
+            var seen = Set<String>()
+            return LiveTVPreferences.recentChannels.map(canonicalID).filter { seen.insert($0).inserted }.compactMap { byID[$0] }
+        case .source(let id): return allChannels.filter { $0.source == id }
         case .group(let name): return channels.filter { $0.groups.contains(name) }
         }
     }
@@ -184,18 +190,28 @@ package final class LiveTVGuide {
             }
         }
         sources = loaded.map(\.0)
-        self.channels = channels
+        allChannels = channels
+        if LiveTVPreferences.mergesDuplicates {
+            let merged = LiveChannelMerge.merge(channels)
+            self.channels = merged.channels
+            alternateChannels = merged.alternates
+            canonicalIDs = merged.canonical
+        } else {
+            self.channels = channels
+            alternateChannels = [:]
+            canonicalIDs = [:]
+        }
         self.summaries = summaries
         self.failures = failures
         requested.removeAll()
         if case .source(let id) = filter, !summaries.contains(where: { $0.id == id }) { filter = .all }
-        if case .group(let name) = filter, !channels.contains(where: { $0.groups.contains(name) }) { filter = .all }
+        if case .group(let name) = filter, !self.channels.contains(where: { $0.groups.contains(name) }) { filter = .all }
         if channels.isEmpty {
             state = failures.isEmpty ? .empty : .failed(failures.values.sorted().joined(separator: "\n"))
         } else {
             state = .ready
         }
-        MidgarLog.notice("Live TV has \(channels.count) channels from \(summaries.count) sources", category: .liveTV)
+        MidgarLog.notice("Live TV has \(self.channels.count) channels (\(allChannels.count) before merging) from \(summaries.count) sources", category: .liveTV)
         onChange?()
     }
 
@@ -224,7 +240,7 @@ package final class LiveTVGuide {
             return now.timeIntervalSince(requestedAt[id] ?? .distantPast) > 15 * 60
         }
         guard !wanted.isEmpty else { return }
-        let byID = Dictionary(channels.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let byID = Dictionary(allChannels.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         let window = DateInterval(start: now.addingTimeInterval(-3600), duration: (Self.guideHours + 1) * 3600)
         var bySource: [LiveSourceID: [LiveChannel]] = [:]
         for id in wanted {
@@ -255,25 +271,41 @@ package final class LiveTVGuide {
     }
 
     package func channel(id: String) -> LiveChannel? {
-        channels.first { $0.id == id }
+        channels.first { $0.id == id } ?? allChannels.first { $0.id == id }
+    }
+
+    /// The id of the guide's row for `channelID`: the kept channel when it is a merged copy, else itself.
+    package func canonicalID(_ channelID: String) -> String {
+        canonicalIDs[channelID] ?? channelID
+    }
+
+    /// The other copies of a channel's station, best first, to play when the one chosen fails.
+    package func alternates(of channelID: String) -> [LiveChannel] {
+        let id = canonicalID(channelID)
+        let copies = (channels.first { $0.id == id }.map { [$0] } ?? []) + (alternateChannels[id] ?? [])
+        return copies.filter { $0.id != channelID }
     }
 
     /// The channel `offset` places from `channelID` in the visible list, wrapping around, for channel up and down.
     package func channel(from channelID: String, offset: Int) -> LiveChannel? {
-        let list = visibleChannels.contains { $0.id == channelID } ? visibleChannels : channels
+        let visible = visibleChannels
+        let channelID = visible.contains { $0.id == channelID } ? channelID : canonicalID(channelID)
+        let list = visible.contains { $0.id == channelID } ? visible : channels
         guard !list.isEmpty, let index = list.firstIndex(where: { $0.id == channelID }) else { return list.first }
         let next = ((index + offset) % list.count + list.count) % list.count
         return list[next]
     }
 
     package func isFavorite(_ channelID: String) -> Bool {
-        LiveTVPreferences.favorites.contains(channelID)
+        let id = canonicalID(channelID)
+        return LiveTVPreferences.favorites.contains { canonicalID($0) == id }
     }
 
     package func toggleFavorite(_ channelID: String) {
+        let channelID = canonicalID(channelID)
         var favorites = LiveTVPreferences.favorites
-        if favorites.contains(channelID) {
-            favorites.removeAll { $0 == channelID }
+        if favorites.contains(where: { canonicalID($0) == channelID }) {
+            favorites.removeAll { canonicalID($0) == channelID }
         } else {
             favorites.append(channelID)
         }
@@ -284,7 +316,7 @@ package final class LiveTVGuide {
 
     /// Remembers that the viewer watched `channelID`, for Recent and for the channel the guide opens on.
     package func watched(_ channelID: String) {
-        LiveTVPreferences.noteWatched(channelID)
+        LiveTVPreferences.noteWatched(canonicalID(channelID))
     }
 
     /// The source a channel comes from, for recording.
