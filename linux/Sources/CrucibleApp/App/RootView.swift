@@ -506,8 +506,8 @@ final class RootView: View, WindowRestoration.Restorable {
             self.current?.top?.screenDidAppear()
         }
         shorts = screen
-        addSubview(screen)
         screen.frame = bounds
+        addSubview(screen)
         window?.focus.focus(screen, animated: false)
         showUnderPlayer(false)
     }

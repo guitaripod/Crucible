@@ -79,6 +79,7 @@ final class WebShortsScreen: View {
     private var press: (start: Point, dragging: Bool, last: Point)?
     private var scrub: (page: WebShortPage, resumes: Bool)?
     private var lastClickToggled = false
+    private var begun = false
 
     init(feed: WebShortsFeed) {
         entries = feed.entries
@@ -118,7 +119,14 @@ final class WebShortsScreen: View {
     var usesDesk: Bool { Theme.current.density == .desk }
 
     override func didMoveToWindow() {
-        guard window != nil, !closed, slots.isEmpty else { return }
+        begin()
+    }
+
+    /// Starts playing once the player is in a window and has its size, which the picture fetched for the first clip is
+    /// chosen by: in a window with no size yet it waits for its first layout.
+    private func begin() {
+        guard window != nil, !closed, slots.isEmpty, !bounds.isEmpty, !begun else { return }
+        begun = true
         appearance.set(1, animation: .timed(duration: 0.24, curve: .easeOut))
         startAnimating()
         ScreenAwake.hold(true, in: window)
@@ -166,6 +174,7 @@ final class WebShortsScreen: View {
     }
 
     override func layoutSubviews() {
+        begin()
         let metrics = Theme.current.metrics
         let stage = stage
         layer.frame = bounds
