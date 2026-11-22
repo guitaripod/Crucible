@@ -397,7 +397,7 @@ Nothing here is declared outside `linuxClient()` in `Package.swift`, and `Source
 | YouTube refuses some single-file streams for about four seconds after they were read (`available_at`); its segmented streams are served at once | Measured: HTTP 403 until then on one of two test videos | The picker ranks a stream that is ready before one that is held back, so playback starts with the segmented picture when the single file would mean waiting, and waits only when nothing else has the quality |
 | A site hands out the same picture in more than one way | yt-dlp lists both families | A stream that fails is left out and the next best plays (`WebSession.failed`); only then is yt-dlp asked again |
 | YouTube's WebVTT of automatic captions repeats every line as the words arrive; its SRT shows each line once; machine-translated captions answer 429 without an account | Measured | SRT first; automatic captions are offered only in the video's own language. Caption files are fetched into the cache and added from there, so mpv's command never waits on the network |
-| A channel's newest uploads are public at `youtube.com/feeds/videos.xml?channel_id=` and mark Shorts by their link | The feed itself | The subscriptions row is a hundred small requests, eight at a time, and no yt-dlp run; Shorts can be hidden without opening a video |
+| A channel's newest uploads are public at `youtube.com/feeds/videos.xml?channel_id=` and mark Shorts by their link | The feed itself | The subscriptions row is a hundred small requests, eight at a time, and no yt-dlp run; Shorts are told from videos without opening one, and go to a shelf and a player of their own (§14.7) |
 | yt-dlp's wiki puts a guest at about 300 videos an hour and warns that an account used with it can be restricted or closed | yt-dlp wiki, Extractors | Nothing is fetched per card. Signing in is off by default, optional, through the browser's cookies, and the warning is shown before it turns on |
 | yt-dlp rounds frame rates (59.94 reads as 60) | Its JSON | Match Content engages on the site's rate, then again on the rate mpv measures once the file is open |
 
@@ -422,4 +422,29 @@ Followed channels, Watch Later, progress and downloads are one file, `web/librar
 
 ### 14.6 Testing
 
-`CrucibleWebTests` (25 tests) reads fixtures cut from real yt-dlp answers with every stream address replaced, since those carry the address of the machine that asked. `CRUCIBLE_PLAY_LINK=<address>` plays one link in a bare player for headless checks, and `linux/scripts/mock-session.sh` shows the destination beside the mock library.
+`CrucibleWebTests` (31 tests) reads fixtures cut from real yt-dlp answers with every stream address replaced, since those carry the address of the machine that asked. `CRUCIBLE_PLAY_LINK=<address>` plays one link in a bare player for headless checks, and `linux/scripts/mock-session.sh` shows the destination beside the mock library. With `CRUCIBLE_OPEN_LINK=https://www.youtube.com/shorts/<id>` the mock session opens the Shorts player, which `--capture` then drives with keys, the pointer, the wheel and the virtual gamepad.
+
+### 14.7 Shorts
+
+Shorts never mix into the rows of videos. The YouTube page keeps the followed channels' on a shelf of upright cards, those not yet watched first (Settings › Web Video › Hide Shorts takes the shelf away), a channel's page has them under its Shorts chip, and a link to one opens it; each of these opens the Shorts player (`Web/Shorts`), a feed of upright pages over the whole window, in both layouts.
+
+| Part | How |
+| --- | --- |
+| The feed | The clips of the shelf or the tab it was opened from, starting with the one picked. A clip opened alone (a link, a search result, History) is followed by its channel's other Shorts, read once yt-dlp has named the channel |
+| Players | At most three (`WebShortSlot`): the clip playing, the next one opened and held at its first frame so moving on shows it at once, and the one just left. A clip landed on without being held ready is opened a third of a second later, so skimming asks yt-dlp for none of the clips passed; the next is opened only once the playing one is. A guest's allowance on the site (§14.2) is one run a clip |
+| The picture | The smallest of the clip's pictures that fills the pane (`WebShorts.heightLimit`): a clip filmed in 4K plays at 1080 by 1920 in a pane 1,024 pixels tall and at 720 by 1280 on a Steam Deck. Never HDR; a stream the site refuses gives way to the next best, then yt-dlp is asked once more |
+| The page | The clip's own upright picture until its first frame (`oardefault`, `sardefault` or `oar2`, whichever the site has), its channel with Follow, title, likes, views and age over its foot, the playhead along the lower edge, and the same picture blurred across the window behind it. A wide clip lies across its dimmed picture |
+| Moving | Pages spring into place and the neighbours peek in above and below. `WebShortsPager` (tested) turns the wheel into one clip a notch with a pause between steps, and a touchpad's fingers or a drag into a pull that moves on when it went a fifth of a page or was flicked, and gives at the feed's ends |
+| What is kept | A clip watched most of the way is noted finished in the viewer's own history, which is what puts it behind the unwatched ones on the shelf. The Shorts player has its own volume and mute, and repeats a clip until told to play the next automatically |
+
+| Input | Does |
+| --- | --- |
+| Wheel, two-finger swipe, drag of the clip, click above or below it, Up and Down, Page Up and Page Down, P and N, the d-pad or stick, the shoulder buttons | Previous or next clip |
+| Click, Space, K, Enter, A | Pause or play (the clip that failed: try again) |
+| Double click, F | Full screen |
+| Drag along the playhead, J and L, Left and Right in the Desktop layout, the triggers | Move through the clip |
+| Right in the Steam Deck layout, Tab | Reach the rail: Watch Later (S), Description and Comments (C or I), Copy Link (Ctrl+C), the channel (O), the sound (M, Shift with Up and Down, the wheel over its button), More |
+| Right click, the Menu key, Y | The clip's menu: Open in the Player (quality, subtitles and speed, from where the clip is), Play Next Automatically (A), Download, Follow, Open in Browser |
+| Escape, B, the mouse's back button | Close the details sheet, then leave the rail, then go back |
+
+The details sheet reads the comments in a second yt-dlp run, begun once a clip has stayed over half a second, and is scrolled by the wheel or, with the keyboard or a gamepad on it, the arrows.

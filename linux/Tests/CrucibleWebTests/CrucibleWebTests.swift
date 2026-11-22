@@ -353,3 +353,74 @@ enum Fixture {
         library.flush()
     }
 }
+
+@Suite struct WebShortsTests {
+    private func short(_ id: String, thumbnail: String? = nil) -> WebEntry {
+        WebEntry(id: id, url: "https://www.youtube.com/shorts/\(id)", title: id, thumbnail: thumbnail, isShort: true)
+    }
+
+    @Test func linesUpUnwatchedShortsFirstAndEachOnce() {
+        let video = WebEntry(id: "video000001", url: "https://www.youtube.com/watch?v=video000001", title: "A video")
+        let entries = [short("aaaaaaaaaaa"), video, short("bbbbbbbbbbb"), short("aaaaaaaaaaa"), short("ccccccccccc")]
+        #expect(WebShorts.lineUp(entries) { $0 == "aaaaaaaaaaa" }.map(\.id) == ["bbbbbbbbbbb", "ccccccccccc", "aaaaaaaaaaa"])
+        #expect(WebShorts.extended([short("aaaaaaaaaaa")], with: [short("aaaaaaaaaaa"), short("bbbbbbbbbbb")]).map(\.id) == ["aaaaaaaaaaa", "bbbbbbbbbbb"])
+    }
+
+    @Test func namesAShortsUprightPicturesBeforeTheWideOne() {
+        let listed = "https://i.ytimg.com/vi/aaaaaaaaaaa/oardefault.jpg?sqp=signed"
+        let entry = short("aaaaaaaaaaa", thumbnail: listed)
+        #expect(entry.shortThumbnailCandidates(sharp: false).first == listed)
+        #expect(entry.shortThumbnailCandidates(sharp: true).first == "https://i.ytimg.com/vi/aaaaaaaaaaa/oardefault.jpg")
+        #expect(entry.shortThumbnailCandidates(sharp: true).last == "https://i.ytimg.com/vi/aaaaaaaaaaa/hq720.jpg")
+        let fromFeed = short("bbbbbbbbbbb", thumbnail: "https://i4.ytimg.com/vi/bbbbbbbbbbb/hqdefault.jpg")
+        #expect(fromFeed.shortThumbnailCandidates(sharp: false) == ["oardefault", "sardefault", "oar2", "hq720"].map { "https://i.ytimg.com/vi/bbbbbbbbbbb/\($0).jpg" })
+    }
+
+    @Test func fetchesNoMorePictureThanThePaneShows() throws {
+        let video = try Fixture.video("video-4k")
+        let heights = Set(video.formats.filter(\.hasVideo).compactMap(\.height)).sorted()
+        let wide = try #require(WebShorts.heightLimit(of: video, paneWidth: 576, paneHeight: 1024, shortSide: nil))
+        #expect(wide == heights.first { Double($0) >= 324 * 0.9 })
+        #expect(WebShorts.heightLimit(of: video, paneWidth: 10_000, paneHeight: 10_000, shortSide: nil) == heights.last)
+        #expect(WebShorts.heightLimit(of: video, paneWidth: 10_000, paneHeight: 10_000, shortSide: 720) == 720)
+    }
+
+    @Test func keepsThePlayingClipTheNextAndThePreviousOpen() {
+        #expect(WebShorts.kept(around: 0, count: 5) == [0, 1])
+        #expect(WebShorts.kept(around: 2, count: 5) == [2, 3, 1])
+        #expect(WebShorts.kept(around: 4, count: 5) == [4, 3])
+        #expect(WebShorts.isWatched(position: 43, duration: 60))
+        #expect(!WebShorts.isWatched(position: 20, duration: 60))
+        #expect(WebShorts.isWatched(position: 4, duration: 5))
+        #expect(!WebShorts.isWatched(position: 4, duration: 0))
+    }
+
+    @Test func aWheelNotchIsOneClipWithAPauseBetweenSteps() {
+        var pager = WebShortsPager()
+        pager.canGoOn = true
+        #expect(pager.wheel(1, at: 10) == 1)
+        #expect(pager.wheel(1, at: 10.05) == 0)
+        #expect(pager.wheel(1, at: 10.1) == 0)
+        #expect(pager.wheel(1, at: 10.3) == 1)
+        #expect(pager.wheel(-1, at: 11) == 0)
+        pager.canGoBack = true
+        #expect(pager.wheel(-0.5, at: 12) == 0)
+        #expect(pager.wheel(-0.5, at: 12.02) == -1)
+    }
+
+    @Test func aPullMovesOnWhenItWentFarOrFastAndGivesAtTheEnds() {
+        var pager = WebShortsPager()
+        pager.canGoOn = true
+        #expect(pager.drag(by: 0.1, at: 1) == 0.1)
+        #expect(pager.release(at: 2) == 0)
+        _ = pager.drag(by: 0.25, at: 3)
+        #expect(pager.release(at: 4) == 1)
+        _ = pager.drag(by: 0.03, at: 5)
+        _ = pager.drag(by: 0.05, at: 5.02)
+        #expect(pager.release(at: 5.03) == 1)
+        let stretched = pager.drag(by: -0.6, at: 6)
+        #expect(stretched < 0 && stretched >= -0.14)
+        #expect(pager.release(at: 7) == 0)
+        #expect(pager.pull == 0)
+    }
+}

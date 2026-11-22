@@ -8,7 +8,7 @@ import Kiln
 /// its keys; Ctrl+? shows every shortcut at once.
 extension RootView {
     var commandGroups: [AppCommandGroup] {
-        [goCommands, viewCommands, mediaCommands, textCommands, settingsCommands]
+        [goCommands, viewCommands, mediaCommands, shortsCommands, textCommands, settingsCommands]
     }
 
     /// The keys for selected text and fields, in the shortcut list only: they work where the text is.
@@ -99,6 +99,29 @@ extension RootView {
             },
             AppCommand(String(localized: "Close Player"), keys: [KeyName.esc]) { [weak self] in self?.player?.close() },
         ], inMenu: player != nil)
+    }
+
+    /// The Shorts player's keys; from the menu each sends its key to it, as the player's do.
+    private var shortsCommands: AppCommandGroup {
+        func send(_ key: Key, _ text: String = "") -> @MainActor () -> Void {
+            { [weak self] in self?.window?.handleKey(KeyEvent(key: key, text: text)) }
+        }
+        func letter(_ character: Character) -> @MainActor () -> Void { send(.character(character), String(character)) }
+        return AppCommandGroup(title: WebShortsCopy.title, commands: [
+            AppCommand(WebShortsCopy.previous, keys: [KeyName.up, KeyName.pageUp, "P"], run: send(.pageUp)),
+            AppCommand(WebShortsCopy.next, keys: [KeyName.down, KeyName.pageDown, "N"], run: send(.pageDown)),
+            AppCommand(AppCommandCopy.playOrPause, keys: [KeyName.space, "K"], run: letter("k")),
+            AppCommand(WebShortsCopy.seek, keys: ["J", "L"]),
+            AppCommand(AppCommandCopy.mute, keys: ["M"], run: letter("m")),
+            AppCommand(AppCommandCopy.volumeUp, keys: [KeyName.chord(KeyName.shift, KeyName.up)]),
+            AppCommand(AppCommandCopy.volumeDown, keys: [KeyName.chord(KeyName.shift, KeyName.down)]),
+            AppCommand(WebCopy.watchLater, keys: ["S"], run: letter("s")),
+            AppCommand(WebShortsCopy.details, keys: ["C", "I"], run: letter("c")),
+            AppCommand(WebShortsCopy.goToChannel, keys: ["O"], run: letter("o")),
+            AppCommand(WebShortsCopy.playNext, keys: ["A"], run: letter("a")),
+            AppCommand(WebShortsCopy.copyLink, keys: [KeyName.chord(KeyName.ctrl, "C")]),
+            AppCommand(AppCommandCopy.fullScreen, keys: ["F"], run: letter("f")),
+        ], inMenu: shorts != nil)
     }
 
     private var settingsCommands: AppCommandGroup {

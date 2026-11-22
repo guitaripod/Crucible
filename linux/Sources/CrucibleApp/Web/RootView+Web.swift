@@ -26,6 +26,7 @@ extension RootView {
         }
     }
 
+    /// Plays the video at `url`; a link to a Short opens the Shorts player on it, its channel's other Shorts after it.
     private func playLink(_ url: String, start: Double?) {
         guard WebService.shared.isAvailable || WebService.shared.locateTool() else {
             if let window {
@@ -35,7 +36,12 @@ extension RootView {
             return
         }
         closePlayer()
-        playWeb(WebPlayback(entry: WebEntry(id: WebLink.youTubeVideoID(in: url) ?? url, url: url, title: ""), start: start))
+        let entry = WebEntry(id: WebLink.youTubeVideoID(in: url) ?? url, url: url, title: "", isShort: url.contains("/shorts/"))
+        if entry.isShort, start == nil {
+            playShorts(WebShortsFeed(entries: [entry], followsWithChannel: true))
+        } else {
+            playWeb(WebPlayback(entry: entry, start: start))
+        }
     }
 
     /// Asks for an address (Ctrl+L), offering the clipboard's when it holds one, and opens it.

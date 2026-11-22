@@ -6,7 +6,8 @@ import Kiln
 import MidgarCore
 
 /// The YouTube destination: what the viewer began and did not finish, the newest videos of the channels they follow,
-/// what they saved for later and those channels themselves, with Open Link, History and Settings as chips above. All of
+/// those channels' Shorts on a shelf that opens the Shorts player, what they saved for later and the channels
+/// themselves, with Open Link, History and Settings as chips above. All of
 /// it is the viewer's own library on this machine; with a browser's cookies set in Settings, the account's own
 /// recommendations join as a row.
 @MainActor
@@ -16,12 +17,14 @@ final class WebHomeScreen: ScreenView, Reloadable {
     private let chips = ChipRowView()
     private let continueShelf = ShelfView(header: SectionHeader(title: String(localized: "Continue Watching")), style: .episode)
     private let feedShelf = ShelfView(header: SectionHeader(title: WebCopy.feed, hasSeeAll: true), style: .episode)
+    private let shortsShelf = ShelfView(header: SectionHeader(title: WebShortsCopy.title), style: WebCards.shortStyle)
     private let recommendedShelf = ShelfView(header: SectionHeader(title: WebCopy.recommended, hasSeeAll: true), style: .episode)
     private let laterShelf = ShelfView(header: SectionHeader(title: WebCopy.watchLater, hasSeeAll: true), style: .episode)
     private let channelShelf = ShelfView(header: SectionHeader(title: WebCopy.channels), style: .person)
     private let state = StateView()
     private var entries: [String: WebEntry] = [:]
     private var feed: [WebEntry] = []
+    private var shorts: [WebEntry] = []
     private var recommended: [WebEntry] = []
     private var loadTask: Task<Void, Never>?
     private var recommendedTask: Task<Void, Never>?
@@ -49,6 +52,15 @@ final class WebHomeScreen: ScreenView, Reloadable {
                 guard let self, let entry = self.entries[card.id] else { return }
                 WebActions.presentMenu(for: entry, at: point, in: self)
             }
+        }
+        shortsShelf.onActivate = { [weak self] card in self?.playShort(card) }
+        shortsShelf.onPlay = { [weak self] card in
+            self?.playShort(card)
+            return true
+        }
+        shortsShelf.onContextMenu = { [weak self] card, point in
+            guard let self, let entry = self.entries[card.id] else { return }
+            WebActions.presentMenu(for: entry, at: point, in: self)
         }
         feedShelf.onSeeAll = { [weak self] in self?.rootView?.push(WebScreens.feed()) }
         laterShelf.onSeeAll = { [weak self] in self?.rootView?.push(WebScreens.watchLater()) }
@@ -78,6 +90,12 @@ final class WebHomeScreen: ScreenView, Reloadable {
         recommendedTask?.cancel()
     }
 
+    /// Opens the Shorts player on the card's clip, with the shelf's other clips around it.
+    private func playShort(_ card: CardItem) {
+        guard let entry = entries[card.id] else { return }
+        WebActions.playShorts(entry, among: shorts, source: WebShortsCopy.fromYourChannels, from: self)
+    }
+
     private func channel(for card: CardItem) -> WebChannel? {
         let id = String(card.id.dropFirst((WebCards.prefix + "channel.").count))
         return WebService.shared.library.subscriptions.first { $0.id == id }
@@ -85,7 +103,7 @@ final class WebHomeScreen: ScreenView, Reloadable {
 
     override var preferredFocusView: View? {
         if !state.isHidden { return state }
-        return [continueShelf, feedShelf, recommendedShelf, laterShelf, channelShelf].first { $0.superview != nil && !$0.items.isEmpty } ?? chips
+        return [continueShelf, feedShelf, shortsShelf, recommendedShelf, laterShelf, channelShelf].first { $0.superview != nil && !$0.items.isEmpty } ?? chips
     }
 
     override func screenDidAppear() {
@@ -121,7 +139,7 @@ final class WebHomeScreen: ScreenView, Reloadable {
         recommendedTask = Task { [weak self] in
             guard let listing = try? await WebService.shared.listing(":ytrec", limit: 30, fresh: fresh) else { return }
             guard let self, !Task.isCancelled else { return }
-            self.recommended = listing.entries.filter { $0.kind == .video && !(WebSettings.hidesShorts && $0.isShort) }
+            self.recommended = listing.entries.filter { $0.kind == .video && !$0.isShort }
             self.render()
         }
     }
@@ -162,6 +180,9 @@ final class WebHomeScreen: ScreenView, Reloadable {
         }
         fill(continueShelf, with: Array(unfinished))
         fill(feedShelf, with: Array(feed.prefix(24)))
+        shorts = WebService.shared.subscriptionShortsAtHand
+        for entry in shorts.prefix(30) { entries[WebCards.prefix + entry.id] = entry }
+        shortsShelf.setItems(shorts.prefix(30).map { WebCards.card($0, upright: true) })
         fill(recommendedShelf, with: Array(recommended.prefix(24)))
         fill(laterShelf, with: Array(later.prefix(24)))
         channelShelf.setItems(channels.map { WebCards.card($0) })
@@ -186,7 +207,7 @@ final class WebHomeScreen: ScreenView, Reloadable {
         heading.summary = channels.isEmpty ? nil : (channels.count == 1 ? String(localized: "1 channel", comment: "Count of followed channels")
                                                                         : String(localized: "\(channels.count) channels", comment: "Count of followed channels"))
         var sections: [View] = [heading, chips]
-        for shelf in [continueShelf, feedShelf, recommendedShelf, laterShelf, channelShelf] where !shelf.items.isEmpty { sections.append(shelf) }
+        for shelf in [continueShelf, feedShelf, shortsShelf, recommendedShelf, laterShelf, channelShelf] where !shelf.items.isEmpty { sections.append(shelf) }
         page.setSections(sections)
         page.setNeedsLayout()
     }
@@ -283,7 +304,7 @@ enum WebScreens {
     /// One of the signed-in account's own feeds, by yt-dlp's name for it (":ytrec", ":ytwatchlater", ":ytfav").
     static func account(_ feed: String, title: String) -> WebListScreen {
         WebListScreen(title: title) { fresh in
-            try await WebService.shared.listing(feed, limit: 120, fresh: fresh).entries.filter { !(WebSettings.hidesShorts && $0.isShort) }
+            try await WebService.shared.listing(feed, limit: 120, fresh: fresh).entries.filter { !$0.isShort }
         }
     }
 

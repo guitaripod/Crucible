@@ -56,11 +56,11 @@ final class WebChannelScreen: ScreenView, Reloadable {
         header.onFollow = { [weak self] in self?.toggleFollow() }
         grid.onActivate = { [weak self] card in
             guard let self, let entry = self.entry(for: card) else { return }
-            WebActions.open(entry, from: self)
+            self.open(entry)
         }
         grid.onPlay = { [weak self] card in
             guard let self, let entry = self.entry(for: card), entry.kind == .video else { return false }
-            WebActions.play(entry, from: self)
+            self.open(entry)
             return true
         }
         grid.onContextMenu = { [weak self] card, point in
@@ -81,6 +81,15 @@ final class WebChannelScreen: ScreenView, Reloadable {
 
     private func entry(for card: CardItem) -> WebEntry? {
         listings[tab]?.first { WebCards.prefix + $0.id == card.id }
+    }
+
+    /// Opens what a card stands for; a Short opens the Shorts player on the tab's clips, starting with it.
+    private func open(_ entry: WebEntry) {
+        if tab == .shorts, entry.kind == .video {
+            WebActions.playShorts(entry, among: listings[.shorts] ?? [], source: header.title, from: self)
+        } else {
+            WebActions.open(entry, from: self)
+        }
     }
 
     override var preferredFocusView: View? {
@@ -180,7 +189,7 @@ final class WebChannelScreen: ScreenView, Reloadable {
     }
 
     private func refreshCards() {
-        grid.setItems((listings[tab] ?? []).map { WebCards.card($0, showsChannel: false, inGrid: true) })
+        grid.setItems((listings[tab] ?? []).map { WebCards.card($0, showsChannel: false, inGrid: true, upright: tab == .shorts) })
     }
 
     override func layoutSubviews() {

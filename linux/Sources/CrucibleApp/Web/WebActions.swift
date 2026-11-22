@@ -18,16 +18,42 @@ enum WebActions {
         }
     }
 
-    /// Plays `entry` from where the viewer left it (or from `start`), with `queue` to follow.
+    /// Plays `entry` from where the viewer left it (or from `start`), with `queue` to follow. A Short opens in the Shorts
+    /// player, its channel's other Shorts after it.
     static func play(_ entry: WebEntry, queue: [WebEntry] = [], at start: Double? = nil, from view: View) {
-        guard let root = view.rootView, let window = view.window else { return }
-        guard WebService.shared.isAvailable || WebService.shared.locateTool() else {
-            AlertView.notice(title: String(localized: "yt-dlp Is Missing", comment: "Title of the alert shown when web video cannot play"),
-                             message: WebService.message(for: YtDlpError.notInstalled), in: window)
+        if entry.isShort, start == nil {
+            playShorts(WebShortsFeed(entries: [entry], followsWithChannel: true), from: view)
             return
         }
+        guard let root = view.rootView, isReady(in: view) else { return }
         root.closePlayer()
         root.playWeb(WebPlayback(entry: entry, start: start, queue: queue, localPath: WebService.shared.library.download(of: entry.id)?.path))
+    }
+
+    /// Opens the Shorts player on `feed`.
+    static func playShorts(_ feed: WebShortsFeed, from view: View) {
+        guard let root = view.rootView, !feed.entries.isEmpty, isReady(in: view) else { return }
+        root.playShorts(feed)
+    }
+
+    /// The Shorts player on `entry` among `shorts`, the list it was picked from.
+    static func playShorts(_ entry: WebEntry, among shorts: [WebEntry], source: String?, from view: View) {
+        let listed = shorts.filter { $0.kind == .video }
+        guard let start = listed.firstIndex(where: { $0.id == entry.id }) else {
+            play(entry, from: view)
+            return
+        }
+        playShorts(WebShortsFeed(entries: listed, start: start, source: source), from: view)
+    }
+
+    /// Whether yt-dlp is there to play anything; says so when it is not.
+    private static func isReady(in view: View) -> Bool {
+        if WebService.shared.isAvailable || WebService.shared.locateTool() { return true }
+        if let window = view.window {
+            AlertView.notice(title: String(localized: "yt-dlp Is Missing", comment: "Title of the alert shown when web video cannot play"),
+                             message: WebService.message(for: YtDlpError.notInstalled), in: window)
+        }
+        return false
     }
 
     /// Opens the channel `entry` belongs to.

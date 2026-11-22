@@ -105,14 +105,24 @@ final class WebService {
     private static let feedLife: TimeInterval = 15 * 60
     private static var feedFile: URL { AppPlatform.cachesDirectory.appendingPathComponent("web/feed.json") }
 
-    /// The feed as it was last read, at once: this launch's, else the one kept from the launch before.
-    var subscriptionsFeedAtHand: [WebEntry] {
-        if let feed { return visible(feed.entries) }
+    /// Everything the feed held when it was last read, at once: this launch's, else the one kept from the launch before.
+    private var feedEntriesAtHand: [WebEntry] {
+        if let feed { return feed.entries }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         guard let data = try? Data(contentsOf: Self.feedFile), let kept = try? decoder.decode([WebEntry].self, from: data) else { return [] }
         let followed = Set(library.subscriptions.map(\.id))
-        return visible(kept.filter { $0.channelID.map(followed.contains) ?? false })
+        return kept.filter { $0.channelID.map(followed.contains) ?? false }
+    }
+
+    /// The feed's videos as they were last read.
+    var subscriptionsFeedAtHand: [WebEntry] { visible(feedEntriesAtHand) }
+
+    /// The feed's Shorts as they were last read, those the viewer has not watched first; none while they hide Shorts.
+    var subscriptionShortsAtHand: [WebEntry] {
+        guard !WebSettings.hidesShorts else { return [] }
+        let history = library
+        return WebShorts.lineUp(feedEntriesAtHand) { history.watch(of: $0)?.isFinished ?? false }
     }
 
     /// The newest videos of every followed channel, newest first, read from each channel's public feed: a hundred
@@ -140,9 +150,9 @@ final class WebService {
         return visible(entries)
     }
 
-    /// The feed without Shorts while the viewer hides them.
+    /// The feed's videos; its Shorts have a shelf and a player of their own (`subscriptionShortsAtHand`).
     private func visible(_ entries: [WebEntry]) -> [WebEntry] {
-        WebSettings.hidesShorts ? entries.filter { !$0.isShort } : entries
+        entries.filter { !$0.isShort }
     }
 
     /// Reads every channel's feed and merges them, newest first, with each channel's name as its feed gives it now.

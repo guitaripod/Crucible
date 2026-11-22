@@ -59,9 +59,27 @@ enum WebSettings {
         set { defaults.set(newValue ?? "", forKey: "web.cookiesBrowser") }
     }
 
+    /// Whether the YouTube page leaves out its shelf of Shorts. Shorts never mix into the rows of videos either way.
     static var hidesShorts: Bool {
-        get { defaults.object(forKey: "web.hidesShorts") as? Bool ?? true }
+        get { defaults.object(forKey: "web.hidesShorts") as? Bool ?? false }
         set { defaults.set(newValue, forKey: "web.hidesShorts") }
+    }
+
+    /// The Shorts player's volume, in percent, which it keeps apart from the player's: clips are mixed louder than films.
+    static var shortsVolume: Double {
+        get { defaults.object(forKey: "web.shortsVolume") as? Double ?? 100 }
+        set { defaults.set(newValue, forKey: "web.shortsVolume") }
+    }
+
+    static var shortsMuted: Bool {
+        get { defaults.bool(forKey: "web.shortsMuted") }
+        set { defaults.set(newValue, forKey: "web.shortsMuted") }
+    }
+
+    /// Whether the Shorts player moves on to the next clip when one ends, instead of repeating it.
+    static var shortsPlayNext: Bool {
+        get { defaults.bool(forKey: "web.shortsPlayNext") }
+        set { defaults.set(newValue, forKey: "web.shortsPlayNext") }
     }
 
     /// Whether a watched video is also noted in the signed-in account's own history on its site.

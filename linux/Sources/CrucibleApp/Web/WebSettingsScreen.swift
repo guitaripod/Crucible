@@ -277,7 +277,7 @@ enum WebSettingsCopy {
     static let sponsor = String(localized: "Sponsor Segments", comment: "Web video setting: what to do at stretches SponsorBlock marks")
     static let sponsorHint = String(localized: "Sponsor reads, self-promotion, reminders, intros and outros, marked by SponsorBlock’s volunteers.",
                                     comment: "Web video setting: what counts as a sponsor segment")
-    static let hideShorts = String(localized: "Hide Shorts", comment: "Web video setting: leave short vertical clips out of feeds")
+    static let hideShorts = String(localized: "Hide Shorts", comment: "Web video setting: leave the shelf of short vertical clips off the YouTube page")
     static let showDestination = String(localized: "Show YouTube in the Sidebar", comment: "Web video setting: whether the YouTube destination is listed")
     static let showDestinationHint = String(localized: "Takes effect the next time Crucible opens.", comment: "Web video setting: when the sidebar change applies")
     static let importFile = String(localized: "Import Subscriptions…", comment: "Web video setting: follow the channels listed in a file from another app")

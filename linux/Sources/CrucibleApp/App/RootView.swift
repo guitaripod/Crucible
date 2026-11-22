@@ -231,7 +231,7 @@ final class RootView: View, WindowRestoration.Restorable {
         currentID = id
         current = stack
         insertSubview(stack, below: tabBar)
-        stack.isHidden = playerCovers
+        stack.isHidden = isCovered
         stack.frame = contentFrame
         tabBar.setHidden(false, animated: true)
         window?.focus.focus(stack, animated: false)
@@ -269,6 +269,10 @@ final class RootView: View, WindowRestoration.Restorable {
             player.close()
             return true
         }
+        if let shorts {
+            shorts.close()
+            return true
+        }
         guard let current else { return false }
         if let top = current.top, top.handleBack() { return true }
         if current.pop() { return true }
@@ -283,14 +287,14 @@ final class RootView: View, WindowRestoration.Restorable {
 
     /// Forward: the screen Back last popped on this tab comes back.
     func handleForward() -> Bool {
-        guard player == nil || player?.isMini == true else { return false }
+        guard !isCovered else { return false }
         return current?.goForward() ?? false
     }
 
     /// Ctrl with the wheel or a touchpad makes the cards bigger or smaller, as Ctrl with plus and minus does; the player
     /// keeps the scroll for itself.
     func zoomScrolled(_ event: ScrollEvent) -> Bool {
-        guard !playerCovers else { return false }
+        guard !isCovered else { return false }
         if let step = CardZoom.step(for: event) { zoomCards(step) }
         return true
     }
@@ -328,30 +332,30 @@ final class RootView: View, WindowRestoration.Restorable {
             return true
         }
         if (event.key == Key.character("f") && event.modifiers == .control) || (event.key == Key.character("/") && event.modifiers.isEmpty) {
-            if !playerCovers, let settings = current?.top as? SettingsScreen, settings.focusSearch() { return true }
+            if !isCovered, let settings = current?.top as? SettingsScreen, settings.focusSearch() { return true }
             select("search")
             return true
         }
-        if let typed = event.typedText, !playerCovers, !typed.trimmingCharacters(in: .whitespaces).isEmpty {
+        if let typed = event.typedText, !isCovered, !typed.trimmingCharacters(in: .whitespaces).isEmpty {
             if let settings = current?.top as? SettingsScreen, settings.beginSearch(with: typed) { return true }
             select("search")
             (stacks["search"]?.top as? SearchScreen)?.begin(with: typed)
             return true
         }
-        if !playerCovers, event.modifiers.isSubset(of: [.control, .shift]), event.modifiers.contains(.control), let step = CardZoom.step(for: event.key) {
+        if !isCovered, event.modifiers.isSubset(of: [.control, .shift]), event.modifiers.contains(.control), let step = CardZoom.step(for: event.key) {
             zoomCards(step)
             return true
         }
-        if event.key == Key.character(",") && event.modifiers == .control, !playerCovers {
+        if event.key == Key.character(",") && event.modifiers == .control, !isCovered {
             openSettings()
             return true
         }
-        if event.key == Key.character("r") && event.modifiers == .control, !playerCovers {
+        if event.key == Key.character("r") && event.modifiers == .control, !isCovered {
             (current?.top as? Reloadable)?.reload()
             return true
         }
         if event.key == .tabPrevious || event.key == .tabNext || (event.modifiers == .control && (event.key == .pageUp || event.key == .pageDown)) {
-            guard !playerCovers else { return false }
+            guard !isCovered else { return false }
             stepTab(forward: event.key == .tabNext || event.key == .pageDown)
             return true
         }
@@ -371,13 +375,13 @@ final class RootView: View, WindowRestoration.Restorable {
             onCloseWindow?()
             return true
         }
-        if event.key == Key.character("b") && event.modifiers == .control, usesSidebar, !playerCovers {
+        if event.key == Key.character("b") && event.modifiers == .control, usesSidebar, !isCovered {
             toggleSidebar()
             return true
         }
         let digit = Int(event.key.rawValue) - 0x30
         let ordered = destinations
-        if event.modifiers == .control, digit >= 1, digit <= min(9, ordered.count) {
+        if event.modifiers == .control, digit >= 1, digit <= min(9, ordered.count), shorts == nil {
             select(ordered[digit - 1].id)
             return true
         }
@@ -390,6 +394,7 @@ final class RootView: View, WindowRestoration.Restorable {
     /// focus returns where it was when the player closes.
     func play(item: PlexMetadata, api: APIClient, from position: Double? = nil, tracks: (audio: Int?, subtitle: Int?)? = nil,
               run: PlayerRun = PlayerRun()) {
+        shorts?.close(animated: false)
         if let mini = player, mini.isMini { mini.close() }
         guard player == nil else { return }
         let screen = PlayerScreen(source: .plex(api, item, resume: position ?? item.resumeSecs))
@@ -418,6 +423,7 @@ final class RootView: View, WindowRestoration.Restorable {
     /// Plays a web video over everything, as `play(item:api:)` plays a title of the server; a queue plays on in the
     /// same place.
     func playWeb(_ playback: WebPlayback, run: PlayerRun = PlayerRun()) {
+        shorts?.close(animated: false)
         if let mini = player, mini.isMini { mini.close() }
         guard player == nil else { return }
         let screen = PlayerScreen(source: .web(playback))
@@ -473,6 +479,39 @@ final class RootView: View, WindowRestoration.Restorable {
     /// Whether a full player covers the pages (a mini player leaves them showing).
     private var playerCovers: Bool { player.map { !$0.isMini } ?? false }
 
+    /// Whether the player or the Shorts player covers the pages, the tab bar and the sidebar.
+    var isCovered: Bool { playerCovers || shorts != nil }
+
+    // MARK: Shorts
+
+    private(set) var shorts: WebShortsScreen?
+
+    /// Opens the Shorts player over everything on `feed`; focus returns where it was when it closes. Anything playing
+    /// stops first, the mini player too, so two things never sound at once.
+    func playShorts(_ feed: WebShortsFeed) {
+        closePlayer()
+        let returnFocus = window?.focusedView
+        let screen = WebShortsScreen(feed: feed)
+        screen.onClose = { [weak self, weak screen] in
+            guard let self, let screen, self.shorts === screen else { return }
+            screen.removeFromSuperview()
+            self.shorts = nil
+            self.showUnderPlayer(!self.playerCovers)
+            guard !self.playerCovers else { return }
+            if let returnFocus, returnFocus.window != nil {
+                self.window?.focus.focus(returnFocus, animated: false)
+            } else {
+                self.window?.focus.focus(self.current, animated: false)
+            }
+            self.current?.top?.screenDidAppear()
+        }
+        shorts = screen
+        addSubview(screen)
+        screen.frame = bounds
+        window?.focus.focus(screen, animated: false)
+        showUnderPlayer(false)
+    }
+
     /// Shows `item`'s page from anywhere: the player closes, Home's stack unwinds to its root and the page goes on top.
     func showDetail(_ item: PlexMetadata) {
         closePlayer()
@@ -483,7 +522,8 @@ final class RootView: View, WindowRestoration.Restorable {
 
     /// Whether nothing covers the tabs: no player, alert, menu, sheet or launch gate on its way out.
     var isUnobstructed: Bool {
-        (player == nil || player?.isMini == true) && subviews.allSatisfy { $0 === tabBar || $0 === sidebar || $0 === current || $0 === player }
+        (player == nil || player?.isMini == true) && shorts == nil
+            && subviews.allSatisfy { $0 === tabBar || $0 === sidebar || $0 === current || $0 === player }
     }
 
     // MARK: Mini player
@@ -548,13 +588,15 @@ final class RootView: View, WindowRestoration.Restorable {
                     width: width, height: height)
     }
 
-    /// Ends playback if a player is up; the server hears where it stopped.
+    /// Ends playback if a player or the Shorts player is up; the server hears where it stopped.
     func closePlayer() {
         player?.close()
+        shorts?.close(animated: false)
     }
 
-    /// Pushes a screen on the current tab's stack.
+    /// Pushes a screen on the current tab's stack; the Shorts player gives way to it.
     func push(_ screen: ScreenView) {
+        shorts?.close(animated: false)
         current?.push(screen)
     }
 
@@ -575,11 +617,12 @@ final class RootView: View, WindowRestoration.Restorable {
     override func layoutSubviews() {
         let metrics = Theme.current.metrics
         sidebar.isCollapsed = UserDefaults.standard.bool(forKey: Self.sidebarCollapsedKey) || isTooNarrowForSidebar
-        tabBar.isHidden = usesSidebar || playerCovers
-        sidebar.isHidden = !usesSidebar || playerCovers
+        tabBar.isHidden = usesSidebar || isCovered
+        sidebar.isHidden = !usesSidebar || isCovered
         sidebar.frame = Rect(x: 0, y: 0, width: sidebar.width, height: frame.height)
         current?.frame = contentFrame
         if let player { player.frame = player.isMini ? miniFrame.offsetBy(miniOffset.x, miniOffset.y) : bounds }
+        shorts?.frame = bounds
         tabBar.frame = Rect(x: 0, y: 0, width: frame.width, height: metrics.tabBarTop + metrics.tabBarHeight + metrics.tv(20))
         updateSidebar()
     }
