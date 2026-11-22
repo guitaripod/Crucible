@@ -51,7 +51,7 @@ final class LiveRecordingsViewController: UICollectionViewController {
             self?.configure(cell, row: row)
         }
         let header = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionHeader) { [weak self] view, _, indexPath in
-            var content = UIListContentConfiguration.groupedHeader()
+            var content = UIListContentConfiguration.groupedHeader().textSized()
             switch self?.dataSource.sectionIdentifier(for: indexPath.section) {
             case .scheduled?: content.text = LiveTVCopy.scheduled
             case .rules?: content.text = LiveTVCopy.rules
@@ -136,7 +136,7 @@ final class LiveRecordingsViewController: UICollectionViewController {
             content.isActionable = true
             cell.contentConfiguration = content
         case .message(let text):
-            var content = UIListContentConfiguration.cell()
+            var content = UIListContentConfiguration.cell().textSized()
             content.text = LiveTVCopy.noRecordings
             content.secondaryText = text
             content.textProperties.font = Theme.Font.headline

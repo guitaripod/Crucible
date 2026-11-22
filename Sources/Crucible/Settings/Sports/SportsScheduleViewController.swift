@@ -90,7 +90,7 @@ final class SportsScheduleViewController: UICollectionViewController {
                 : collectionView.dequeueConfiguredReusableCell(using: rowCell, for: indexPath, item: row)
         }
         let header = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionHeader) { [weak self] cell, _, indexPath in
-            var content = UIListContentConfiguration.groupedHeader()
+            var content = UIListContentConfiguration.groupedHeader().textSized()
             content.text = self?.dataSource.sectionIdentifier(for: indexPath.section) == .grid ? SportsCopy.hoursHeader : SportsCopy.readyMade
             content.textProperties.font = Theme.Font.footnote
             content.textProperties.color = Theme.Color.labelSecondary
@@ -134,7 +134,7 @@ final class SportsScheduleViewController: UICollectionViewController {
     /// Under the grid: how to use it, the hours a week and the server's clock, or why there is nothing to save. Under the
     /// ready-made schedules: what a schedule does.
     private func footer(_ section: Section?) -> UIListContentConfiguration {
-        var content = UIListContentConfiguration.groupedFooter()
+        var content = UIListContentConfiguration.groupedFooter().textSized()
         content.textProperties.font = Theme.Font.caption1Regular
         content.textProperties.color = Theme.Color.labelSecondary
         guard section == .grid else {

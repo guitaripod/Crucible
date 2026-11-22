@@ -94,7 +94,7 @@ final class TraktMemberViewController: UICollectionViewController {
         }
         let watchingCell = UICollectionView.CellRegistration<UICollectionViewListCell, Item> { [weak self] cell, _, _ in
             guard let watching = self?.watching else { return }
-            var content = UIListContentConfiguration.subtitleCell()
+            var content = UIListContentConfiguration.subtitleCell().textSized()
             content.text = watching.title
             content.secondaryText = watching.subtitle
             content.image = UIImage(systemName: "play.tv.fill")
@@ -103,7 +103,7 @@ final class TraktMemberViewController: UICollectionViewController {
         }
         let commentCell = UICollectionView.CellRegistration<UICollectionViewListCell, Int> { [weak self] cell, _, id in
             guard let entry = self?.comments.first(where: { $0.comment.id == id }) else { return }
-            var content = UIListContentConfiguration.subtitleCell()
+            var content = UIListContentConfiguration.subtitleCell().textSized()
             let text = TraktCommentText(TranslationCenter.shared.displayed(entry.comment).text)
             content.text = entry.comment.isSpoiler ? TraktCommunityCopy.spoilerCover : text.textHidingSpoilers
             content.textProperties.numberOfLines = 3
@@ -116,14 +116,14 @@ final class TraktMemberViewController: UICollectionViewController {
             cell.accessories = [.disclosureIndicator()]
         }
         let noteCell = UICollectionView.CellRegistration<UICollectionViewListCell, Item> { cell, _, _ in
-            var content = UIListContentConfiguration.cell()
+            var content = UIListContentConfiguration.cell().textSized()
             content.text = TraktCommunityCopy.privateProfile
             content.image = UIImage(systemName: "lock.fill")
             content.textProperties.color = Theme.Color.labelSecondary
             cell.contentConfiguration = content
         }
         let loadingCell = UICollectionView.CellRegistration<UICollectionViewListCell, Item> { cell, _, _ in
-            var content = UIListContentConfiguration.cell()
+            var content = UIListContentConfiguration.cell().textSized()
             content.text = " "
             cell.contentConfiguration = content
             let spinner = UIActivityIndicatorView(style: .medium)
@@ -140,7 +140,7 @@ final class TraktMemberViewController: UICollectionViewController {
             }
         }
         let header = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionHeader) { [weak self] cell, _, indexPath in
-            var content = UIListContentConfiguration.groupedHeader()
+            var content = UIListContentConfiguration.groupedHeader().textSized()
             content.text = self?.dataSource.sectionIdentifier(for: indexPath.section) == .watching ? TraktCommunityCopy.watchingNowLabel : TraktCommunityCopy.recentComments
             cell.contentConfiguration = content
         }

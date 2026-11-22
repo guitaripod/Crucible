@@ -67,7 +67,7 @@ package final class LiveSearchResultsController: UIViewController, UISearchResul
             self?.configure(cell, for: item)
         }
         let header = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionHeader) { [weak self] view, _, indexPath in
-            var content = UIListContentConfiguration.groupedHeader()
+            var content = UIListContentConfiguration.groupedHeader().textSized()
             content.text = self.flatMap { $0.dataSource.sectionIdentifier(for: indexPath.section) }.map(Self.title(of:)) ?? nil
             view.contentConfiguration = content
         }
@@ -90,7 +90,7 @@ package final class LiveSearchResultsController: UIViewController, UISearchResul
 
     private func configure(_ cell: UICollectionViewListCell, for item: Item) {
         let now = Date()
-        var content = UIListContentConfiguration.subtitleCell()
+        var content = UIListContentConfiguration.subtitleCell().textSized()
         content.secondaryTextProperties.color = Theme.Color.labelSecondary
         content.imageProperties.maximumSize = CGSize(width: 64, height: 40)
         content.imageProperties.reservedLayoutSize = CGSize(width: 64, height: 40)
@@ -115,7 +115,7 @@ package final class LiveSearchResultsController: UIViewController, UISearchResul
             trailing = program.isOn(at: now) ? LiveGuideMath.remaining(program, at: now) : LiveTVCopy.startsAt(program.start, now: now)
             logo = channel.logo
         case .note(let text):
-            content = UIListContentConfiguration.cell()
+            content = UIListContentConfiguration.cell().textSized()
             content.text = text
             content.textProperties.color = Theme.Color.labelSecondary
         }

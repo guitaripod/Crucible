@@ -232,7 +232,7 @@ final class OfflineHomeViewController: UICollectionViewController {
         }
 
         let footerReg = UICollectionView.CellRegistration<UICollectionViewCell, Item> { [weak self] cell, _, _ in
-            var config = UIListContentConfiguration.cell()
+            var config = UIListContentConfiguration.cell().textSized()
             config.text = self?.footerText()
             config.textProperties.alignment = .center
             config.textProperties.font = Theme.Font.caption1Regular

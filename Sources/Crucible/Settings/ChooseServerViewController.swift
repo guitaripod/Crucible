@@ -135,7 +135,7 @@ final class ChooseServerViewController: UIViewController, UICollectionViewDelega
         }
 
         let addReg = UICollectionView.CellRegistration<UICollectionViewListCell, Int> { cell, _, _ in
-            var content = UIListContentConfiguration.cell()
+            var content = UIListContentConfiguration.cell().textSized()
             content.text = String(localized: "Add by address…")
             content.image = UIImage(systemName: "plus")
             content.textProperties.font = Theme.Font.scaled(.callout, 16, .semibold)
@@ -149,7 +149,7 @@ final class ChooseServerViewController: UIViewController, UICollectionViewDelega
         }
 
         let hintReg = UICollectionView.CellRegistration<UICollectionViewListCell, Int> { cell, _, _ in
-            var content = UIListContentConfiguration.cell()
+            var content = UIListContentConfiguration.cell().textSized()
             content.text = String(localized: "A hostname or IP such as 100.x.x.x for Tailscale. Crucible tries HTTPS first.")
             content.textProperties.font = Theme.Font.caption1Regular
             content.textProperties.color = Theme.Color.labelSecondary

@@ -104,7 +104,7 @@ final class LibrariesViewController: UICollectionViewController {
                 guard let row = LibrariesSettings.row(id: id) else { return }
                 cell.contentConfiguration = self?.rowConfiguration(for: row)
             case .reset:
-                var content = UIListContentConfiguration.cell()
+                var content = UIListContentConfiguration.cell().textSized()
                 content.text = LibrariesSettings.resetTitle
                 content.textProperties.color = Theme.Color.accentText
                 content.textProperties.font = Theme.Font.headline
@@ -117,7 +117,7 @@ final class LibrariesViewController: UICollectionViewController {
             collectionView.dequeueConfiguredReusableCell(using: registration, for: indexPath, item: item)
         }
         let footer = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionFooter) { cell, _, _ in
-            var content = UIListContentConfiguration.groupedFooter()
+            var content = UIListContentConfiguration.groupedFooter().textSized()
             content.text = LibrariesSettings.footerText
             content.textProperties.font = Theme.Font.caption1Regular
             content.textProperties.color = Theme.Color.labelSecondary

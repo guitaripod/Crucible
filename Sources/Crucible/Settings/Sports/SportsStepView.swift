@@ -211,7 +211,7 @@ final class SportsStepView: UIView, UIContentView {
     private func commandBlock(_ command: String, _ configuration: SportsStepConfiguration) -> UIView {
         let text = UILabel()
         text.text = command
-        text.font = UIFontMetrics(forTextStyle: .footnote).scaledFont(for: .monospacedSystemFont(ofSize: 13, weight: .regular))
+        text.font = Theme.Font.scaled(.footnote, .monospacedSystemFont(ofSize: 13, weight: .regular))
         text.adjustsFontForContentSizeCategory = true
         text.textColor = Theme.Color.label
         text.numberOfLines = 0

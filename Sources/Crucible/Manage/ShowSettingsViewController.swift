@@ -42,7 +42,7 @@ final class ShowSettingsViewController: UICollectionViewController {
     private func configureDataSource() {
         let registration = UICollectionView.CellRegistration<UICollectionViewListCell, String> { [weak self] cell, _, id in
             guard let self, let setting = settings.first(where: { $0.id == id }) else { return }
-            var content = UIListContentConfiguration.subtitleCell()
+            var content = UIListContentConfiguration.subtitleCell().textSized()
             content.text = setting.label
             content.secondaryText = setting.isToggle ? setting.summary : setting.valueTitle
             content.textProperties.font = Theme.Font.callout
@@ -56,7 +56,7 @@ final class ShowSettingsViewController: UICollectionViewController {
             collectionView.dequeueConfiguredReusableCell(using: registration, for: indexPath, item: id)
         }
         let footer = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionFooter) { cell, _, _ in
-            var content = UIListContentConfiguration.groupedFooter()
+            var content = UIListContentConfiguration.groupedFooter().textSized()
             content.text = ManageCopy.showSettingsNote
             content.textProperties.color = Theme.Color.labelSecondary
             cell.contentConfiguration = content

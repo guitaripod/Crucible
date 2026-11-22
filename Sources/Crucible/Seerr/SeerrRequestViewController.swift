@@ -184,7 +184,7 @@ final class SeerrRequestViewController: UICollectionViewController {
             collectionView.dequeueConfiguredReusableCell(using: registration, for: indexPath, item: row)
         }
         let header = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionHeader) { cell, _, _ in
-            var content = UIListContentConfiguration.groupedHeader()
+            var content = UIListContentConfiguration.groupedHeader().textSized()
             content.text = SeerrCopy.chooseSeasons
             cell.contentConfiguration = content
         }
@@ -217,7 +217,7 @@ final class SeerrRequestViewController: UICollectionViewController {
             cell.accessibilityIdentifier = "seerr.request.message"
         case .season(let number):
             guard let season = state?.seasons.first(where: { $0.number == number }) else { break }
-            var content = UIListContentConfiguration.subtitleCell()
+            var content = UIListContentConfiguration.subtitleCell().textSized()
             content.text = SeerrCopy.seasonName(season)
             content.secondaryText = [SeerrCopy.seasonStatus(season.status), season.episodeCount.map { String(localized: "\($0) episodes", comment: "Number of episodes in a season") }].compactMap { $0 }.joined(separator: " · ")
             content.secondaryTextProperties.color = Theme.Color.labelSecondary
@@ -250,7 +250,7 @@ final class SeerrRequestViewController: UICollectionViewController {
             cell.accessibilityIdentifier = "seerr.request.play"
             cell.accessibilityTraits = .button
         case .watchlistNote:
-            var content = UIListContentConfiguration.cell()
+            var content = UIListContentConfiguration.cell().textSized()
             content.image = UIImage(systemName: "bookmark.fill")
             content.imageProperties.tintColor = Theme.Color.accent
             content.text = SeerrCopy.alsoWatchlist
@@ -290,7 +290,7 @@ final class SeerrRequestViewController: UICollectionViewController {
     }
 
     private static func button(_ title: String, color: UIColor, bold: Bool, working: Bool) -> UIListContentConfiguration {
-        var content = UIListContentConfiguration.cell()
+        var content = UIListContentConfiguration.cell().textSized()
         content.text = working ? SeerrCopy.requesting : title
         content.textProperties.font = bold ? Theme.Font.headline : Theme.Font.body
         content.textProperties.color = color

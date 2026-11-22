@@ -47,7 +47,16 @@ extension Theme {
         }
 
         package static func scaled(_ style: UIFont.TextStyle, _ size: CGFloat, _ weight: UIFont.Weight, maximum: CGFloat? = nil) -> UIFont {
-            let base = UIFont.systemFont(ofSize: size, weight: weight)
+            scaled(style, UIFont.systemFont(ofSize: size, weight: weight), maximum: maximum)
+        }
+
+        /// `base` at the reader's text size on the curve of `style`, up to `maximum` points when one is given.
+        package static func scaled(_ style: UIFont.TextStyle, _ base: UIFont, maximum: CGFloat? = nil) -> UIFont {
+            #if os(iOS)
+            if TextSize.isAppControlled {
+                return TextSize.font(base, style: style, maximum: maximum)
+            }
+            #endif
             let metrics = UIFontMetrics(forTextStyle: style)
             if let maximum {
                 return metrics.scaledFont(for: base, maximumPointSize: maximum)

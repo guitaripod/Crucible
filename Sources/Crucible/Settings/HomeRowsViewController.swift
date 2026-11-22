@@ -60,7 +60,7 @@ final class HomeRowsViewController: UICollectionViewController {
             Haptics.selection()
         }
         let footer = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionFooter) { cell, _, _ in
-            var content = UIListContentConfiguration.groupedFooter()
+            var content = UIListContentConfiguration.groupedFooter().textSized()
             content.text = String(localized: "Drag a row by its handle to move it. Continue Watching's newest title stays the big card at the top of Home.", comment: "Footer of the Home rows settings")
             content.textProperties.font = Theme.Font.caption1Regular
             content.textProperties.color = Theme.Color.labelSecondary

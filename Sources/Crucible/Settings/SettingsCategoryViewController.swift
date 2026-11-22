@@ -87,7 +87,7 @@ final class SettingsCategoryViewController: UICollectionViewController {
             }
         }
         let restoreRegistration = UICollectionView.CellRegistration<UICollectionViewListCell, Item> { cell, _, _ in
-            var content = UIListContentConfiguration.cell()
+            var content = UIListContentConfiguration.cell().textSized()
             content.text = String(localized: "Restore Defaults", comment: "Button at the end of a settings category that resets its settings")
             content.textProperties.color = Theme.Color.accent
             content.textProperties.font = Theme.Font.headline
@@ -105,7 +105,7 @@ final class SettingsCategoryViewController: UICollectionViewController {
             }
         }
         let header = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionHeader) { [weak self] cell, _, indexPath in
-            var content = UIListContentConfiguration.groupedHeader()
+            var content = UIListContentConfiguration.groupedHeader().textSized()
             content.text = self?.sections[safe: indexPath.section]?.title
             content.textProperties.transform = .uppercase
             content.textProperties.font = Theme.Font.footnoteSemibold

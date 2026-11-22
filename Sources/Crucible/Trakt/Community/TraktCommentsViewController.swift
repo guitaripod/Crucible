@@ -108,7 +108,7 @@ final class TraktCommentsViewController: UICollectionViewController {
         }
         let aspectCell = UICollectionView.CellRegistration<UICollectionViewListCell, Item> { [weak self] cell, _, _ in
             guard let self, case .aspect(let aspect, _) = self.source else { return }
-            var content = UIListContentConfiguration.subtitleCell()
+            var content = UIListContentConfiguration.subtitleCell().textSized()
             content.text = TraktSentimentsTranslation.text(aspect)
             content.textProperties.font = Theme.Font.title3
             content.secondaryText = TraktCommunityCopy.whatPeopleSay
@@ -119,7 +119,7 @@ final class TraktCommentsViewController: UICollectionViewController {
             cell.backgroundConfiguration = .clear()
         }
         let loadingCell = UICollectionView.CellRegistration<UICollectionViewListCell, Item> { cell, _, _ in
-            var content = UIListContentConfiguration.cell()
+            var content = UIListContentConfiguration.cell().textSized()
             content.text = " "
             cell.contentConfiguration = content
             let spinner = UIActivityIndicatorView(style: .medium)

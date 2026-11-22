@@ -62,7 +62,7 @@ final class AboutViewController: UICollectionViewController {
         }
 
         let footer = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionFooter) { cell, _, _ in
-            var content = UIListContentConfiguration.groupedFooter()
+            var content = UIListContentConfiguration.groupedFooter().textSized()
             content.text = AppInfo.licenseSummary
             content.textProperties.font = Theme.Font.caption1Regular
             content.textProperties.color = Theme.Color.labelSecondary

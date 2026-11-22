@@ -186,7 +186,7 @@ final class ChooseServerCardView: UIView, UIContentView {
         address.text = route.kind == .relay ? String(localized: "Bandwidth limited, may force transcoding") : route.address
         address.font = route.kind == .relay
             ? Theme.Font.caption1Regular
-            : UIFontMetrics(forTextStyle: .caption1).scaledFont(for: .monospacedSystemFont(ofSize: 12, weight: .regular))
+            : Theme.Font.scaled(.caption1, .monospacedSystemFont(ofSize: 12, weight: .regular))
         address.adjustsFontForContentSizeCategory = true
         address.textColor = Theme.Color.labelSecondary
         address.numberOfLines = 0

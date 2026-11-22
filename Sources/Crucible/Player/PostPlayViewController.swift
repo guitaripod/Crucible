@@ -149,7 +149,7 @@ final class PostPlayViewController: UIViewController, UICollectionViewDelegate {
     /// One row of posters that scrolls sideways, as tall as a poster and its two caption lines at the current text size.
     private func makeRail() -> UICollectionView {
         let width = Self.posterWidth
-        let height = (width * Theme.Size.posterAspect + UIFontMetrics.default.scaledValue(for: Theme.Size.captionBlockHeight)).rounded(.up)
+        let height = (width * Theme.Size.posterAspect + Theme.TextSize.scaledValue(Theme.Size.captionBlockHeight)).rounded(.up)
         let size = NSCollectionLayoutSize(widthDimension: .absolute(width), heightDimension: .absolute(height))
         let group = NSCollectionLayoutGroup.horizontal(layoutSize: size, subitems: [NSCollectionLayoutItem(layoutSize: size)])
         let section = NSCollectionLayoutSection(group: group)

@@ -107,7 +107,7 @@ final class SubtitleSearchViewController: UICollectionViewController {
     private func configureDataSource() {
         let registration = UICollectionView.CellRegistration<UICollectionViewListCell, String> { [weak self] cell, _, key in
             guard let candidate = self?.candidates.first(where: { $0.key == key }) else { return }
-            var content = UIListContentConfiguration.subtitleCell()
+            var content = UIListContentConfiguration.subtitleCell().textSized()
             content.text = candidate.title ?? SubtitleLanguages.name(for: candidate.languageCode ?? self?.language ?? "")
             content.secondaryText = SubtitleSearch.detail(candidate)
             content.textProperties.font = Theme.Font.body

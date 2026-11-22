@@ -116,7 +116,7 @@ package final class SportsTransformView: UIView {
 
     override package init(frame: CGRect) {
         super.init(frame: frame)
-        fileLabel.font = UIFontMetrics(forTextStyle: .caption1).scaledFont(for: .monospacedSystemFont(ofSize: 12, weight: .regular))
+        fileLabel.font = Theme.Font.scaled(.caption1, .monospacedSystemFont(ofSize: 12, weight: .regular))
         fileLabel.adjustsFontForContentSizeCategory = true
         fileLabel.textColor = Theme.Color.labelTertiary
         fileLabel.numberOfLines = 2

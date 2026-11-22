@@ -229,7 +229,7 @@ final class SportsResearchViewController: UICollectionViewController {
             self?.configure(view)
         }
         let listHeader = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionHeader) { [weak self] cell, _, indexPath in
-            var content = UIListContentConfiguration.groupedHeader()
+            var content = UIListContentConfiguration.groupedHeader().textSized()
             content.text = switch self?.dataSource.sectionIdentifier(for: indexPath.section) {
             case .how?: SportsCopy.howItWorks
             case .needs?: SportsCopy.whatYouNeed
@@ -263,7 +263,7 @@ final class SportsResearchViewController: UICollectionViewController {
 
     /// Under the owner's choices, once they agreed: where searches go.
     private func choicesFooter() -> UIListContentConfiguration {
-        var content = UIListContentConfiguration.groupedFooter()
+        var content = UIListContentConfiguration.groupedFooter().textSized()
         content.text = board?.report.settings.agreed == true ? board?.report.settings.destination.map(SportsCopy.agreeQuestion) : nil
         content.textProperties.font = Theme.Font.caption1Regular
         content.textProperties.color = Theme.Color.labelSecondary

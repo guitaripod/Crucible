@@ -27,6 +27,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     ) {
         guard let windowScene = scene as? UIWindowScene else { return }
         windowScene.sizeRestrictions?.minimumSize = Self.minimumWindowSize
+        TextSizeControl.adopt(windowScene)
         let window = UIWindow(windowScene: windowScene)
         window.tintColor = Theme.Color.accent
         AppearanceController.apply(to: window)

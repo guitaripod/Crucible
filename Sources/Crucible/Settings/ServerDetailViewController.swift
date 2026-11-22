@@ -109,7 +109,7 @@ final class ServerDetailViewController: UIViewController {
 
         let toggleCell = UICollectionView.CellRegistration<UICollectionViewListCell, Item> { cell, _, item in
             let setting: PreferenceSetting = item == .preferLocal ? .preferLocalConnection : .allowRelayConnection
-            var content = UIListContentConfiguration.cell()
+            var content = UIListContentConfiguration.cell().textSized()
             content.text = setting.title
             content.textProperties.font = Theme.Font.scaled(.body, 16, .regular)
             content.textProperties.color = Theme.Color.label
@@ -163,7 +163,7 @@ final class ServerDetailViewController: UIViewController {
         }
 
         let header = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionHeader) { header, _, _ in
-            var content = UIListContentConfiguration.groupedHeader()
+            var content = UIListContentConfiguration.groupedHeader().textSized()
             content.text = String(localized: "Connections")
             content.textProperties.font = Theme.Font.footnoteSemibold
             content.textProperties.color = Theme.Color.labelSecondary
@@ -172,7 +172,7 @@ final class ServerDetailViewController: UIViewController {
             header.accessibilityTraits = .header
         }
         let footer = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionFooter) { footer, _, _ in
-            var content = UIListContentConfiguration.groupedFooter()
+            var content = UIListContentConfiguration.groupedFooter().textSized()
             content.text = ServerConnectionModel.routesFooter
             content.textProperties.color = Theme.Color.labelSecondary
             footer.contentConfiguration = content

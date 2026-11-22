@@ -54,11 +54,11 @@ final class ScrubPreviewCard: UIView {
         picture.layer.cornerRadius = Self.cornerRadius - Self.pictureInset
         picture.layer.cornerCurve = .continuous
 
-        timeLabel.font = UIFontMetrics(forTextStyle: .subheadline).scaledFont(for: .monospacedDigitSystemFont(ofSize: 15, weight: .semibold), maximumPointSize: 22)
+        timeLabel.font = Theme.Font.scaled(.subheadline, .monospacedDigitSystemFont(ofSize: 15, weight: .semibold), maximum: 22)
         timeLabel.textColor = .white
         timeLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
         timeLabel.setContentHuggingPriority(.required, for: .horizontal)
-        chapterLabel.font = UIFontMetrics(forTextStyle: .footnote).scaledFont(for: .systemFont(ofSize: 13, weight: .medium), maximumPointSize: 20)
+        chapterLabel.font = Theme.Font.scaled(.footnote, .systemFont(ofSize: 13, weight: .medium), maximum: 20)
         chapterLabel.textColor = UIColor(white: 1, alpha: 0.72)
         chapterLabel.lineBreakMode = .byTruncatingTail
         chapterLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)

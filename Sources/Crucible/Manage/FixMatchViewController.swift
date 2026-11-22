@@ -39,7 +39,7 @@ final class FixMatchViewController: UICollectionViewController, UISearchBarDeleg
         searchBar.sizeToFit()
         navigationItem.titleView = searchBar
         let registration = UICollectionView.CellRegistration<UICollectionViewListCell, PlexMatchResult> { cell, _, result in
-            var content = UIListContentConfiguration.subtitleCell()
+            var content = UIListContentConfiguration.subtitleCell().textSized()
             content.text = [result.name, result.year.map { "(\($0))" }].compactMap { $0 }.joined(separator: " ")
             content.secondaryText = result.score.map { String(localized: "\($0)% match", comment: "How sure the server's agent is of a Fix Match result, e.g. 92% match") }
             content.textProperties.font = Theme.Font.headline

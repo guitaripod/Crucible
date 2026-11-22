@@ -129,7 +129,7 @@ final class SettingsViewController: UICollectionViewController {
                 cell.accessories = [.disclosureIndicator()]
                 cell.accessibilityIdentifier = "settings.category.\(category.rawValue)"
             case .signOut, .leaveDemo:
-                var content = UIListContentConfiguration.cell()
+                var content = UIListContentConfiguration.cell().textSized()
                 content.text = item == .leaveDemo ? DemoPhoneCopy.leaveTitle : String(localized: "Sign Out")
                 content.textProperties.color = Theme.Color.destructive
                 content.textProperties.font = Theme.Font.headline
@@ -142,7 +142,7 @@ final class SettingsViewController: UICollectionViewController {
             collectionView.dequeueConfiguredReusableCell(using: cellRegistration, for: indexPath, item: item)
         }
         let footerRegistration = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionFooter) { cell, _, _ in
-            var content = UIListContentConfiguration.groupedFooter()
+            var content = UIListContentConfiguration.groupedFooter().textSized()
             content.text = String(localized: "Crucible \(AppInfo.versionSummary)")
             content.textProperties.font = Theme.Font.caption1Regular
             content.textProperties.alignment = .center

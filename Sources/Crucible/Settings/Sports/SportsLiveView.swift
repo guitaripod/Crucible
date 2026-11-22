@@ -75,7 +75,7 @@ final class SportsLiveView: UIView, UIContentView {
         phaseLabel.adjustsFontForContentSizeCategory = true
         phaseLabel.textColor = Theme.Color.label
         phaseLabel.numberOfLines = 0
-        elapsedLabel.font = UIFontMetrics(forTextStyle: .footnote).scaledFont(for: .monospacedDigitSystemFont(ofSize: 13, weight: .medium))
+        elapsedLabel.font = Theme.Font.scaled(.footnote, .monospacedDigitSystemFont(ofSize: 13, weight: .medium))
         elapsedLabel.adjustsFontForContentSizeCategory = true
         elapsedLabel.textColor = Theme.Color.labelSecondary
         elapsedLabel.setContentHuggingPriority(.required, for: .horizontal)
@@ -87,7 +87,7 @@ final class SportsLiveView: UIView, UIContentView {
         nameLabel.adjustsFontForContentSizeCategory = true
         nameLabel.textColor = Theme.Color.label
         nameLabel.numberOfLines = 2
-        fileLabel.font = UIFontMetrics(forTextStyle: .caption1).scaledFont(for: .monospacedSystemFont(ofSize: 12, weight: .regular))
+        fileLabel.font = Theme.Font.scaled(.caption1, .monospacedSystemFont(ofSize: 12, weight: .regular))
         fileLabel.adjustsFontForContentSizeCategory = true
         fileLabel.textColor = Theme.Color.labelTertiary
         fileLabel.numberOfLines = 2

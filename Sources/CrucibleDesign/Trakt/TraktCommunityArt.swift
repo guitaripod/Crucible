@@ -126,7 +126,7 @@ package enum TraktCommentTextFormatter {
 
     private static func font(_ base: UIFont, for styles: Set<TraktCommentText.Style>) -> UIFont {
         if styles.contains(.code) {
-            return UIFontMetrics(forTextStyle: .body).scaledFont(for: UIFont.monospacedSystemFont(ofSize: base.pointSize * 0.92, weight: .regular))
+            return Theme.Font.scaled(.body, UIFont.monospacedSystemFont(ofSize: base.pointSize * 0.92, weight: .regular))
         }
         var traits: UIFontDescriptor.SymbolicTraits = []
         if styles.contains(.bold) { traits.insert(.traitBold) }

@@ -42,10 +42,7 @@ final class TraktPulseContentView: UIView, UIContentView {
         mark.contentMode = .scaleAspectFit
         mark.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([mark.widthAnchor.constraint(equalToConstant: 22), mark.heightAnchor.constraint(equalToConstant: 22)])
-        scoreLabel.font = UIFontMetrics(forTextStyle: .largeTitle).scaledFont(
-            for: UIFont.systemFont(ofSize: 38, weight: .heavy).withSystemDesign(.rounded),
-            maximumPointSize: 56
-        )
+        scoreLabel.font = Theme.Font.scaled(.largeTitle, UIFont.systemFont(ofSize: 38, weight: .heavy).withSystemDesign(.rounded), maximum: 56)
         scoreLabel.adjustsFontForContentSizeCategory = true
         scoreLabel.textColor = Theme.Color.label
         votesLabel.font = Theme.Font.caption1Regular
@@ -138,7 +135,7 @@ final class TraktPulseContentView: UIView, UIContentView {
         icon.contentMode = .center
         let number = UILabel()
         number.text = Formatters.compactCount(value)
-        number.font = UIFontMetrics(forTextStyle: .headline).scaledFont(for: UIFont.systemFont(ofSize: 17, weight: .bold).withSystemDesign(.rounded), maximumPointSize: 26)
+        number.font = Theme.Font.scaled(.headline, UIFont.systemFont(ofSize: 17, weight: .bold).withSystemDesign(.rounded), maximum: 26)
         number.adjustsFontForContentSizeCategory = true
         number.textColor = Theme.Color.label
         let caption = UILabel()

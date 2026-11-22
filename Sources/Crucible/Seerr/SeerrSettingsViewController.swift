@@ -140,7 +140,7 @@ final class SeerrSettingsViewController: UICollectionViewController {
             collectionView.dequeueConfiguredReusableCell(using: registration, for: indexPath, item: row)
         }
         let footer = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionFooter) { [weak self] cell, _, indexPath in
-            var content = UIListContentConfiguration.groupedFooter()
+            var content = UIListContentConfiguration.groupedFooter().textSized()
             guard let self else { return }
             content.text = indexPath.section == dataSource.snapshot().numberOfSections - 1 ? SeerrCopy.worksWith : nil
             cell.contentConfiguration = content
@@ -162,7 +162,7 @@ final class SeerrSettingsViewController: UICollectionViewController {
         case .benefit(let index):
             cell.contentConfiguration = IconRowContentConfiguration(benefit: SeerrCopy.pitch.benefits[index])
         case .privacy:
-            var content = UIListContentConfiguration.cell()
+            var content = UIListContentConfiguration.cell().textSized()
             content.image = UIImage(systemName: "house")
             content.imageProperties.tintColor = Theme.Color.labelSecondary
             content.text = SeerrCopy.privacy
@@ -227,7 +227,7 @@ final class SeerrSettingsViewController: UICollectionViewController {
     }
 
     private static func button(_ title: String, color: UIColor, bold: Bool) -> UIListContentConfiguration {
-        var content = UIListContentConfiguration.cell()
+        var content = UIListContentConfiguration.cell().textSized()
         content.text = title
         content.textProperties.font = bold ? Theme.Font.headline : Theme.Font.body
         content.textProperties.color = color

@@ -118,7 +118,7 @@ final class LivePlaylistsViewController: UICollectionViewController {
             content.isActionable = true
             cell.contentConfiguration = content
         case .note:
-            var content = UIListContentConfiguration.groupedFooter()
+            var content = UIListContentConfiguration.groupedFooter().textSized()
             content.text = LiveTVCopy.playlistNote
             content.textProperties.color = Theme.Color.labelSecondary
             cell.contentConfiguration = content

@@ -1,3 +1,4 @@
+import CrucibleDesign
 import UIKit
 
 /// The card that sits over the last frame of the episode before while the next one is being resolved: the
@@ -15,7 +16,7 @@ final class AdvanceIndicator {
         spinner.color = .white
         spinner.startAnimating()
         label.textColor = .white
-        label.font = .preferredFont(forTextStyle: .subheadline)
+        label.font = Theme.Font.subheadline
         label.adjustsFontForContentSizeCategory = true
         label.numberOfLines = 1
         let stack = UIStackView(arrangedSubviews: [spinner, label])

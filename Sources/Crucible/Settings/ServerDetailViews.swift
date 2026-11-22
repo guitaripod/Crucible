@@ -210,7 +210,7 @@ final class RouteRowContentView: UIView, UIContentView {
         inUseLabel.isHidden = !config.isInUse
         detailLabel.text = config.detail
         detailLabel.font = config.detailIsMonospaced
-            ? UIFontMetrics(forTextStyle: .footnote).scaledFont(for: .monospacedSystemFont(ofSize: 12, weight: .regular))
+            ? Theme.Font.scaled(.footnote, .monospacedSystemFont(ofSize: 12, weight: .regular))
             : Theme.Font.caption1Regular
         latencyLabel.text = config.latencyText
         latencyLabel.textColor = config.isInUse ? Theme.Color.label : Theme.Color.labelSecondary

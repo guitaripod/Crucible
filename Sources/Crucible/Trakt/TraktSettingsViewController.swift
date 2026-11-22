@@ -110,7 +110,7 @@ final class TraktSettingsViewController: UICollectionViewController {
             collectionView.dequeueConfiguredReusableCell(using: registration, for: indexPath, item: row)
         }
         let header = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionHeader) { [weak self] cell, _, indexPath in
-            var content = UIListContentConfiguration.groupedHeader()
+            var content = UIListContentConfiguration.groupedHeader().textSized()
             switch self?.dataSource.sectionIdentifier(for: indexPath.section) {
             case .sending: content.text = TraktCopy.sectionFree
             default: content.text = nil
@@ -118,7 +118,7 @@ final class TraktSettingsViewController: UICollectionViewController {
             cell.contentConfiguration = content
         }
         let footer = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionFooter) { [weak self] cell, _, indexPath in
-            var content = UIListContentConfiguration.groupedFooter()
+            var content = UIListContentConfiguration.groupedFooter().textSized()
             guard let self else { return }
             let snapshot = dataSource.snapshot()
             let isLast = indexPath.section == snapshot.numberOfSections - 1
@@ -144,7 +144,7 @@ final class TraktSettingsViewController: UICollectionViewController {
         case .benefit(let index):
             cell.contentConfiguration = IconRowContentConfiguration(benefit: TraktCopy.pitch.benefits[index])
         case .consent:
-            var content = UIListContentConfiguration.subtitleCell()
+            var content = UIListContentConfiguration.subtitleCell().textSized()
             content.image = UIImage(systemName: "hand.raised")
             content.imageProperties.tintColor = Theme.Color.labelSecondary
             content.text = TraktCopy.consentTitle
@@ -154,7 +154,7 @@ final class TraktSettingsViewController: UICollectionViewController {
             content.secondaryTextProperties.color = Theme.Color.labelSecondary
             cell.contentConfiguration = content
         case .connect:
-            var content = UIListContentConfiguration.cell()
+            var content = UIListContentConfiguration.cell().textSized()
             content.text = account.status == .needsReconnect ? TraktCopy.reconnect : TraktCopy.connect
             content.textProperties.font = Theme.Font.headline
             content.textProperties.color = Theme.Color.accentText
@@ -174,7 +174,7 @@ final class TraktSettingsViewController: UICollectionViewController {
             content.badge = profile?.isVIP == true ? "VIP" : nil
             cell.contentConfiguration = content
         case .disconnect:
-            var content = UIListContentConfiguration.cell()
+            var content = UIListContentConfiguration.cell().textSized()
             content.text = TraktCopy.disconnect
             content.textProperties.color = Theme.Color.destructive
             content.textProperties.alignment = .center
@@ -280,7 +280,7 @@ final class TraktUnmatchedViewController: UICollectionViewController {
         }
         let registration = UICollectionView.CellRegistration<UICollectionViewListCell, String> { cell, _, title in
             cell.applyThemedBackground()
-            var content = UIListContentConfiguration.cell()
+            var content = UIListContentConfiguration.cell().textSized()
             content.text = title
             cell.contentConfiguration = content
         }
@@ -288,7 +288,7 @@ final class TraktUnmatchedViewController: UICollectionViewController {
             collectionView.dequeueConfiguredReusableCell(using: registration, for: indexPath, item: title)
         }
         let footer = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionFooter) { cell, _, _ in
-            var content = UIListContentConfiguration.groupedFooter()
+            var content = UIListContentConfiguration.groupedFooter().textSized()
             content.text = TraktCopy.unmatchedDetail
             cell.contentConfiguration = content
         }

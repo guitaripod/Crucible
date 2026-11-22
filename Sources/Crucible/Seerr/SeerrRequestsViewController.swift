@@ -167,7 +167,7 @@ final class SeerrRequestsViewController: UICollectionViewController {
         switch row {
         case .entry(let id):
             guard let entry = entry(id) else { return }
-            var content = UIListContentConfiguration.subtitleCell()
+            var content = UIListContentConfiguration.subtitleCell().textSized()
             content.image = posters[id] ?? UIImage(systemName: entry.request.kind == .tv ? "tv" : "film")
             content.imageProperties.maximumSize = CGSize(width: 46, height: 69)
             content.imageProperties.reservedLayoutSize = CGSize(width: 46, height: 69)

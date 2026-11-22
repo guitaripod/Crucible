@@ -155,7 +155,7 @@ final class SeerrGuideViewController: UICollectionViewController {
         }
         let header = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionHeader) { [weak self] cell, _, indexPath in
             guard let self, let section = dataSource.sectionIdentifier(for: indexPath.section) else { return }
-            var content = UIListContentConfiguration.prominentInsetGroupedHeader()
+            var content = UIListContentConfiguration.prominentInsetGroupedHeader().textSized()
             switch section {
             case .step(let step):
                 content.text = "\(step.rawValue + 1). \(SeerrGuide.title(step))"
@@ -210,7 +210,7 @@ final class SeerrGuideViewController: UICollectionViewController {
                 cell.contentConfiguration = IconRowContentConfiguration(symbol: "arrow.up.forward.square", title: title, isActionable: true)
             }
         case .connect:
-            var content = UIListContentConfiguration.cell()
+            var content = UIListContentConfiguration.cell().textSized()
             content.text = SeerrCopy.connect
             content.textProperties.font = Theme.Font.headline
             content.textProperties.color = Theme.Color.accentText
@@ -223,7 +223,7 @@ final class SeerrGuideViewController: UICollectionViewController {
     }
 
     private static func paragraph(_ text: String) -> UIListContentConfiguration {
-        var content = UIListContentConfiguration.cell()
+        var content = UIListContentConfiguration.cell().textSized()
         content.text = text
         content.textProperties.font = Theme.Font.subheadline
         content.textProperties.color = Theme.Color.label
@@ -367,7 +367,7 @@ final class GuideCommandView: UIView, UIContentView {
         card.backgroundColor = Theme.Color.surfaceRaised
         card.layer.cornerRadius = Theme.Radius.m
         card.layer.cornerCurve = .continuous
-        label.font = UIFontMetrics(forTextStyle: .footnote).scaledFont(for: .monospacedSystemFont(ofSize: 13, weight: .regular))
+        label.font = Theme.Font.scaled(.footnote, .monospacedSystemFont(ofSize: 13, weight: .regular))
         label.adjustsFontForContentSizeCategory = true
         label.textColor = Theme.Color.label
         label.numberOfLines = 0

@@ -7,6 +7,7 @@ enum AppCommand: String, CaseIterable {
     case back
     case browseFolders, statistics, history, surpriseMe
     case refresh, largerPosters, smallerPosters
+    case biggerText, smallerText, standardText
     case play, skip, playNext, closePlayer, toggleWatched, download, rate
     case settings, switchServer
     case newWindow
@@ -26,6 +27,9 @@ enum AppCommand: String, CaseIterable {
         case .refresh: return String(localized: "Refresh")
         case .largerPosters: return String(localized: "Larger Posters")
         case .smallerPosters: return String(localized: "Smaller Posters")
+        case .biggerText: return String(localized: "Make Text Bigger", comment: "Mac View menu command that steps the app's text size up")
+        case .smallerText: return String(localized: "Make Text Smaller", comment: "Mac View menu command that steps the app's text size down")
+        case .standardText: return String(localized: "Make Text Normal Size", comment: "Mac View menu command that puts the app's text size back to the default")
         case .play: return String(localized: "Play")
         case .skip: return String(localized: "Skip Intro")
         case .playNext: return String(localized: "Play Next Episode")
@@ -54,6 +58,9 @@ enum AppCommand: String, CaseIterable {
         case .refresh: return "arrow.clockwise"
         case .largerPosters: return "plus.magnifyingglass"
         case .smallerPosters: return "minus.magnifyingglass"
+        case .biggerText: return "textformat.size.larger"
+        case .smallerText: return "textformat.size.smaller"
+        case .standardText: return "textformat.size"
         case .play: return "play.fill"
         case .skip: return "forward.end"
         case .playNext: return "forward.frame"
@@ -83,6 +90,9 @@ enum AppCommand: String, CaseIterable {
         case .refresh: return ("r", .command)
         case .largerPosters: return ("+", .command)
         case .smallerPosters: return ("-", .command)
+        case .biggerText: return ("+", [.command, .alternate])
+        case .smallerText: return ("-", [.command, .alternate])
+        case .standardText: return ("0", [.command, .alternate])
         case .play: return (" ", [])
         case .skip: return ("s", [])
         case .playNext: return ("n", [])
@@ -93,11 +103,11 @@ enum AppCommand: String, CaseIterable {
         }
     }
 
-    /// Poster size may step while the key is held; everything else fires once per press, where the system can be told so:
+    /// Poster and text size may step while the key is held; everything else fires once per press, where the system can be told so:
     /// a key command has had a repeat behaviour to set only since iOS 26, and setting it before that is a selector the
     /// command does not answer, which ended the app the moment a keyboard made UIKit build the menu on iOS 17 and 18.
     private var repeats: Bool {
-        self == .largerPosters || self == .smallerPosters
+        [.largerPosters, .smallerPosters, .biggerText, .smallerText].contains(self)
     }
 
     @MainActor
@@ -156,6 +166,12 @@ enum AppMenu {
                 UIMenu(options: .displayInline, children: [AppCommand.largerPosters, .smallerPosters].map { $0.menuElement() }),
                 atEndOfMenu: .view
             )
+            if TextSizeControl.isAvailable {
+                builder.insertChild(
+                    UIMenu(options: .displayInline, children: [AppCommand.biggerText, .smallerText, .standardText].map { $0.menuElement() }),
+                    atEndOfMenu: .view
+                )
+            }
             builder.insertSibling(go(), afterMenu: .view)
         } else {
             builder.insertSibling(go(including: [.refresh, .largerPosters, .smallerPosters]), afterMenu: anchor)

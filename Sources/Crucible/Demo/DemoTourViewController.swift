@@ -119,7 +119,7 @@ final class DemoTourViewController: UICollectionViewController {
                 cell.accessories = [.disclosureIndicator()]
                 cell.accessibilityIdentifier = "demo.pro"
             case .leave:
-                var content = UIListContentConfiguration.cell()
+                var content = UIListContentConfiguration.cell().textSized()
                 content.text = DemoPhoneCopy.leaveTitle
                 content.textProperties.color = Theme.Color.destructive
                 content.textProperties.font = Theme.Font.headline
@@ -133,7 +133,7 @@ final class DemoTourViewController: UICollectionViewController {
         }
 
         let header = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionHeader) { [weak self] cell, _, indexPath in
-            var content = UIListContentConfiguration.groupedHeader()
+            var content = UIListContentConfiguration.groupedHeader().textSized()
             content.text = self?.dataSource.sectionIdentifier(for: indexPath.section)?.title
             content.textProperties.transform = .uppercase
             content.textProperties.font = Theme.Font.footnoteSemibold

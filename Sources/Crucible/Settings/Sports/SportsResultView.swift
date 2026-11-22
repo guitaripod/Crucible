@@ -90,7 +90,7 @@ final class SportsResultView: UIView, UIContentView {
         let item = configuration.item
         let matched = item.state == "matched" || item.state == "edited"
         titleLabel.text = SportsItemLabel.title(item)
-        titleLabel.font = matched ? Theme.Font.subheadlineSemibold : UIFontMetrics(forTextStyle: .footnote).scaledFont(for: .monospacedSystemFont(ofSize: 12, weight: .medium))
+        titleLabel.font = matched ? Theme.Font.subheadlineSemibold : Theme.Font.scaled(.footnote, .monospacedSystemFont(ofSize: 12, weight: .medium))
         titleLabel.lineBreakMode = matched ? .byTruncatingTail : .byTruncatingMiddle
         metaLabel.text = SportsCopy.meta(item)
         metaLabel.isHidden = metaLabel.text?.isEmpty ?? true

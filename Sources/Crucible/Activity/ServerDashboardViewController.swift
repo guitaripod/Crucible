@@ -104,7 +104,7 @@ final class ServerDashboardViewController: UICollectionViewController {
     private func configureDataSource() {
         let registration = UICollectionView.CellRegistration<UICollectionViewListCell, Item> { [weak self] cell, _, item in
             guard let self else { return }
-            var content = UIListContentConfiguration.valueCell()
+            var content = UIListContentConfiguration.valueCell().textSized()
             content.textProperties.font = Theme.Font.callout
             content.secondaryTextProperties.color = Theme.Color.labelSecondary
             cell.accessories = []
@@ -115,7 +115,7 @@ final class ServerDashboardViewController: UICollectionViewController {
                 content.image = UIImage(systemName: "gauge.with.dots.needle.33percent")
             case .activity(let id):
                 let activity = activities.first { $0.uuid == id }
-                content = UIListContentConfiguration.subtitleCell()
+                content = UIListContentConfiguration.subtitleCell().textSized()
                 content.text = activity?.title ?? ""
                 content.secondaryText = [activity?.subtitle, activity?.progress.map { "\($0)%" }].compactMap { $0 }.joined(separator: " · ")
                 content.image = UIImage(systemName: "gearshape.2")
@@ -145,7 +145,7 @@ final class ServerDashboardViewController: UICollectionViewController {
             collectionView.dequeueConfiguredReusableCell(using: registration, for: indexPath, item: item)
         }
         let header = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionHeader) { cell, _, indexPath in
-            var content = UIListContentConfiguration.groupedHeader()
+            var content = UIListContentConfiguration.groupedHeader().textSized()
             switch Section(rawValue: indexPath.section) {
             case .load: content.text = String(localized: "Right Now", comment: "Server dashboard section")
             case .tasks: content.text = String(localized: "Background Tasks", comment: "Server dashboard section")

@@ -123,7 +123,7 @@ final class ActivityHistoryViewController: UICollectionViewController {
         }
 
         let header = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionHeader) { [weak self] header, _, indexPath in
-            var content = UIListContentConfiguration.groupedHeader()
+            var content = UIListContentConfiguration.groupedHeader().textSized()
             content.text = self?.dayTitle(forSection: indexPath.section)
             content.textProperties.font = Theme.Font.footnoteSemibold
             content.textProperties.color = Theme.Color.labelSecondary

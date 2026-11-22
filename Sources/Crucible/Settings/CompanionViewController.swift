@@ -101,7 +101,7 @@ final class CompanionViewController: UICollectionViewController {
             collectionView.dequeueConfiguredReusableCell(using: registration, for: indexPath, item: row)
         }
         let header = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionHeader) { cell, _, _ in
-            var content = UIListContentConfiguration.groupedHeader()
+            var content = UIListContentConfiguration.groupedHeader().textSized()
             content.text = CompanionCopy.pitch
             content.textProperties.font = Theme.Font.subheadline
             content.textProperties.color = Theme.Color.labelSecondary
@@ -109,7 +109,7 @@ final class CompanionViewController: UICollectionViewController {
             cell.contentConfiguration = content
         }
         let footer = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionFooter) { cell, _, _ in
-            var content = UIListContentConfiguration.groupedFooter()
+            var content = UIListContentConfiguration.groupedFooter().textSized()
             content.text = CompanionStore.current() == nil ? CompanionCopy.steps : CompanionCopy.addAppleTV
             content.textProperties.font = Theme.Font.caption1Regular
             content.textProperties.color = Theme.Color.labelSecondary

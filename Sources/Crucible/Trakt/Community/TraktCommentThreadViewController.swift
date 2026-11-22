@@ -109,7 +109,7 @@ final class TraktCommentThreadViewController: UICollectionViewController {
     }
 
     private func headerConfiguration() -> UIListContentConfiguration {
-        var content = UIListContentConfiguration.groupedHeader()
+        var content = UIListContentConfiguration.groupedHeader().textSized()
         content.text = TraktCommunityCopy.replyCount(root.replyCount)
         content.textProperties.font = Theme.Font.headline
         content.textProperties.color = Theme.Color.label
@@ -147,7 +147,7 @@ final class TraktCommentThreadViewController: UICollectionViewController {
             cell.backgroundConfiguration = .clear()
         }
         let loadingCell = UICollectionView.CellRegistration<UICollectionViewListCell, Item> { cell, _, _ in
-            var content = UIListContentConfiguration.cell()
+            var content = UIListContentConfiguration.cell().textSized()
             content.text = " "
             cell.contentConfiguration = content
             let spinner = UIActivityIndicatorView(style: .medium)
@@ -156,7 +156,7 @@ final class TraktCommentThreadViewController: UICollectionViewController {
             cell.backgroundConfiguration = .clear()
         }
         let failedCell = UICollectionView.CellRegistration<UICollectionViewListCell, Item> { cell, _, _ in
-            var content = UIListContentConfiguration.cell()
+            var content = UIListContentConfiguration.cell().textSized()
             content.text = String(localized: "Replies didn\u{2019}t load. Tap to try again.", comment: "Shown under a Trakt comment when its replies failed to load")
             content.textProperties.color = Theme.Color.labelSecondary
             content.textProperties.font = Theme.Font.subheadline
@@ -167,7 +167,7 @@ final class TraktCommentThreadViewController: UICollectionViewController {
             cell.accessibilityIdentifier = "trakt.thread.retry"
         }
         let emptyCell = UICollectionView.CellRegistration<UICollectionViewListCell, Item> { cell, _, _ in
-            var content = UIListContentConfiguration.cell()
+            var content = UIListContentConfiguration.cell().textSized()
             content.text = String(localized: "No replies yet.", comment: "Shown under a Trakt comment nobody replied to")
             content.textProperties.color = Theme.Color.labelSecondary
             content.textProperties.font = Theme.Font.subheadline

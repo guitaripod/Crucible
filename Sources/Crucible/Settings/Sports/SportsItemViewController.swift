@@ -129,7 +129,7 @@ final class SportsItemViewController: UIViewController {
         transform.show(file: item.fileName, title: SportsItemLabel.title(item), titleFont: Theme.Font.title2, centered: stacked)
         let fileOnly = UILabel()
         fileOnly.text = item.fileName
-        fileOnly.font = UIFontMetrics(forTextStyle: .headline).scaledFont(for: .monospacedSystemFont(ofSize: 17, weight: .semibold))
+        fileOnly.font = Theme.Font.scaled(.headline, .monospacedSystemFont(ofSize: 17, weight: .semibold))
         fileOnly.adjustsFontForContentSizeCategory = true
         fileOnly.textColor = Theme.Color.label
         fileOnly.numberOfLines = 0
@@ -208,7 +208,7 @@ final class SportsItemViewController: UIViewController {
     private func fact(_ title: String?, _ value: String, symbol: String? = nil, monospaced: Bool = false) -> UIView {
         let valueLabel = UILabel()
         valueLabel.text = value
-        valueLabel.font = monospaced ? UIFontMetrics(forTextStyle: .footnote).scaledFont(for: .monospacedSystemFont(ofSize: 13, weight: .regular)) : Theme.Font.body
+        valueLabel.font = monospaced ? Theme.Font.scaled(.footnote, .monospacedSystemFont(ofSize: 13, weight: .regular)) : Theme.Font.body
         valueLabel.adjustsFontForContentSizeCategory = true
         valueLabel.textColor = Theme.Color.label
         valueLabel.numberOfLines = 0

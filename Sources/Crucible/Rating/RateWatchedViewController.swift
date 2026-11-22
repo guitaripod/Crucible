@@ -107,7 +107,7 @@ final class RateWatchedViewController: UICollectionViewController {
         }
 
         let headerReg = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionHeader) { cell, _, _ in
-            var content = UIListContentConfiguration.groupedFooter()
+            var content = UIListContentConfiguration.groupedFooter().textSized()
             content.text = RatingAskCopy.listHint
             content.textProperties.color = Theme.Color.labelSecondary
             cell.contentConfiguration = content

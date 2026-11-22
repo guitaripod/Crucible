@@ -52,7 +52,7 @@ final class ProfilesViewController: UICollectionViewController {
     private func configureDataSource() {
         let registration = UICollectionView.CellRegistration<UICollectionViewListCell, String> { [weak self] cell, _, id in
             guard let self, let profile = profiles.first(where: { $0.id == id }) else { return }
-            var content = UIListContentConfiguration.subtitleCell()
+            var content = UIListContentConfiguration.subtitleCell().textSized()
             content.text = profile.title
             content.secondaryText = profile.detail
             content.image = UIImage(systemName: profile.isRestricted ? "figure.and.child.holdinghands" : "person.crop.circle.fill")
@@ -70,7 +70,7 @@ final class ProfilesViewController: UICollectionViewController {
             collectionView.dequeueConfiguredReusableCell(using: registration, for: indexPath, item: id)
         }
         let footer = UICollectionView.SupplementaryRegistration<UICollectionViewListCell>(elementKind: UICollectionView.elementKindSectionFooter) { cell, _, _ in
-            var content = UIListContentConfiguration.groupedFooter()
+            var content = UIListContentConfiguration.groupedFooter().textSized()
             content.text = String(localized: "Each profile has its own Continue Watching, watched titles, ratings and watchlist. Downloads stay on this device.", comment: "Footer under the Plex Home profile list")
             content.textProperties.color = Theme.Color.labelSecondary
             cell.contentConfiguration = content

@@ -440,6 +440,9 @@ final class TabBarController: UITabBarController {
         case .skip: return presentedPlayer?.skipTitle != nil
         case .playNext: return presentedPlayer?.offersNextEpisode == true
         case .closePlayer: return presentedPlayer != nil || miniPlayer.docked != nil
+        case .biggerText: return TextSizeControl.canGrow
+        case .smallerText: return TextSizeControl.canShrink
+        case .standardText: return TextSizeControl.isAvailable && !TextSizeControl.isStandard
         default: break
         }
         guard !isShowingModal else { return false }
@@ -452,7 +455,7 @@ final class TabBarController: UITabBarController {
             return !DemoMode.shared.isActive
         case .refresh, .largerPosters, .smallerPosters, .play, .toggleWatched, .download, .rate:
             return contentHandler?.canPerform(command) ?? false
-        case .newWindow, .skip, .playNext, .closePlayer:
+        case .newWindow, .skip, .playNext, .closePlayer, .biggerText, .smallerText, .standardText:
             return false
         }
     }
@@ -477,6 +480,9 @@ final class TabBarController: UITabBarController {
         case .skip: presentedPlayer?.performShownSkip()
         case .playNext: presentedPlayer?.playOfferedNextEpisode()
         case .closePlayer: (presentedPlayer ?? miniPlayer.docked)?.close()
+        case .biggerText: TextSizeControl.grow()
+        case .smallerText: TextSizeControl.shrink()
+        case .standardText: TextSizeControl.reset()
         case .refresh, .largerPosters, .smallerPosters, .play, .toggleWatched, .download, .rate:
             contentHandler?.perform(command)
         }

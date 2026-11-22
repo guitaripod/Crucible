@@ -107,7 +107,7 @@ final class FolderBrowserViewController: UICollectionViewController {
 
     private func configureDataSource() {
         let folderReg = UICollectionView.CellRegistration<UICollectionViewListCell, (String, String)> { cell, _, item in
-            var config = UIListContentConfiguration.cell()
+            var config = UIListContentConfiguration.cell().textSized()
             config.text = item.1
             config.textProperties.font = Theme.Font.scaled(.callout, 16, .semibold)
             config.textProperties.color = Theme.Color.label
