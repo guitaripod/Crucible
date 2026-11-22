@@ -73,20 +73,34 @@ static void fail(char *error, size_t size, const char *message) {
     if (error && size) snprintf(error, size, "%s", message);
 }
 
+/** Whether Kiln's Vulkan device is an NVIDIA GPU. */
+static bool is_nvidia(kiln_gpu *g) {
+    kiln_vulkan_handles handles = kiln_gpu_vulkan_handles(g);
+    PFN_vkGetInstanceProcAddr lookup = (PFN_vkGetInstanceProcAddr) handles.get_instance_proc_addr;
+    PFN_vkGetPhysicalDeviceProperties properties = lookup && handles.instance
+        ? (PFN_vkGetPhysicalDeviceProperties) lookup((VkInstance) handles.instance, "vkGetPhysicalDeviceProperties") : NULL;
+    if (!properties || !handles.physical_device) return false;
+    VkPhysicalDeviceProperties device;
+    properties((VkPhysicalDevice) handles.physical_device, &device);
+    return device.vendorID == 0x10DE;
+}
+
 /** The hardware decoding mpv tries first. On NVIDIA this libmpv has no CUDA interop, so `auto-safe` settles on
  * nvdec-copy, which brings every decoded frame back to system memory and uploads it again while the UI thread renders
  * (3.6 ms of it for each 4K HDR frame, against 0.8 ms with Vulkan Video). Vulkan Video decodes into images libplacebo
  * samples directly, and a codec it lacks (MPEG-2, VC-1) falls through to `auto-safe`. Other GPUs keep `auto-safe`, whose
  * VA-API already hands frames over without a copy (mpv patch 0012). */
 static const char *preferred_hwdec(kiln_gpu *g) {
-    kiln_vulkan_handles handles = kiln_gpu_vulkan_handles(g);
-    PFN_vkGetInstanceProcAddr lookup = (PFN_vkGetInstanceProcAddr) handles.get_instance_proc_addr;
-    PFN_vkGetPhysicalDeviceProperties properties = lookup && handles.instance
-        ? (PFN_vkGetPhysicalDeviceProperties) lookup((VkInstance) handles.instance, "vkGetPhysicalDeviceProperties") : NULL;
-    if (!properties || !handles.physical_device) return "auto-safe";
-    VkPhysicalDeviceProperties device;
-    properties((VkPhysicalDevice) handles.physical_device, &device);
-    return device.vendorID == 0x10DE ? "vulkan,auto-safe" : "auto-safe";
+    return is_nvidia(g) ? "vulkan,auto-safe" : "auto-safe";
+}
+
+/** The hardware decode interops mpv loads while the render context is created, which happens on the UI thread (mpv patch
+ * 0014 makes the render backend ask). On NVIDIA only Vulkan Video's is ever used, nvdec-copy needing none, and loading
+ * them all opens nvidia-vaapi-driver, which takes 0.4 to 0.9 s to find that it cannot work: every player made, the one
+ * Instant Start makes as a title's page slides in among them, froze the window that long. Other GPUs load them all,
+ * their VA-API driver opening in a few milliseconds. */
+static const char *preferred_hwdec_interop(kiln_gpu *g) {
+    return is_nvidia(g) ? "vulkan" : "auto";
 }
 
 kiln_video *kiln_video_create(kiln_gpu *g, char *error, size_t error_size) {
@@ -110,7 +124,11 @@ kiln_video *kiln_video_create(kiln_gpu *g, char *error, size_t error_size) {
     };
     for (size_t i = 0; i < sizeof options / sizeof *options; i++) mpv_set_option_string(v->mpv, options[i][0], options[i][1]);
     mpv_set_option_string(v->mpv, "hwdec", preferred_hwdec(g));
-    if (getenv("KILN_HWDEC")) mpv_set_option_string(v->mpv, "hwdec", getenv("KILN_HWDEC"));
+    mpv_set_option_string(v->mpv, "gpu-hwdec-interop", preferred_hwdec_interop(g));
+    if (getenv("KILN_HWDEC")) {
+        mpv_set_option_string(v->mpv, "hwdec", getenv("KILN_HWDEC"));
+        mpv_set_option_string(v->mpv, "gpu-hwdec-interop", "auto");
+    }
     if (getenv("KILN_AO")) mpv_set_option_string(v->mpv, "ao", getenv("KILN_AO"));
     apply_option_overrides(v->mpv);
     if (mpv_initialize(v->mpv) < 0) {

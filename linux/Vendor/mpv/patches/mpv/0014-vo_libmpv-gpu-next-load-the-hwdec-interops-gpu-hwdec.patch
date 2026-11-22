@@ -1,0 +1,34 @@
+From b7bc413f42a9de8d8f8dac2f8c6fd570f5697901 Mon Sep 17 00:00:00 2001
+From: Kiln <kiln@localhost>
+Date: Sun, 22 Nov 2026 08:28:17 +0200
+Subject: [PATCH] vo_libmpv/gpu-next: load the hwdec interops gpu-hwdec-interop
+ names
+
+The gpu-next render backend loaded every hardware decode interop when the
+render context was created, whatever --gpu-hwdec-interop said. On a GPU
+whose VA-API driver is slow to open and then turns out not to work (NVIDIA's
+nvidia-vaapi-driver takes 0.4 to 0.9 s) that time was spent in
+mpv_render_context_create on the caller's thread, for a host that only ever
+decodes through Vulkan Video. Pass the option on, as gl_video_init_hwdecs
+does: "auto" still loads every interop, a name loads that one alone.
+---
+ video/out/gpu_next/video.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/video/out/gpu_next/video.c b/video/out/gpu_next/video.c
+index ea6d115..a9e329b 100644
+--- a/video/out/gpu_next/video.c
++++ b/video/out/gpu_next/video.c
+@@ -355,7 +355,8 @@ void pl_video_init_hwdecs(struct pl_video *p, struct mpv_global *global,
+         .global = global,
+         .ra_ctx = p->hw.ra_ctx,
+     };
+-    ra_hwdec_ctx_init(&p->hw.ctx, devs, NULL, true);
++    const struct gl_video_opts *opts = p->opts_cache->opts;
++    ra_hwdec_ctx_init(&p->hw.ctx, devs, opts->hwdec_interop, true);
+ }
+ 
+ void pl_video_uninit(struct pl_video **p_ptr) {
+-- 
+2.56.1
+
