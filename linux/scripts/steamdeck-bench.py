@@ -393,6 +393,9 @@ def play(options):
                                                     seconds + 30)
     finally:
         restored = watch.restore(options.item, before) if watch else None
+        log = os.path.join(profile, "state", "crucible", "logs", "crucible.log")
+        if os.path.exists(log):
+            shutil.copy2(log, os.path.join(out, name + ".log"))
         if watch:
             watch.scrub(out)
         shutil.rmtree(profile, ignore_errors=True)
@@ -402,8 +405,20 @@ def play(options):
     result = [{"run": name, "file": options.file, "item": before and {key: before[key] for key in ("title", "type")},
                "watch_state": restored, "playback": sampler.window(*window),
                "playback_frames": frame_stats(frames, window[0], window[1], refresh_interval()), "decoder": decoder,
-               "dropped": dropped_frames(stderr), "first_frame_s": frames[0]["start"] - launched if frames else None}]
+               "dropped": dropped_frames(stderr), "first_frame_s": frames[0]["start"] - launched if frames else None,
+               "first_picture_ms": first_picture_ms(os.path.join(out, name + ".log"))}]
     write(out, name, result)
+
+
+def first_picture_ms(path):
+    """How long the title's first picture took from Play, as the app logs it ("Playing ratingKey=... 1234 ms after Play")."""
+    try:
+        for line in open(path, errors="replace"):
+            if " ms after Play" in line:
+                return int(line.split(" ms after Play")[0].split()[-1])
+    except OSError:
+        pass
+    return None
 
 
 def dropped_frames(log):
