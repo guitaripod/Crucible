@@ -118,7 +118,9 @@ extension RootView {
             AppCommand(WebCopy.watchLater, keys: ["S"], run: letter("s")),
             AppCommand(WebShortsCopy.details, keys: ["C", "I"], run: letter("c")),
             AppCommand(WebShortsCopy.goToChannel, keys: ["O"], run: letter("o")),
-            AppCommand(WebShortsCopy.playNext, keys: ["A"], run: letter("a")),
+            AppCommand(WebShortsCopy.autoScroll, keys: ["A"], run: letter("a")),
+            AppCommand(WebShortsCopy.speedName, keys: ["[", "]", KeyName.backspace]),
+            AppCommand(String(localized: "Jump to a Tenth", comment: "Shortcut list: the digit keys jump to 0% to 90% of the title"), keys: ["0–9"]),
             AppCommand(WebShortsCopy.copyLink, keys: [KeyName.chord(KeyName.ctrl, "C")]),
             AppCommand(AppCommandCopy.fullScreen, keys: ["F"], run: letter("f")),
         ], inMenu: shorts != nil)

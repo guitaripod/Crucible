@@ -60,6 +60,8 @@ final class WebShortsScreen: View {
     var comments: [String: WebShortsDetailsPanel.Comments] = [:]
     var noted: Set<String> = []
     var seenStates: [ObjectIdentifier: Seen] = [:]
+    /// How many times the playing clip has come to its end, for Auto Scroll.
+    var plays = 0
     var landing: Task<Void, Never>?
     var commentsTask: Task<Void, Never>?
     /// The clip whose comments `commentsTask` reads.
@@ -121,6 +123,11 @@ final class WebShortsScreen: View {
     override var preferredFocusView: View? { self }
     override var accessibilityLabel: String? { WebShortsCopy.title }
 
+    /// How many of the rail's buttons fit beside the clip, whose height the pane takes most of the window's.
+    var railCount: Int {
+        WebShortsRail.count(fitting: bounds.height - 2 * max(Theme.current.metrics.tv(46), (bounds.height * 0.06).rounded()) - Theme.current.metrics.tv(48))
+    }
+
     /// Whether the feed is moving: springing into place, or pulled by fingers or a drag.
     var feedMoves: Bool { offset.isAnimating || abs(offset.value - Float(index)) > 0.001 }
 
@@ -165,7 +172,7 @@ final class WebShortsScreen: View {
         let metrics = Theme.current.metrics
         let margin = max(metrics.tv(46), (bounds.height * 0.06).rounded())
         let gap = metrics.tv(26)
-        let railSize = WebShortsRail.size()
+        let railSize = WebShortsRail.size(count: railCount)
         var height = max(bounds.height - margin * 2, 1)
         var width = (height * 9 / 16).rounded()
         let outside = bounds.width >= width + 2 * (gap + railSize.width + metrics.tv(20))
@@ -192,6 +199,7 @@ final class WebShortsScreen: View {
         let metrics = Theme.current.metrics
         let stage = stage
         layer.frame = bounds
+        rail.count = railCount
         rail.frame = stage.rail
         let side = WebShortsRoundButton.diameter
         back.frame = Rect(x: metrics.tv(40), y: metrics.tv(40), width: side, height: side)
@@ -284,6 +292,7 @@ final class WebShortsScreen: View {
         noteWatched()
         setFast(false)
         let left = currentSlot
+        plays = 0
         index = target
         isPaused = false
         left?.plays = false
@@ -393,6 +402,8 @@ final class WebShortsScreen: View {
             if usesDesk { seek(by: 5) } else { window?.focus.focus(rail, animated: true) }
         case .return where mine, .keypadEnter where mine, .space where mine, .mediaPlay, .mediaPause:
             activate()
+        case .backspace where plain:
+            stepSpeed(nil)
         case .home where plain:
             currentSlot?.seek(to: 0)
         case .menu:
@@ -417,7 +428,12 @@ final class WebShortsScreen: View {
         case "s": toggleLater()
         case "c", "i": setDetails(shown: detailsShown.target == 0, focusing: true)
         case "o": openChannel()
-        case "a": toggleAutoAdvance()
+        case "a": cycleAutoScroll()
+        case "[": stepSpeed(-1)
+        case "]": stepSpeed(1)
+        case "0", "1", "2", "3", "4", "5", "6", "7", "8", "9":
+            guard let slot = currentSlot, let tenth = Double(letter), slot.player.state.duration > 0 else { return true }
+            slot.seek(to: slot.player.state.duration * tenth / 10)
         case "f": toggleFullscreen()
         default: return false
         }
@@ -526,7 +542,7 @@ final class WebShortsScreen: View {
     private func setFast(_ fast: Bool) {
         guard fast != isFast else { return }
         isFast = fast
-        currentSlot?.player.setLater("speed", fast ? "2" : "1")
+        currentSlot?.player.setLater("speed", String(fast ? min(WebSettings.shortsSpeed * 2, 4) : WebSettings.shortsSpeed))
         if fast { toast.show(WebShortsCopy.doubleSpeed, symbol: "forward.fill") }
     }
 

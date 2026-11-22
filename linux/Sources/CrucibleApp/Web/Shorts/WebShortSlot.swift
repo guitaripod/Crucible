@@ -36,6 +36,10 @@ final class WebShortSlot {
             if phase == .open || phase == .opening { player.setPausedLater(!plays) }
         }
     }
+    /// The playback speed; set whatever the slot holds, and kept across the clips it holds.
+    var speed: Double = 1 {
+        didSet { if speed != oldValue { player.setLater("speed", String(speed)) } }
+    }
     /// Whether a clip that ends starts over, or says so and waits (`onEnded`).
     var repeats = true {
         didSet { player.setLater("loop-file", repeats ? "inf" : "no") }

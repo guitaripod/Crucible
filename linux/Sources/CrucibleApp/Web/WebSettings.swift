@@ -82,10 +82,17 @@ enum WebSettings {
         set { defaults.set(newValue, forKey: "web.shortsShowsDetails") }
     }
 
-    /// Whether the Shorts player moves on to the next clip when one ends, instead of repeating it.
-    static var shortsPlayNext: Bool {
-        get { defaults.bool(forKey: "web.shortsPlayNext") }
-        set { defaults.set(newValue, forKey: "web.shortsPlayNext") }
+    /// How many times the Shorts player plays a clip before scrolling on to the next by itself: 0 repeats it until the
+    /// viewer moves on. A viewer who turned on the earlier Play Next Automatically keeps it as one play.
+    static var shortsAutoScroll: Int {
+        get { defaults.object(forKey: "web.shortsAutoScroll") as? Int ?? (defaults.bool(forKey: "web.shortsPlayNext") ? 1 : 0) }
+        set { defaults.set(min(max(newValue, 0), 2), forKey: "web.shortsAutoScroll") }
+    }
+
+    /// The Shorts player's playback speed, kept apart from the player's.
+    static var shortsSpeed: Double {
+        get { defaults.object(forKey: "web.shortsSpeed") as? Double ?? 1 }
+        set { defaults.set(newValue, forKey: "web.shortsSpeed") }
     }
 
     /// Whether a watched video is also noted in the signed-in account's own history on its site.

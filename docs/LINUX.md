@@ -437,7 +437,7 @@ Shorts never mix into the rows of videos. The YouTube page keeps the followed ch
 | Moving | Pages spring into place and the neighbours peek in above and below. `WebShortsPager` (tested) turns the wheel into one clip a notch with a pause between steps, and a touchpad's fingers or a drag into a pull that moves on when it went a fifth of a page or was flicked, and gives at the feed's ends |
 | Sound | Every clip goes through `dynaudnorm` aiming its peaks at 0.85 over about a second either side, then a limiter run at 192 kHz holding them at 0.87, so true peaks stay just under -1 dBTP. On four NileRed Shorts that spanned -16.2 to -23.6 LUFS (true peaks up to +2.4 dBTP) this gives -15.1 to -17.3 LUFS and -1.2 to -1.4 dBTP for 0.6 s of CPU per 71 s clip |
 | Smoothness | The players' mpv calls never wait on mpv (`VideoPlayer.loadLater`, `setLater`, `commandLater`); a picture is rendered at its page's size at rest, so the page scaling as it moves does not reallocate it or hold back mpv's frames; a clip's first frame (15 to 30 ms of mpv's time) waits until the feed stops moving, its thumbnail standing in; the third player is made while the feed rests; the window's wash reuses three blur passes. Wheeling through ten clips headless at 1920 x 1080: frames over 12 ms from 36 to 13, the 99th percentile from 33.5 to 12 ms |
-| What is kept | A clip watched most of the way is noted finished in the viewer's own history, which is what puts it behind the unwatched ones on the shelf. The Shorts player has its own volume and mute, and repeats a clip until told to play the next automatically |
+| What is kept | A clip watched most of the way is noted finished in the viewer's own history, which is what puts it behind the unwatched ones on the shelf. The Shorts player has its own volume, mute and speed |
 
 | Input | Does |
 | --- | --- |
@@ -445,11 +445,14 @@ Shorts never mix into the rows of videos. The YouTube page keeps the followed ch
 | Click, Space, K, Enter, A | Pause or play (the clip that failed: try again) |
 | Double click, F | Full screen |
 | Drag along the playhead, J and L, Left and Right in the Desktop layout, the triggers | Move through the clip |
-| Right in the Steam Deck layout, Tab | Reach the rail: Watch Later (S), Description and Comments (C or I), Copy Link (Ctrl+C), the channel (O), the sound (M, Shift with Up and Down, the wheel over its button), More |
+| Right in the Steam Deck layout, Tab | Reach the rail: Watch Later (S), Description and Comments (C or I), Copy Link (Ctrl+C), the channel (O), the sound (M, Shift with Up and Down, the wheel over its button), the speed, Auto Scroll, More. A window too short for all eight leaves out the channel, then Copy Link, then the speed, which the page and the menu still offer |
 | Click the channel's picture or name | The channel's page |
 | Click the title, the facts or the comments line ("2.3K comments"), C or I, X on a gamepad | The description and comments sheet; it opens with the player again where the window has room for it. The comments are read as the pointer reaches the line or the Comments button, so the sheet usually opens on them |
-| Hold the mouse button on the clip | Twice the speed until it is let go |
-| Right click, the Menu key, Y | The clip's menu: Open in the Player (quality, subtitles and speed, from where the clip is), Play Next Automatically (A), Download, Follow, Open in Browser |
+| Hold the mouse button on the clip | Twice the set speed until it is let go |
+| A, the rail's Auto button | Auto Scroll: off, after each play, after two plays; a right click on the button or the menu chooses directly. Off, a clip repeats |
+| [ and ], the wheel over the rail's speed button, Backspace | Speed down and up through 0.5x to 3x, kept between sittings; Backspace goes back to 1x. A click on the button lists the speeds |
+| 0 to 9 | Jump to that tenth of the clip |
+| Right click, the Menu key, Y | The clip's menu: Open in the Player (quality, subtitles and speed, from where the clip is), Auto Scroll (A), Playback Speed, Download, Follow, Open in Browser |
 | Escape, B, the mouse's back button | Close the details sheet, then leave the rail, then go back |
 
 The details sheet reads the comments in a second yt-dlp run, begun once a clip has stayed over half a second, and is scrolled by the wheel or, with the keyboard or a gamepad on it, the arrows.

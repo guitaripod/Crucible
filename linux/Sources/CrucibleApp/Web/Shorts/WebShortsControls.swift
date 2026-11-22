@@ -25,6 +25,8 @@ final class WebShortsRoundButton: View {
         }
     }
     var onPress: (() -> Void)?
+    /// A right click on the button, for its choices (Auto Scroll's).
+    var onContextMenu: (() -> Void)?
     /// The pointer reached the button.
     var onHover: (() -> Void)?
     /// The wheel turned over the button, in notches toward the viewer (the sound button's volume).
@@ -86,6 +88,10 @@ final class WebShortsRoundButton: View {
     }
 
     override func pointerPressed(_ button: MouseButton, at point: Point) -> Bool {
+        if button == .secondary, let onContextMenu {
+            onContextMenu()
+            return true
+        }
         guard button == .primary else { return false }
         pressedByPointer = true
         press.set(1, animation: .press)
@@ -105,6 +111,12 @@ final class WebShortsRoundButton: View {
         guard let onWheel else { return false }
         let notches = event.isDiscrete ? event.notchesY : event.dy / 40
         if notches != 0 { onWheel(-notches) }
+        return true
+    }
+
+    override func showContextMenu(at point: Point?) -> Bool {
+        guard let onContextMenu else { return false }
+        onContextMenu()
         return true
     }
 
@@ -155,9 +167,35 @@ final class WebShortsRail: View {
     let link = WebShortsRoundButton(symbol: "link", name: WebShortsCopy.copyLink, shortcut: KeyName.chord(KeyName.ctrl, "C"))
     let channel = WebShortsRoundButton(symbol: "person.crop.circle", name: WebShortsCopy.goToChannel, shortcut: "O")
     let sound = WebShortsRoundButton(symbol: "speaker.wave.2", name: AppCommandCopy.mute, shortcut: "M")
+    let speed = WebShortsRoundButton(symbol: "gauge.with.dots.needle.67percent", name: WebShortsCopy.speedName, shortcut: "[ ]")
+    let auto = WebShortsRoundButton(symbol: "arrow.down", name: WebShortsCopy.autoScroll, shortcut: "A")
     let more = WebShortsRoundButton(symbol: "ellipsis", name: WebShortsCopy.more)
 
-    var buttons: [WebShortsRoundButton] { [later, comments, link, channel, sound, more] }
+    /// Every button, top to bottom.
+    var buttons: [WebShortsRoundButton] { [later, comments, link, channel, sound, speed, auto, more] }
+
+    /// The buttons a rail of `count` keeps, dropping first what the page or the menu also offers (the channel, whose name
+    /// is a link, then Copy Link, then the speed).
+    func shown(count: Int) -> [WebShortsRoundButton] {
+        let dropped = [channel, link, speed].prefix(max(buttons.count - count, 0))
+        return buttons.filter { button in !dropped.contains { $0 === button } }
+    }
+
+    /// How many buttons the rail shows; the rest are hidden.
+    var count = 8 {
+        didSet {
+            guard count != oldValue else { return }
+            let kept = shown(count: count)
+            for button in buttons { button.isHidden = !kept.contains { $0 === button } }
+            setNeedsLayout()
+        }
+    }
+
+    /// How many buttons fit in `height` points, at least five.
+    static func count(fitting height: Float) -> Int {
+        let button = WebShortsRoundButton.size.height
+        return min(max(Int((height + spacing) / (button + spacing)), 5), 8)
+    }
 
     override init(frame: Rect = .zero) {
         super.init(frame: frame)
@@ -170,7 +208,7 @@ final class WebShortsRail: View {
     private static var spacing: Float { Theme.current.metrics.tv(14) }
 
     /// The rail's size for `count` buttons.
-    static func size(count: Int = 6) -> Size {
+    static func size(count: Int = 8) -> Size {
         let button = WebShortsRoundButton.size
         return Size(width: button.width, height: Float(count) * button.height + Float(count - 1) * spacing)
     }
@@ -178,7 +216,7 @@ final class WebShortsRail: View {
     override func layoutSubviews() {
         let size = WebShortsRoundButton.size
         var y: Float = 0
-        for button in buttons {
+        for button in buttons where !button.isHidden {
             button.frame = Rect(x: 0, y: y, width: size.width, height: size.height)
             y += size.height + Self.spacing
         }
@@ -201,9 +239,28 @@ enum WebShortsCopy {
     static let linkCopied = String(localized: "Link Copied", comment: "Shorts player message after copying the clip's link")
     static let savedForLater = String(localized: "Saved to Watch Later", comment: "Shorts player message after saving the clip")
     static let removedFromLater = String(localized: "Removed from Watch Later", comment: "Shorts player message after taking the clip out of Watch Later")
-    static let playNext = String(localized: "Play Next Automatically", comment: "Shorts player menu: move on to the next clip when one ends, instead of repeating it")
-    static let playsNext = String(localized: "Plays the Next Clip", comment: "Shorts player message: clips now follow one another on their own")
-    static let repeats = String(localized: "Repeats This Clip", comment: "Shorts player message: a clip now repeats until the viewer moves on")
+    static let autoScroll = String(localized: "Auto Scroll", comment: "Shorts player: moving on to the next clip by itself once a clip has played")
+    static let auto = String(localized: "Auto", comment: "Shorts player: short caption under the Auto Scroll button")
+    static let autoScrollOff = String(localized: "Auto Scroll Off", comment: "Shorts player message: clips now repeat until the viewer moves on")
+    static let afterEachPlay = String(localized: "After Each Play", comment: "Shorts player: Auto Scroll moves on once the clip has played once")
+    static let afterTwoPlays = String(localized: "After Two Plays", comment: "Shorts player: Auto Scroll moves on once the clip has played twice")
+    static let speedName = String(localized: "Playback Speed")
+
+    /// What Auto Scroll is set to, for its row in the menu.
+    @MainActor static var autoScrollDetail: String { WebSettings.shortsAutoScroll >= 2 ? afterTwoPlays : afterEachPlay }
+
+    /// "Auto Scroll: After Each Play".
+    static func autoScroll(_ plays: Int) -> String {
+        let after = plays >= 2 ? afterTwoPlays : afterEachPlay
+        return String(localized: "Auto Scroll: \(after)", comment: "Shorts player message after choosing when it scrolls on, as in \"Auto Scroll: After Each Play\"")
+    }
+
+    /// The speeds the Shorts player steps through.
+    static let speeds: [Double] = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3]
+
+    @MainActor static func speedMessage(_ value: Double) -> String {
+        String(localized: "Speed \(PlayerScreen.speedTitle(value))", comment: "Player message with the speed")
+    }
     static let openInPlayer = String(localized: "Open in the Player", comment: "Shorts player menu: watch the clip in the full player, with its quality, subtitles and speed")
     static let lastOne = String(localized: "That’s the Last One", comment: "Shorts player message at the end of the feed")
     static let previous = String(localized: "Previous Short", comment: "Shorts player: button and shortcut that go to the clip before")

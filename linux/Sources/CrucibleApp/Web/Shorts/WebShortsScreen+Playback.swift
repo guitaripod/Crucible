@@ -86,7 +86,8 @@ extension WebShortsScreen {
     }
 
     func wire(_ slot: WebShortSlot) {
-        slot.repeats = !WebSettings.shortsPlayNext
+        slot.repeats = WebSettings.shortsAutoScroll == 0
+        slot.speed = WebSettings.shortsSpeed
         slot.player.setVolume(WebSettings.shortsVolume)
         slot.setMuted(WebSettings.shortsMuted)
         slot.onChange = { [weak self] slot in self?.changed(slot) }
@@ -139,10 +140,14 @@ extension WebShortsScreen {
     }
 
     /// The clip came to its end: the next one plays when the viewer asked for that, and the last one starts over.
+    /// The clip came to its end: with Auto Scroll on, the next one plays once this one has played as often as it says;
+    /// otherwise, and after the last clip, it starts over.
     private func ended(_ slot: WebShortSlot) {
         guard slot.index == index, !closed else { return }
         noteWatched(ended: true)
-        if WebSettings.shortsPlayNext, index < entries.count - 1 {
+        plays += 1
+        let after = WebSettings.shortsAutoScroll
+        if after > 0, plays >= after, index < entries.count - 1 {
             show(index + 1)
         } else {
             slot.seek(to: 0)
@@ -208,6 +213,11 @@ extension WebShortsScreen {
         let muted = WebSettings.shortsMuted
         rail.sound.symbol = muted ? "speaker.slash" : "speaker.wave.2"
         rail.sound.caption = muted ? WebShortsCopy.muted : WebShortsCopy.sound
+        rail.speed.caption = PlayerScreen.speedTitle(WebSettings.shortsSpeed)
+        rail.speed.isOn = abs(WebSettings.shortsSpeed - 1) > 0.01
+        let after = WebSettings.shortsAutoScroll
+        rail.auto.caption = after == 2 ? "\(WebShortsCopy.auto) ×2" : WebShortsCopy.auto
+        rail.auto.isOn = after > 0
         rail.more.caption = WebShortsCopy.more
         previous.isOn = false
         setNeedsDisplay()
@@ -224,6 +234,16 @@ extension WebShortsScreen {
         rail.channel.onPress = { [weak self] in self?.openChannel() }
         rail.sound.onPress = { [weak self] in self?.toggleMute() }
         rail.sound.onWheel = { [weak self] notches in self?.changeVolume(by: Double(notches) * 5) }
+        rail.speed.onPress = { [weak self] in
+            guard let self else { return }
+            self.presentSpeeds(at: self.rail.speed.frameInWindow)
+        }
+        rail.speed.onWheel = { [weak self] notches in self?.stepSpeed(notches > 0 ? 1 : -1) }
+        rail.auto.onPress = { [weak self] in self?.cycleAutoScroll() }
+        rail.auto.onContextMenu = { [weak self] in
+            guard let self else { return }
+            self.presentAutoScroll(at: self.rail.auto.frameInWindow)
+        }
         rail.more.onPress = { [weak self] in
             guard let self else { return }
             let frame = self.rail.more.frameInWindow
@@ -320,10 +340,57 @@ extension WebShortsScreen {
         WebActions.openChannel(of: entry, from: root)
     }
 
-    func toggleAutoAdvance() {
-        WebSettings.shortsPlayNext.toggle()
-        for slot in slots { slot.repeats = !WebSettings.shortsPlayNext }
-        toast.show(WebSettings.shortsPlayNext ? WebShortsCopy.playsNext : WebShortsCopy.repeats, symbol: WebSettings.shortsPlayNext ? "forward.end" : "repeat")
+    /// Steps Auto Scroll on: off, after each play, after two plays, off again.
+    func cycleAutoScroll() {
+        setAutoScroll((WebSettings.shortsAutoScroll + 1) % 3)
+    }
+
+    func setAutoScroll(_ after: Int) {
+        WebSettings.shortsAutoScroll = after
+        for slot in slots { slot.repeats = after == 0 }
+        toast.show(after == 0 ? WebShortsCopy.autoScrollOff : WebShortsCopy.autoScroll(after), symbol: after == 0 ? "repeat" : "arrow.down")
+        refreshChrome()
+    }
+
+    /// Moves the speed `steps` places along the Shorts player's speeds, or back to normal for nil.
+    func stepSpeed(_ steps: Int?) {
+        let speeds = WebShortsCopy.speeds
+        let now = speeds.firstIndex { abs($0 - WebSettings.shortsSpeed) < 0.01 } ?? speeds.firstIndex(of: 1) ?? 0
+        setSpeed(steps.map { speeds[min(max(now + $0, 0), speeds.count - 1)] } ?? 1)
+    }
+
+    func setSpeed(_ value: Double) {
+        WebSettings.shortsSpeed = value
+        for slot in slots { slot.speed = value }
+        toast.show(WebShortsCopy.speedMessage(value), symbol: "gauge.with.dots.needle.67percent")
+        refreshChrome()
+    }
+
+    /// The speeds as a menu at `anchor`, the one playing checked.
+    func presentSpeeds(at anchor: Rect) {
+        guard let window else { return }
+        let menu = MenuView(title: WebShortsCopy.speedName, items: WebShortsCopy.speeds.map { value in
+            MenuView.Item(id: String(value), title: PlayerScreen.speedTitle(value), isChecked: abs(value - WebSettings.shortsSpeed) < 0.01)
+        }, anchor: anchor)
+        menu.onSelect = { [weak self] item in
+            guard let value = Double(item.id) else { return }
+            self?.setSpeed(value)
+        }
+        menu.present(in: window)
+    }
+
+    /// Auto Scroll's choices as a menu at `anchor`.
+    func presentAutoScroll(at anchor: Rect) {
+        guard let window else { return }
+        let choices = [(0, String(localized: "Off")), (1, WebShortsCopy.afterEachPlay), (2, WebShortsCopy.afterTwoPlays)]
+        let menu = MenuView(title: WebShortsCopy.autoScroll, items: choices.map { value, title in
+            MenuView.Item(id: String(value), title: title, isChecked: WebSettings.shortsAutoScroll == value)
+        }, anchor: anchor)
+        menu.onSelect = { [weak self] item in
+            guard let value = Int(item.id) else { return }
+            self?.setAutoScroll(value)
+        }
+        menu.present(in: window)
     }
 
     /// Plays the clip in the full player from where it is, for its quality, subtitles and speed.
@@ -398,7 +465,10 @@ extension WebShortsScreen {
         let library = WebService.shared.library
         var items: [MenuView.Item] = [
             .init(id: "player", title: WebShortsCopy.openInPlayer, symbol: "play.rectangle"),
-            .init(id: "next", title: WebShortsCopy.playNext, symbol: "forward.end", isChecked: WebSettings.shortsPlayNext, shortcut: "A"),
+            .init(id: "auto", title: WebShortsCopy.autoScroll, detail: WebSettings.shortsAutoScroll == 0 ? String(localized: "Off") : WebShortsCopy.autoScrollDetail,
+                  symbol: "arrow.down", shortcut: "A"),
+            .init(id: "speed", title: WebShortsCopy.speedName, detail: PlayerScreen.speedTitle(WebSettings.shortsSpeed), symbol: "gauge.with.dots.needle.67percent",
+                  shortcut: "[ ]"),
         ]
         let saved = library.isSavedForLater(entry.id)
         items.append(.init(id: "later", title: saved ? String(localized: "Remove from Watch Later", comment: "Web video menu") : WebCopy.watchLater,
@@ -430,7 +500,8 @@ extension WebShortsScreen {
             guard let self, !self.closed else { return }
             switch item.id {
             case "player": self.openInPlayer()
-            case "next": self.toggleAutoAdvance()
+            case "auto": self.presentAutoScroll(at: Rect(x: place.x, y: place.y, width: 1, height: 1))
+            case "speed": self.presentSpeeds(at: Rect(x: place.x, y: place.y, width: 1, height: 1))
             case "later": self.toggleLater()
             case "details": self.setDetails(shown: true, focusing: self.window?.isFocusVisible ?? false)
             case "download": WebDownloads.shared.start(entry, in: window)
