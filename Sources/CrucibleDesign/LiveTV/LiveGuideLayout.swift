@@ -137,7 +137,7 @@ package final class LiveGuideLayout: UICollectionViewLayout {
                 attributes.isHidden = true
                 return attributes
             }
-            attributes.frame = CGRect(x: left, y: pin.y + headerHeight * 0.55, width: width, height: max(visible.maxY - pin.y - headerHeight * 0.55, 0))
+            attributes.frame = CGRect(x: left, y: pin.y + headerHeight * 0.55, width: width, height: max(min(visible.maxY, collectionViewContentSize.height) - pin.y - headerHeight * 0.55, 0))
             attributes.zIndex = 10
         default:
             return nil

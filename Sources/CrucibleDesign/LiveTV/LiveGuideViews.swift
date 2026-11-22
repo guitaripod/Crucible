@@ -208,7 +208,8 @@ package final class LiveChannelHeaderView: UICollectionReusableView {
     }
 
     /// Shows the channel: `number` with its region and quality `tags` on the first line and `title` on up to two lines below.
-    /// On a phone, whose column has room for the logo and one line, a channel with a logo and a number shows just those.
+    /// On iPhone and iPad, whose column has room for the logo and a number, a channel with a logo shows just those; its
+    /// name is in the logo and in what VoiceOver reads.
     package func configure(number: String?, title: String, logoURL: URL?, isFavorite: Bool, tags: [String] = []) {
         var line = AttributedString(number ?? "")
         line.foregroundColor = Theme.Color.accentText
@@ -221,7 +222,7 @@ package final class LiveChannelHeaderView: UICollectionReusableView {
         self.number.isHidden = number == nil && tags.isEmpty
         name.text = title
         #if os(iOS)
-        name.isHidden = logoURL != nil && number != nil
+        name.isHidden = logoURL != nil
         #endif
         star.isHidden = !isFavorite
         accessibilityLabel = ([number, title] + tags.map { Optional($0) }).compactMap { $0 }.joined(separator: " ")
@@ -320,6 +321,7 @@ package enum BetaTag {
         attributes.font = Theme.Font.badge
         attributes.kern = 1.2
         configuration.attributedTitle = AttributedString(title, attributes: attributes)
+        configuration.titleLineBreakMode = .byClipping
         configuration.background.strokeColor = Theme.Color.accent.withAlphaComponent(0.7)
         configuration.background.strokeWidth = Theme.Metric.badgeBorderWidth
         let button = UIButton(configuration: configuration, primaryAction: action)

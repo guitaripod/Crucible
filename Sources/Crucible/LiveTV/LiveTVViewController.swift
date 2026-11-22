@@ -137,6 +137,9 @@ final class LiveTVViewController: UIViewController, UICollectionViewDelegate {
         label.font = Theme.Font.headline
         label.textColor = Theme.Color.label
         label.accessibilityTraits = .header
+        label.adjustsFontSizeToFitWidth = true
+        label.minimumScaleFactor = 0.75
+        label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         betaTag.accessibilityIdentifier = "livetv.beta"
         betaTag.accessibilityLabel = LiveTVCopy.betaTitle
         let stack = UIStackView(arrangedSubviews: [label, betaTag])
