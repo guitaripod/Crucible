@@ -18,13 +18,13 @@ from PIL import Image
 
 PANELS = [
     ("DemoTests.testEnteringShowsTheIntroThenAPopulatedHome", "04-home"),
+    ("DemoTests.testLiveTVShowsTheDemoGuide", "11-live-tv"),
     ("DemoTests.testWhatToWatchAnswersItsExamplesFromPreparedPicks", "watch-picks"),
     ("DemoTests.testAShowStartedInTheDemoWritesItsPreparedRecap", "recap"),
     ("DemoTests.testPaperLanternsOffersEssentialsOnceAndSkipsItsAnimeOnlyEpisodes", "17-essentials-offer"),
     ("DetailTests.testMovieDetailDark", "01-movie-primary-focused"),
     ("TraktTests.testTheCommunityShowsItsPulseWhatPeopleSayAndCommentsTogether", "14-community-overview"),
     ("LibraryTests.testMovieLibraryLoadedFiltersAndMenus", "01-loaded-first-recent-focused"),
-    ("PlayerTests.testScrubbingWithLongPressRight", "01-scrubbed-forward"),
     ("PlayerTests.testUpNextProposalAtTheCreditsAndAcceptingStartsTheNextEpisode", "02-up-next-proposal"),
     ("DemoTests.testStatisticsHasEveryRangeUnlocked", "10-statistics"),
 ]

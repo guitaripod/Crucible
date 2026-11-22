@@ -280,6 +280,16 @@ final class DemoTests: TVTestCase {
         waitForDone(app, "search")
     }
 
+    func testLiveTVShowsTheDemoGuide() {
+        let app = launchIntoHome()
+        AppNavigation.selectTab("Live TV", in: app)
+        XCTAssertTrue(element(app, "livetv.guide").waitForExistence(timeout: 30), "the demo has Live TV")
+        XCTAssertTrue(TVTest.waitForFocus(app.cells.matching(identifier: "livetv.program").firstMatch, timeout: 30), "the focus lands in the guide")
+        TVTest.remote.press(.down)
+        TVTest.settle(3)
+        TVTest.capture("11-live-tv", in: self)
+    }
+
     func testStatisticsHasEveryRangeUnlocked() {
         let app = launchIntoHome()
         openYou(app)

@@ -1,8 +1,8 @@
 {
  "appId": "6822066419",
  "versions": {
-  "IOS": "c2c9d1a1-2550-4b68-bd4c-46cfc9a55d22",
-  "TV_OS": "93b6f000-2044-4fa8-bd22-a1d7b2587581"
+  "IOS": "cb23d35c-e9e3-44d9-8429-4189131944a1",
+  "TV_OS": "7c86100d-1f92-4535-b6ed-16b0706c9c81"
  },
  "releaseType": "AFTER_APPROVAL",
  "name": "Crucible for Plex",
