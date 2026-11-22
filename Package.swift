@@ -93,7 +93,7 @@ func linuxClient() -> (products: [Product], targets: [Target]) {
         .testTarget(name: "CrucibleWebTests", dependencies: ["CrucibleWeb"], path: "linux/Tests/CrucibleWebTests", resources: [.copy("Fixtures")]),
         .executableTarget(name: "CrucibleApp", dependencies: ["CrucibleCore", "CrucibleStats", "CrucibleDemo", "CrucibleUI", "CrucibleWeb", "Kiln", "CLinuxServices", midgarCore],
                           path: "linux/Sources/CrucibleApp", resources: [.copy("Resources/Localizable.xcstrings"), .copy("Resources/Web.xcstrings"), .copy("Resources/AI/aliases.json"), .copy("Resources/AI/watch.plan.v1.txt"),
-                                                                        .copy("Resources/AI/watch.pick.v1.txt"), .copy("Resources/AI/recap.describe.v1.txt")]),
+                                                                        .copy("Resources/AI/watch.pick.v1.txt"), .copy("Resources/AI/recap.describe.v1.txt"), .copy("Resources/AI/livetv.about.v1.txt")]),
         .testTarget(name: "KilnTests", dependencies: ["Kiln"], path: "linux/Tests/KilnTests", exclude: ["Fixtures"]),
         .testTarget(name: "CrucibleUITests", dependencies: ["CrucibleUI", "Kiln"], path: "linux/Tests/CrucibleUITests"),
     ]

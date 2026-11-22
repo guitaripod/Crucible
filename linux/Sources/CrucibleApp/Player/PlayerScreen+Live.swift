@@ -17,6 +17,9 @@ final class LiveSession {
     /// The copies of the station tried since the viewer chose it, so a failing one falls over to each other copy once.
     var triedCopies: Set<String> = []
     var typingTask: Task<Void, Never>?
+    /// How far playback trails the live edge from pauses since the stream last opened, and when the pause going on began.
+    var behind: Double = 0
+    var pausedAt: Date?
 
     init(channel: LiveChannel, guide: LiveTVGuide?) {
         self.channel = channel
@@ -34,7 +37,67 @@ final class LiveSession {
 extension PlayerScreen {
     func startLive() {
         guard let live else { return }
+        transport.onZap = { [weak self] offset in
+            self?.viewerActed()
+            self?.zap(by: offset)
+        }
+        transport.onGoLive = { [weak self] in
+            self?.viewerActed()
+            self?.goLive()
+        }
         tune(live.channel)
+    }
+
+    /// Opens the channel's stream again at what airs now, after a pause left playback behind it.
+    func goLive() {
+        guard let live, let plan = live.plan else { return }
+        open(plan, for: live.channel)
+    }
+
+    /// Keeps the live transport current on each player tick: what airs on the channel now, and how far behind the live
+    /// edge pauses have left playback.
+    func liveTick(paused: Bool) {
+        guard let live else { return }
+        let now = Date()
+        if paused {
+            if live.pausedAt == nil { live.pausedAt = now }
+        } else if let pausedAt = live.pausedAt {
+            live.behind += now.timeIntervalSince(pausedAt)
+            live.pausedAt = nil
+        }
+        transport.behindLive = live.behind + (live.pausedAt.map { now.timeIntervalSince($0) } ?? 0)
+        let airing = Self.airing(of: live.channel, guide: live.guide, at: now.addingTimeInterval(-transport.behindLive))
+        if transport.live != airing {
+            transport.live = airing
+            transport.title = [airing.channel, airing.start == nil ? nil : airing.title].compactMap { $0 }.joined(separator: " · ")
+        }
+    }
+
+    /// Info for a live channel: what airs, on which channel and when, the listing's description, and what follows.
+    func liveInfoContent(_ live: LiveSession) -> PlayerInfoPanel.Content {
+        let label = LiveChannelLabel(live.channel)
+        let channel = [label.number, label.name].compactMap { $0 }.joined(separator: "  ")
+        let (now, next) = live.guide?.nowAndNext(live.channel.id) ?? (nil, nil)
+        let when = now.map { "\(LiveGuideMath.slotLabel($0.start)) – \(LiveGuideMath.slotLabel($0.end))" }
+        let facts = ([now?.episodeCode, now?.contentRating] + (now?.genres.prefix(3).map { Optional($0) } ?? []) + label.tags.map { Optional($0) })
+            .compactMap { $0 }.filter { !$0.isEmpty }
+        var summary = [now?.episodeTitle, now?.summary].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: "\n\n")
+        if let next { summary += (summary.isEmpty ? "" : "\n\n") + "\(LiveTVCopy.upNext): \(LiveGuideMath.slotLabel(next.start))  \(next.title)" }
+        return PlayerInfoPanel.Content(title: now?.title ?? label.name, subtitle: [channel, when].compactMap { $0 }.joined(separator: "  ·  "),
+                                       summary: summary.isEmpty ? nil : summary, facts: facts.isEmpty ? nil : facts.joined(separator: " · "),
+                                       chapters: [], streamLines: [], liveLines: livePlaybackLines, deliveryLines: liveDeliveryLines, bitrates: bitrateHistory)
+    }
+
+    /// The transport's view of `channel` at `moment`: its number and name, what airs, the episode and what follows.
+    static func airing(of channel: LiveChannel, guide: LiveTVGuide?, at moment: Date) -> TransportView.LiveAiring {
+        let label = LiveChannelLabel(channel)
+        let name = [label.number, label.name].compactMap { $0 }.joined(separator: "  ")
+        let (now, next) = guide?.nowAndNext(channel.id, at: moment) ?? (nil, nil)
+        guard let now else { return TransportView.LiveAiring(channel: name, tags: label.tags, title: label.name) }
+        let detail = [now.episodeCode, now.episodeTitle, now.contentRating, now.genres.first].compactMap { $0 }.filter { !$0.isEmpty }
+        let following = next.map { "\(LiveTVCopy.upNext): \(LiveGuideMath.slotLabel($0.start))  \($0.title)" }
+        return TransportView.LiveAiring(channel: name, tags: label.tags, title: now.title, detail: detail.isEmpty ? nil : detail.joined(separator: " · "),
+                                        start: now.start, end: now.end, next: following)
     }
 
     /// Plays `channel`, ending the previous one's tuner session first; when it fails, a copy of its station from another
@@ -48,6 +111,7 @@ extension PlayerScreen {
         live.channel = channel
         live.plan = nil
         transport.title = channel.numberedTitle
+        transport.live = Self.airing(of: channel, guide: live.guide, at: Date())
         resolveTask?.cancel()
         resolveTask = Task { [weak self] in
             if let ending { await LivePlayback.stop(ending, api: api) }
@@ -74,6 +138,9 @@ extension PlayerScreen {
     private func open(_ plan: LivePlaybackPlan, for channel: LiveChannel) {
         guard let live, let player else { return }
         live.plan = plan
+        live.behind = 0
+        live.pausedAt = nil
+        transport.behindLive = 0
         stream = ResolvedStream(url: plan.url, isDirectPlay: true, sessionId: "", subtitles: [], audioTracks: [], markers: [])
         segments = []
         streamOffset = 0

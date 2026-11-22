@@ -50,11 +50,43 @@ final class TransportView: View {
 
     /// A button of the desk's control row.
     enum Button: Hashable {
-        case play, back, ahead, mute, fullscreen, mini
+        case play, back, ahead, mute, fullscreen, mini, goLive
         case control(Control)
     }
 
+    /// What a live channel airs, which takes the place of the title's timeline while a channel plays.
+    struct LiveAiring: Equatable {
+        /// The channel's number and name, as the guide shows them.
+        var channel: String
+        /// The channel's region and quality tags.
+        var tags: [String] = []
+        /// What airs now, or the channel's name when the guide lists nothing.
+        var title: String
+        /// The episode, the rating and the genre, in one line.
+        var detail: String?
+        var start: Date?
+        var end: Date?
+        /// What airs next, with its start.
+        var next: String?
+    }
+
     var title = "" { didSet { setNeedsDisplay() } }
+    /// The airing of the live channel playing, nil for a title.
+    var live: LiveAiring? {
+        didSet {
+            guard live != oldValue else { return }
+            if (live == nil) != (oldValue == nil) { superview?.setNeedsLayout() }
+            setNeedsDisplay()
+        }
+    }
+
+    /// How far playback trails the live edge, in seconds, after a pause.
+    var behindLive: Double = 0 { didSet { if (behindLive > Self.liveSlack) != (oldValue > Self.liveSlack) { setNeedsDisplay() } } }
+    /// Behind the live edge by less than this counts as live.
+    static let liveSlack: Double = 15
+    var onGoLive: (() -> Void)?
+    /// Channel up (1) or down (-1), from the buttons a live channel puts where the skip buttons are.
+    var onZap: ((Int) -> Void)?
     /// Chapter starts in seconds on the title's timeline, ticked on the scrubber.
     var chapterMarks: [Double] = [] { didSet { setNeedsDisplay() } }
     /// The name of the chapter a time falls in, for the scrubber's hover preview.
@@ -102,7 +134,7 @@ final class TransportView: View {
     private var duration: Double = 0
     private var buffered: Double = 0
     private var paused = true
-    private var buffering = false
+    private(set) var buffering = false
     private var volume: Double = 100
     /// The volume the wheel is turning toward, unrounded, so a touchpad's small steps add up.
     private var wheelVolume: Double?
@@ -110,7 +142,7 @@ final class TransportView: View {
     private var volumeSetAt: Double = 0
     private var muted = false
     private var maximumVolume: Double = 100
-    private var hoverFraction: Float?
+    var hoverFraction: Float?
     private var scrubbing = false
     private var draggingVolume = false
     /// The fraction a drag points at, which the knob, the time and the still follow rather than the player, whose picture
@@ -127,12 +159,12 @@ final class TransportView: View {
     /// Each label's own tone over the picture right under it: dark over glare there while the glass as a whole reads dark.
     private var labelTones: [Label: GlassTone] = [:]
 
-    private enum Label: Hashable {
-        case title, play, elapsed, remaining, buffering, preview
+    enum Label: Hashable {
+        case title, play, elapsed, remaining, buffering, preview, detail
         case button(Button)
     }
 
-    private var isDesk: Bool { Theme.current.density == .desk }
+    var isDesk: Bool { Theme.current.density == .desk }
 
     func update(position: Double, duration: Double, buffered: Double, paused: Bool, buffering: Bool) {
         self.position = position
@@ -183,14 +215,14 @@ final class TransportView: View {
 
     override func sizeThatFits(_ size: Size) -> Size {
         let metrics = Theme.current.metrics
-        guard isDesk else { return Size(width: size.width, height: metrics.tv(150)) }
-        return Size(width: size.width, height: metrics.tv(isCompact(width: size.width) ? 432 : 372))
+        guard isDesk else { return Size(width: size.width, height: metrics.tv(150) + liveHeaderExtra) }
+        return Size(width: size.width, height: metrics.tv(isCompact(width: size.width) ? 432 : 372) + liveHeaderExtra)
     }
 
     // MARK: Geometry
 
     /// The track the scrubber draws: on a desk, between the two times, thickening under the pointer.
-    private var bar: Rect {
+    var bar: Rect {
         let metrics = Theme.current.metrics
         if isDesk {
             let clock = clockWidth
@@ -211,10 +243,16 @@ final class TransportView: View {
         return Rect(x: metrics.tv(48), y: bar.midY - side / 2, width: side, height: side)
     }
 
-    private var deskInset: Float { Theme.current.metrics.tv(56) }
+    var deskInset: Float { Theme.current.metrics.tv(56) }
     private var deskStart: Float { deskInset - Theme.current.metrics.tv(22) }
     private var deskGap: Float { Theme.current.metrics.tv(12) }
-    private var deskBarMidY: Float { Theme.current.metrics.tv(146) + (isCompact ? Theme.current.metrics.tv(60) : 0) }
+    private var deskBarMidY: Float { Theme.current.metrics.tv(146) + (isCompact ? Theme.current.metrics.tv(60) : 0) + liveHeaderExtra }
+
+    /// The room a live channel's header takes beyond a title's one line: the channel above what airs, and the episode
+    /// and what airs next below it.
+    private var liveHeaderExtra: Float { live == nil ? 0 : Theme.current.metrics.tv(isDesk ? 96 : 52) }
+
+    var isBehindLive: Bool { live != nil && behindLive > Self.liveSlack }
 
     /// The band a press or hover scrubs in: the track's row from end to end, tall enough to hit without aiming.
     private var scrubBand: Rect {
@@ -225,7 +263,7 @@ final class TransportView: View {
 
     /// Room for the longest time either end of the desk's track shows, so the track does not shift as the digits change.
     private var clockWidth: Float {
-        let sample = duration >= 3600 ? "-00:00:00" : "-00:00"
+        let sample = live != nil ? Self.liveTime(Date(timeIntervalSince1970: 82_800)) + "0" : (duration >= 3600 ? "-00:00:00" : "-00:00")
         return (TextLayout(sample, font: Theme.current.type.control, scale: window?.scale ?? 1).size.width + 2).rounded(.up)
     }
 
@@ -234,7 +272,7 @@ final class TransportView: View {
 
     /// Whether the window is too narrow for the desk's one row, so the menus, Mini Player and Full Screen move to a row
     /// of their own above the bar, beside the title, and the row below keeps the transport and the volume.
-    private var isCompact: Bool { isCompact(width: frame.width) }
+    var isCompact: Bool { isCompact(width: frame.width) }
 
     private func isCompact(width: Float) -> Bool { width < deskOneRowWidth }
 
@@ -253,7 +291,7 @@ final class TransportView: View {
         [.control(.audio), .control(.subtitles), .control(.speed), .control(.sleep), .control(.info), .mini, .fullscreen]
     }
 
-    private var deskTopRowMidY: Float { Theme.current.metrics.tv(70) }
+    var deskTopRowMidY: Float { Theme.current.metrics.tv(70) }
 
     /// The compact row's button side: the desk's own while the row and the title both fit, smaller as the window narrows
     /// so the title keeps its room, and never below 40 on the tvOS canvas.
@@ -264,7 +302,7 @@ final class TransportView: View {
     }
 
     /// Where the leftmost button of the compact row sits, for the title to end before it.
-    private var deskTopRowX: Float {
+    var deskTopRowX: Float {
         frame.width - deskInset - Float(deskTopOrder.count) * (deskTopSide + deskGap) + deskGap
     }
 
@@ -293,8 +331,23 @@ final class TransportView: View {
         case .mute: return at(start + side * 2 + gap * 2 + playSide + metrics.tv(44))
         case .fullscreen, .mini, .control:
             return isCompact ? deskTopFrame(of: button) : deskEndFrame(of: button)
+        case .goLive:
+            return goLiveFrame
         }
     }
+
+    /// The Go Live pill at the end of a live channel's header, once playback trails the live edge.
+    private var goLiveFrame: Rect {
+        guard isBehindLive, let scale = window?.scale else { return .zero }
+        let metrics = Theme.current.metrics
+        let text = TextLayout(Self.goLiveText, font: Theme.current.type.control, maxLines: 1, scale: scale)
+        let width = text.size.width + metrics.tv(96)
+        let height = metrics.tv(72)
+        let midY = isCompact ? deskTopRowMidY + metrics.tv(96) : metrics.tv(40) + metrics.tv(48)
+        return Rect(x: frame.width - deskInset - width, y: midY - height / 2, width: width, height: height)
+    }
+
+    private static let goLiveText = String(localized: "Go Live", comment: "Player button: jump back to what airs now on a live channel after a pause")
 
     /// Where a button at the end of the desk's one row sits.
     private func deskEndFrame(of button: Button) -> Rect {
@@ -313,7 +366,9 @@ final class TransportView: View {
         }
     }
 
-    private var deskButtons: [Button] { [.back, .play, .ahead, .mute, .mini, .fullscreen] + Control.allCases.map { .control($0) } }
+    private var deskButtons: [Button] {
+        [.back, .play, .ahead, .mute, .mini, .fullscreen] + Control.allCases.map { .control($0) } + (isBehindLive ? [.goLive] : [])
+    }
 
     /// Where the volume slider must stop: at the menus on a wide window, at the transport's own end in the compact
     /// layout, whose menus are above the bar.
@@ -357,8 +412,11 @@ final class TransportView: View {
     private func name(of button: Button) -> String {
         switch button {
         case .play: paused ? String(localized: "Play") : String(localized: "Pause")
+        case .back where live != nil: LiveTVCopy.channelDown
+        case .ahead where live != nil: LiveTVCopy.channelUp
         case .back: String(localized: "Skip Back \(skipSeconds.back) s", comment: "Player menu, with the skip distance")
         case .ahead: String(localized: "Skip Ahead \(skipSeconds.ahead) s", comment: "Player menu, with the skip distance")
+        case .goLive: Self.goLiveText
         case .mute: muted ? String(localized: "Unmute", comment: "Player button") : String(localized: "Mute", comment: "Player button")
         case .fullscreen: isFullscreen ? String(localized: "Exit Full Screen", comment: "Player button") : String(localized: "Full Screen", comment: "Player menu")
         case .mini: String(localized: "Mini Player", comment: "Player button: keeps playing in a corner while you browse")
@@ -369,8 +427,11 @@ final class TransportView: View {
     private func shortcut(of button: Button) -> String {
         switch button {
         case .play: KeyName.space
+        case .back where live != nil: KeyName.pageDown
+        case .ahead where live != nil: KeyName.pageUp
         case .back: KeyName.left
         case .ahead: KeyName.right
+        case .goLive: "L"
         case .mute: "M"
         case .fullscreen: "F"
         case .mini: "P"
@@ -381,8 +442,11 @@ final class TransportView: View {
     private func symbol(of button: Button) -> Symbol {
         switch button {
         case .play: paused ? "play.fill" : "pause.fill"
+        case .back where live != nil: "chevron.down"
+        case .ahead where live != nil: "chevron.up"
         case .back: "gobackward.10"
         case .ahead: "goforward.10"
+        case .goLive: "forward.end.fill"
         case .mute: muted || volume <= 0 ? "speaker.slash" : (volume < 50 ? "speaker.wave.2" : "speaker.wave.3")
         case .fullscreen: isFullscreen ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right"
         case .mini: "pip"
@@ -480,7 +544,7 @@ final class TransportView: View {
                 setVolume(at: point)
                 return true
             }
-            if scrubBand.contains(point) { beginScrub(at: point) }
+            if scrubBand.contains(point), live == nil { beginScrub(at: point) }
             return true
         }
         if playButton.insetBy(-8, -8).contains(point) {
@@ -491,7 +555,7 @@ final class TransportView: View {
             onControl?(control, transformToWindow.apply(frame(of: control)))
             return true
         }
-        if point.x >= bar.x - 8 { beginScrub(at: point) }
+        if point.x >= bar.x - 8, live == nil { beginScrub(at: point) }
         return true
     }
 
@@ -551,8 +615,11 @@ final class TransportView: View {
     private func run(_ button: Button) {
         switch button {
         case .play: onTogglePause?()
+        case .back where live != nil: onZap?(-1)
+        case .ahead where live != nil: onZap?(1)
         case .back: onSkip?(false)
         case .ahead: onSkip?(true)
+        case .goLive: onGoLive?()
         case .mute: onToggleMute?()
         case .fullscreen: onToggleFullscreen?()
         case .mini: onMini?()
@@ -613,10 +680,14 @@ final class TransportView: View {
                            tone: tone.value, context: &context)
         let label = GlassStyle.label(tone: tone.value)
         let firstControl = Control.allCases.map(frame(of:)).map(\.minX).min() ?? frame.width
-        let titleLayout = TextLayout(title, font: theme.type.headline, maxWidth: firstControl - metrics.tv(72), scale: scale)
+        let shownTitle = live.map { [$0.channel, $0.title].joined(separator: "  ·  ") } ?? title
+        let titleLayout = TextLayout(shownTitle, font: theme.type.headline, maxWidth: firstControl - metrics.tv(72), maxLines: 1, scale: scale)
         let titleOrigin = Point(x: metrics.tv(48), y: metrics.tv(28))
         context.text(titleLayout, at: titleOrigin,
                      color: GlassStyle.label(tone: labelTone(.title, over: Rect(origin: titleOrigin, size: titleLayout.size), context)))
+        if let live {
+            drawLiveCouchDetail(live, below: titleOrigin.y + titleLayout.size.height, maxWidth: firstControl - metrics.tv(72), scale: scale, context: &context)
+        }
         drawControls(context: &context)
         let symbol: Symbol = paused ? "play.fill" : "pause.fill"
         let play = playButton
@@ -629,7 +700,9 @@ final class TransportView: View {
         let theme = Theme.current
         let metrics = theme.metrics
         let titleWidth = isCompact ? deskTopRowX - deskInset - metrics.tv(24) : frame.width - deskInset * 2
-        if titleWidth >= metrics.tv(80) {
+        if let live {
+            drawLiveHeader(live, label: label, scale: scale, context: &context)
+        } else if titleWidth >= metrics.tv(80) {
             let titleLayout = TextLayout(title, font: theme.type.headline, maxWidth: titleWidth, maxLines: 1, scale: scale)
             let titleOrigin = isCompact
                 ? Point(x: deskInset, y: (deskTopRowMidY - titleLayout.size.height / 2).rounded())
@@ -639,6 +712,10 @@ final class TransportView: View {
         let accent = theme.palette.accent
         for button in deskButtons {
             let rect = deskFrame(of: button)
+            if button == .goLive {
+                drawGoLive(in: rect, scale: scale, context: &context)
+                continue
+            }
             if hovered == button || pressed == button {
                 context.fill(rect, radius: rect.height / 2, color: label.withAlpha(pressed == button ? 0.24 : 0.14))
             }
@@ -689,7 +766,7 @@ final class TransportView: View {
     }
 
     /// The tone of `label` at `rect`, read from the picture under it, beside the glass's own.
-    private func labelTone(_ label: Label, over rect: Rect, _ context: DrawContext) -> Float {
+    func labelTone(_ label: Label, over rect: Rect, _ context: DrawContext) -> Float {
         var each = labelTones[label] ?? GlassTone()
         if each.update(context, rect: rect, on: tone) { startAnimating() }
         labelTones[label] = each
@@ -709,6 +786,10 @@ final class TransportView: View {
     }
 
     private func drawBar(label: Color, scale: Float, context: inout DrawContext) {
+        if let live {
+            drawLiveBar(live, label: label, scale: scale, context: &context)
+            return
+        }
         let theme = Theme.current
         let metrics = theme.metrics
         let track = bar

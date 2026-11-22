@@ -15,8 +15,8 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | Settings and integrations | 68 | 0 | 0 | 2 |
 | Design system | 97 | 0 | 0 | 0 |
 | Linux-only requirements (docs/LINUX.md) | 104 | 1 | 0 | 0 |
-| Live TV (Beta) | 6 | 0 | 0 | 0 |
-| **All** | 698 | 1 | 0 | 16 |
+| Live TV (Beta) | 9 | 0 | 0 | 0 |
+| **All** | 701 | 1 | 0 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -654,6 +654,9 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `live-play` (M) Select plays a channel that is on and offers Watch Live and Record for one to come; the player changes channel up and down, goes back to the previous one and says which channel and what is on. _Apple TV: Sources/CrucibleTV/LiveTV/TVLiveTVPlayer.swift_
 - [x] `live-record` (M) Record offers the server's choices (this airing, the series) and Recordings lists what is recording, scheduled and the rules, each cancelled or deleted from there. _Apple TV: Sources/CrucibleTV/LiveTV/TVLiveSettings.swift (TVLiveRecordingsViewController)_
 - [x] `live-playlists` (M) Channel Playlists adds a playlist by its address (read and counted first), edits its name, addresses and user agent, removes it, turns Plex's free channels off and refreshes; a `crucible://livetv/add` link offers to add one. _Apple TV: Sources/CrucibleTV/LiveTV/TVLiveSettings.swift (TVLivePlaylistsViewController)_
+- [x] `live-search` (M) Search finds channels by name or number and airings on now or later by title or episode, filling in as every channel's guide loads; a channel or what is on plays, an airing to come offers its actions. Typing on Live TV starts it on Linux. _Apple TV: Sources/CrucibleDesign/LiveTV/LiveSearchResultsController.swift (Search chip)_
+- [x] `live-channel-names` (S) The guide's channel column shows the number with the region and quality as tags and the name, without the playlist's number, country prefix or quality marks, on up to two lines. _Apple TV: Sources/CrucibleDesign/LiveTV/LiveGuideViews.swift (LiveChannelHeaderView)_
+- [x] `live-transport` (M) Playing a channel, the transport shows the airing's own timeline from start to end on the wall clock (no seeking), the LIVE mark, the channel, the episode and what airs next, channel up and down in place of the skip buttons, and after a pause how far behind live with Go Live. _Apple TV: the system player's live transport with TVLiveTVPlayer's channel menu_
 
 ## Linux-only requirements (docs/LINUX.md)
 

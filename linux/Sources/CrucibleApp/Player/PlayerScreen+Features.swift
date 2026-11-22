@@ -219,6 +219,7 @@ extension PlayerScreen {
     /// What the info panel shows: the server's full record once it arrived, the card's until then.
     var infoContent: PlayerInfoPanel.Content {
         if web != nil { return webInfoContent }
+        if let live { return liveInfoContent(live) }
         let headline = prerollHeadline
         guard case .plex(_, let item, _) = source else {
             return PlayerInfoPanel.Content(title: headline.title, chapters: [], streamLines: [], liveLines: livePlaybackLines,

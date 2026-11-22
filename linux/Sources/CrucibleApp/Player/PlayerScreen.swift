@@ -451,6 +451,7 @@ final class PlayerScreen: View {
         transport.update(position: position, duration: duration, buffered: playerState.cachedSeconds, paused: playerState.isPaused,
                          buffering: playerState.isBuffering)
         transport.updateSound(volume: playerState.volume, muted: playerState.isMuted, maximum: player?.maximumVolume ?? 100)
+        liveTick(paused: playerState.isPaused)
         updateSkip()
         if var resolver = upNext, card == nil, postPlay == nil, resolver.creditsReached(at: position) {
             upNext = resolver

@@ -345,11 +345,13 @@ final class RootView: View, WindowRestoration.Restorable {
         }
         if (event.key == Key.character("f") && event.modifiers == .control) || (event.key == Key.character("/") && event.modifiers.isEmpty) {
             if !isCovered, let settings = current?.top as? SettingsScreen, settings.focusSearch() { return true }
+            if !isCovered, let live = current?.top as? LiveTVScreen, live.focusSearch() { return true }
             select("search")
             return true
         }
         if let typed = event.typedText, !isCovered, !typed.trimmingCharacters(in: .whitespaces).isEmpty {
             if let settings = current?.top as? SettingsScreen, settings.beginSearch(with: typed) { return true }
+            if let live = current?.top as? LiveTVScreen, live.beginSearch(with: typed) { return true }
             select("search")
             (stacks["search"]?.top as? SearchScreen)?.begin(with: typed)
             return true

@@ -10,14 +10,21 @@ public struct GuideRow: Equatable, Sendable {
     public var isFavorite: Bool
     /// The airings on the row, in time order; nil while they load.
     public var cells: [GuideCell]?
+    /// Small tags beside the number: the channel's region and picture quality.
+    public var tags: [String]
+    /// The channel's whole name as its source writes it, shown when the pointer rests on the channel.
+    public var fullTitle: String?
 
-    public init(id: String, number: String?, title: String, logo: ArtworkSource?, isFavorite: Bool, cells: [GuideCell]?) {
+    public init(id: String, number: String?, title: String, logo: ArtworkSource?, isFavorite: Bool, cells: [GuideCell]?, tags: [String] = [],
+                fullTitle: String? = nil) {
         self.id = id
         self.number = number
         self.title = title
         self.logo = logo
         self.isFavorite = isFavorite
         self.cells = cells
+        self.tags = tags
+        self.fullTitle = fullTitle
     }
 }
 
@@ -80,6 +87,8 @@ public final class GuideGridView: View {
     /// The ids of the rows on screen, whenever they change, so their airings can load.
     public var onVisibleRows: (([String]) -> Void)?
     public var onFocusMove: ((GuideRow, GuideCell?) -> Void)?
+    /// The pointer came to rest over an airing (with its rectangle in window points), or left the airings (nil).
+    public var onHover: ((GuideRow, GuideCell, Rect)?) -> Void = { _ in }
     /// The labels the guide draws: the time format, and the words for a row still loading and one without listings.
     public var timeLabel: (Date) -> String = { date in
         let formatter = DateFormatter()
@@ -308,6 +317,7 @@ public final class GuideGridView: View {
             scrollY.reset(clampY(scrollY.value + step))
         }
         hovered = nil
+        reportHover()
         reportVisibleRows()
         setNeedsDisplay()
         return true
@@ -318,12 +328,32 @@ public final class GuideGridView: View {
         if hit?.row != hovered?.row || hit?.cell != hovered?.cell {
             hovered = hit
             setNeedsDisplay()
+            reportHover()
         }
     }
 
     public override func pointerExited() {
         hovered = nil
         setNeedsDisplay()
+        reportHover()
+    }
+
+    /// The channel's whole name over the channel column, which may have shortened it.
+    public override func tooltip(at point: Point) -> String? {
+        guard point.x < gridLeft, let hit = hit(point) else { return nil }
+        let row = rows[hit.row]
+        return [row.number, row.fullTitle ?? row.title].compactMap { $0 }.joined(separator: "  ")
+    }
+
+    private func reportHover() {
+        guard let hovered, let index = hovered.cell, let cell = rows[hovered.row].cells?[index] else {
+            onHover(nil)
+            return
+        }
+        let y = y(ofRow: hovered.row)
+        let left = max(x(of: cell.start), gridLeft)
+        let rect = Rect(x: left, y: y, width: max(min(x(of: cell.end), bounds.width) - left, metrics.tv(40)), height: rowHeight)
+        onHover((rows[hovered.row], cell, transformToWindow.apply(rect)))
     }
 
     public override func pointerPressed(_ button: MouseButton, at point: Point) -> Bool {
@@ -409,11 +439,11 @@ public final class GuideGridView: View {
         return Rect(x: gridLeft, y: y, width: gridWidth, height: rowHeight)
     }
 
-    private func layout(_ key: String, _ text: String, font: Font, width: Float) -> TextLayout? {
+    private func layout(_ key: String, _ text: String, font: Font, width: Float, maxLines: Int = 1) -> TextLayout? {
         guard width > metrics.tv(24), let scale = window?.scale else { return nil }
-        let cacheKey = "\(key)|\(Int(width))|\(font.size)|\(font.weight.rawValue)"
+        let cacheKey = "\(key)|\(Int(width))|\(font.size)|\(font.weight.rawValue)|\(maxLines)"
         if let cached = layoutCache[cacheKey] { return cached }
-        let made = TextLayout(text, font: font, maxWidth: width, maxLines: 1, scale: scale)
+        let made = TextLayout(text, font: font, maxWidth: width, maxLines: maxLines, scale: scale)
         layoutCache[cacheKey] = made
         return made
     }
@@ -478,22 +508,7 @@ public final class GuideGridView: View {
                 context.image(texture, in: logoRect.insetBy(metrics.tv(6), metrics.tv(6)), radius: 0, opacity: slot.opacity, fit: true)
             }
         }
-        let textLeft = logoRect.maxX + metrics.tv(16)
-        let textWidth = channelWidth - textLeft - metrics.tv(14)
-        var textY = y + metrics.tv(14)
-        if let number = row.number, let label = layout("n\(row.id)", number, font: theme.type.caption2, width: textWidth) {
-            context.text(label, at: Point(x: textLeft, y: textY.rounded()), color: palette.accentText)
-            textY += label.size.height + metrics.tv(2)
-        }
-        if let name = layout("c\(row.id)", row.title, font: theme.type.cardTitle, width: textWidth - (row.isFavorite ? metrics.tv(34) : 0)) {
-            let centered = row.number == nil ? y + (rowHeight - name.size.height) / 2 : textY
-            context.text(name, at: Point(x: textLeft, y: centered.rounded()), color: palette.label)
-            if row.isFavorite {
-                let side = metrics.tv(24)
-                context.symbol("star.fill", in: Rect(x: textLeft + name.size.width + metrics.tv(8), y: centered + (name.size.height - side) / 2, width: side, height: side),
-                               color: palette.accent)
-            }
-        }
+        drawChannelText(row, left: logoRect.maxX + metrics.tv(16), y: y, in: &context)
         context.clipped(to: Rect(x: gridLeft, y: y - metrics.tv(8), width: gridWidth, height: rowHeight + metrics.tv(16))) { inner in
             guard let cells = row.cells else {
                 drawPlaceholder(loadingText, y: y, in: &inner, focused: rowFocused)
@@ -514,6 +529,45 @@ public final class GuideGridView: View {
                 inner.fill(rect, radius: metrics.tv(4), color: palette.focusFill)
             }
         }
+    }
+
+    /// The channel's number with its tags and favourite star on one line, and its name below on up to two lines, in a
+    /// smaller size when one line cannot hold it, the whole block centred in the row.
+    private func drawChannelText(_ row: GuideRow, left: Float, y: Float, in context: inout DrawContext) {
+        let theme = Theme.current
+        let palette = theme.palette
+        let width = channelWidth - left - metrics.tv(14)
+        let hasTopLine = row.number != nil || !row.tags.isEmpty || row.isFavorite
+        var name = layout("c\(row.id)", row.title, font: theme.type.cardTitle, width: width)
+        if let single = name, single.isTruncated {
+            name = layout("c2\(row.id)", row.title, font: Font(size: theme.type.cardSubtitle.size, weight: .semibold), width: width, maxLines: 2)
+        }
+        let number = row.number.flatMap { layout("n\(row.id)", $0, font: Font(size: theme.type.caption1.size, weight: .semibold), width: width) }
+        let topHeight = hasTopLine ? max(number?.size.height ?? 0, metrics.tv(26)) + metrics.tv(4) : 0
+        let block = topHeight + (name?.size.height ?? 0)
+        var top = (y + (rowHeight - block) / 2).rounded()
+        if hasTopLine {
+            var x = left
+            let mid = top + (topHeight - metrics.tv(4)) / 2
+            if let number {
+                context.text(number, at: Point(x: x, y: (mid - number.size.height / 2).rounded()), color: palette.accentText)
+                x += number.size.width + metrics.tv(10)
+            }
+            for tag in row.tags {
+                guard let label = layout("g\(tag)", tag, font: Font(size: theme.type.caption2.size, weight: .semibold), width: metrics.tv(120)) else { continue }
+                let rect = Rect(x: x, y: (mid - label.size.height / 2 - metrics.tv(3)).rounded(), width: label.size.width + metrics.tv(14), height: label.size.height + metrics.tv(6))
+                guard rect.maxX <= left + width else { break }
+                context.stroke(rect, radius: metrics.tv(5), width: metrics.tv(2), color: palette.labelTertiary)
+                context.text(label, at: Point(x: rect.x + metrics.tv(7), y: rect.y + metrics.tv(3)), color: palette.labelSecondary)
+                x = rect.maxX + metrics.tv(6)
+            }
+            if row.isFavorite {
+                let side = metrics.tv(22)
+                context.symbol("star.fill", in: Rect(x: x + metrics.tv(2), y: mid - side / 2, width: side, height: side), color: palette.accent)
+            }
+            top += topHeight
+        }
+        if let name { context.text(name, at: Point(x: left, y: top), color: palette.label) }
     }
 
     private func drawPlaceholder(_ text: String, y: Float, in context: inout DrawContext, focused: Bool) {
