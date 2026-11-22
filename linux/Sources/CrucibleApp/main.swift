@@ -61,6 +61,7 @@ func runCrucible() -> Int32 {
     let coordinator = AppCoordinator(window: window)
     LinuxDisplay.windows = { coordinator.allWindows }
     let memoryPressure = MemoryPressure(loop: loop) { coordinator.allWindows }
+    let desktopSettings = DesktopSettingsWatch(loop: loop) { coordinator.allWindows }
     let gamepads = Gamepads { coordinator.keyWindow }
     gamepads?.onUse = { CouchOffer.consider(in: coordinator.keyWindow) }
     if ProcessInfo.processInfo.environment["CRUCIBLE_VIRTUAL_PAD"] == "1", gamepads?.attachVirtualPad() == true { CapturePad.pad = gamepads }
@@ -109,6 +110,7 @@ func runCrucible() -> Int32 {
     loop.run { !running }
     signals.forEach { $0.cancel() }
     withExtendedLifetime(memoryPressure) {}
+    withExtendedLifetime(desktopSettings) {}
     withExtendedLifetime(gamepads) {}
     PlayerScreen.active?.close()
     coordinator.closeAllPlayers()

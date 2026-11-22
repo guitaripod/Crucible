@@ -258,7 +258,7 @@ final class YouScreen: SettingsScaffold {
             RowItem(id: RowID.density, title: LinuxDisplay.layoutTitle, subtitle: LinuxDisplay.layoutExplanation, value: LinuxDisplay.densityLabel,
                     symbol: "textformat.size"),
             RowItem(id: RowID.appearance, title: String(localized: "Appearance"),
-                    value: theme.palette.appearance == .dark ? String(localized: "Dark") : String(localized: "Light"), symbol: "circle.lefthalf.filled"),
+                    value: LinuxDisplay.appearanceLabel, symbol: "circle.lefthalf.filled"),
             RowItem(id: RowID.diagnostics, title: String(localized: "Diagnostics"), symbol: "doc.text.magnifyingglass", accessory: .chevron),
             RowItem(id: RowID.about, title: String(localized: "About Crucible"),
                     value: SoftwareUpdate.shared.hasUpdate ? String(localized: "Update Available") : AppInfo.versionSummary, symbol: "info.circle",

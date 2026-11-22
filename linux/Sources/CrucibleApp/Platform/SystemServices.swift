@@ -69,6 +69,27 @@ final class MemoryPressure {
     }
 }
 
+/// Rereads the desktop's settings the moment the settings portal says one changed, such as the desktop switching between
+/// light and dark, instead of waiting for the window to be focused again.
+@MainActor
+final class DesktopSettingsWatch {
+    private let handle: OpaquePointer
+    private static var windows: @MainActor () -> [Window] = { [] }
+
+    init?(loop: EventLoop, windows: @escaping @MainActor () -> [Window]) {
+        guard let handle = crucible_portal_watch_create(DesktopSettingsWatch.handler, nil) else { return nil }
+        self.handle = handle
+        DesktopSettingsWatch.windows = windows
+        loop.add(fd: crucible_portal_watch_fd(handle)) { _ in crucible_portal_watch_process(handle) }
+    }
+
+    private static let handler: crucible_portal_watch_handler = { _, _, _ in
+        MainActor.assumeIsolated {
+            DesktopAccessibility.apply(to: DesktopSettingsWatch.windows().first)
+        }
+    }
+}
+
 /// The desktop's Reduce Motion and contrast settings, read through the settings portal (docs/LINUX.md section 5): reduced
 /// motion (the portal's own key, GNOME's animations switch or KDE's animation speed at instant) makes every change apply at
 /// once, and high contrast turns glass into the opaque raised surface, as Reduce Transparency does on the Apple TV. The
@@ -81,6 +102,7 @@ enum DesktopAccessibility {
         var reducesMotion: Bool
         var reducesTransparency: Bool
         var textScale: Float
+        var prefersLight: Bool?
     }
 
     private static let portal = DispatchQueue(label: "crucible.portal-settings")
@@ -94,7 +116,14 @@ enum DesktopAccessibility {
         }
     }
 
+    /// The desktop's light or dark style, asked at launch before the first frame so it never flashes the other one; nil
+    /// when the portal does not say.
+    static func systemPrefersLight() -> Bool? {
+        portal.sync { prefersLight }
+    }
+
     private static func use(_ settings: Settings, in window: Window?) {
+        if let prefersLight = settings.prefersLight { LinuxDisplay.systemStyleChanged(prefersLight: prefersLight, in: window) }
         let theme = Theme.current
         guard settings.reducesMotion != Animation.reduceMotion || settings.reducesTransparency != theme.reduceTransparency
             || settings.textScale != theme.textScale else { return }
@@ -110,7 +139,14 @@ enum DesktopAccessibility {
     }
 
     private nonisolated static func read() -> Settings {
-        Settings(reducesMotion: reducesMotion, reducesTransparency: reducesTransparency, textScale: textScale)
+        Settings(reducesMotion: reducesMotion, reducesTransparency: reducesTransparency, textScale: textScale, prefersLight: prefersLight)
+    }
+
+    /// The portal's `color-scheme`: 1 prefers dark, 2 prefers light, 0 has no preference, which Crucible draws dark.
+    /// `CRUCIBLE_COLOR_SCHEME` set to light or dark overrides it, for headless checks.
+    private nonisolated static var prefersLight: Bool? {
+        if let forced = ProcessInfo.processInfo.environment["CRUCIBLE_COLOR_SCHEME"] { return forced == "light" }
+        return setting("org.freedesktop.appearance", "color-scheme").map { $0 == 2 }
     }
 
     /// GNOME's text scaling factor (the portal answers it on other desktops too), within what the layouts are built for.

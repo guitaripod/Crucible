@@ -135,7 +135,7 @@ enum LinuxSetting: String, CaseIterable {
         case .mouseDoubleClick: return Self.choices(PlayerMouse.DoubleClick.allCases, current: PlayerMouse.doubleClick, title: Self.title)
         case .mouseWheel: return Self.choices(PlayerMouse.Wheel.allCases, current: PlayerMouse.wheel, title: Self.title)
         case .mouseMiddle: return Self.choices(PlayerMouse.MiddleClick.allCases, current: PlayerMouse.middleClick, title: Self.title)
-        case .appearance: return Self.choices([false, true], current: LinuxDisplay.isLight, title: { $0 ? String(localized: "Light") : String(localized: "Dark") })
+        case .appearance: return Self.choices(LinuxDisplay.AppearanceMode.allCases, current: LinuxDisplay.appearanceMode, title: \.title)
         case .layout: return Self.choices([false, true], current: LinuxDisplay.isCouch, title: Self.layoutTitle)
         case .posterSize: return Self.choices(CardZoom.sizes, current: (Theme.current.cardZoom * 10).rounded() / 10, title: { "\(Int(($0 * 100).rounded()))%" })
         default: return .toggle(isOn: false)
@@ -165,7 +165,7 @@ enum LinuxSetting: String, CaseIterable {
         case .mouseDoubleClick: Self.pick(PlayerMouse.DoubleClick.allCases, index) { PlayerMouse.doubleClick = $0 }
         case .mouseWheel: Self.pick(PlayerMouse.Wheel.allCases, index) { PlayerMouse.wheel = $0 }
         case .mouseMiddle: Self.pick(PlayerMouse.MiddleClick.allCases, index) { PlayerMouse.middleClick = $0 }
-        case .appearance: Self.pick([false, true], index) { light in if light != LinuxDisplay.isLight { LinuxDisplay.toggleAppearance(in: window) } }
+        case .appearance: Self.pick(LinuxDisplay.AppearanceMode.allCases, index) { LinuxDisplay.setAppearance($0, in: window) }
         case .layout: Self.pick([false, true], index) { couch in if couch != LinuxDisplay.isCouch { LinuxDisplay.toggleDensity(in: window) } }
         case .posterSize:
             Self.pick(CardZoom.sizes, index) { size in

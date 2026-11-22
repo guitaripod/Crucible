@@ -3,14 +3,27 @@ import CrucibleUI
 import Foundation
 import Kiln
 
-/// How Crucible draws itself, kept between launches: light or dark, the layout, and the poster size (which `CardZoom`
+/// How Crucible draws itself, kept between launches: the desktop's light or dark (System, the default), or one of them, the layout, and the poster size (which `CardZoom`
 /// keeps). The Desktop layout (the desk density) is made for a mouse and keyboard on a monitor; the Steam Deck layout (the
 /// couch density) draws the Apple TV design for a gamepad, on the Deck or a TV across the room, and is the default in
 /// Steam's Game Mode until the viewer picks one. `--light`, `--steam-deck` (or `--couch`) and `--desktop` on the command
 /// line, and `CRUCIBLE_LAYOUT=steam-deck|desktop`, win over what is saved, for that launch only.
 @MainActor
 enum LinuxDisplay {
-    private static let appearanceKey = "linux.appearance"
+    enum AppearanceMode: String, CaseIterable, Sendable {
+        case system, dark, light
+
+        var title: String {
+            switch self {
+            case .system: String(localized: "System", comment: "Linux appearance that follows the desktop's light or dark style")
+            case .dark: String(localized: "Dark")
+            case .light: String(localized: "Light")
+            }
+        }
+    }
+
+    private static let legacyAppearanceKey = "linux.appearance"
+    private static let appearanceModeKey = "linux.appearanceMode"
     private static let densityKey = "linux.density"
     /// Couch's canvas: the tvOS tokens one to one on the Apple TV's 1920 by 1080 points, scaled to the screen.
     static let couchCanvas = Size(width: 1920, height: 1080)
@@ -26,9 +39,10 @@ enum LinuxDisplay {
     static func restore(arguments: [String], environment: [String: String] = ProcessInfo.processInfo.environment) {
         let theme = Theme.current
         let defaults = UserDefaults.standard
-        let savedLight = defaults.string(forKey: appearanceKey) == "light"
         theme.density = density(arguments: arguments, environment: environment, saved: defaults.string(forKey: densityKey))
-        theme.palette = arguments.contains("--light") || savedLight ? .light : .dark
+        if arguments.contains("--light") { forcedMode = .light }
+        if appearanceMode == .system { lastSystemPrefersLight = DesktopAccessibility.systemPrefersLight() ?? false }
+        theme.palette = palette(for: appearanceMode, systemPrefersLight: lastSystemPrefersLight)
         theme.cardZoom = CardZoom.saved
         applyScrolling()
     }
@@ -65,7 +79,24 @@ enum LinuxDisplay {
     static var isLight: Bool { Theme.current.palette.appearance == .light }
     static var isCouch: Bool { Theme.current.density == .couch }
 
-    static var appearanceLabel: String { isLight ? String(localized: "Light") : String(localized: "Dark") }
+    /// `--light` for this launch only, over what is saved.
+    private static var forcedMode: AppearanceMode?
+
+    /// The viewer's choice; System until they pick Dark or Light. The light-or-dark switch of earlier versions offered no
+    /// System, so what it saved is left behind.
+    static var appearanceMode: AppearanceMode {
+        forcedMode ?? UserDefaults.standard.string(forKey: appearanceModeKey).flatMap(AppearanceMode.init) ?? .system
+    }
+
+    static var appearanceLabel: String { appearanceMode.title }
+
+    private static func palette(for mode: AppearanceMode, systemPrefersLight: Bool) -> Palette {
+        switch mode {
+        case .system: systemPrefersLight ? .light : .dark
+        case .dark: .dark
+        case .light: .light
+        }
+    }
     static var densityLabel: String {
         isCouch ? String(localized: "Steam Deck", comment: "Linux layout made for a gamepad, on a Steam Deck or a TV")
                 : String(localized: "Desktop", comment: "Linux layout made for a mouse and keyboard on a monitor")
@@ -93,9 +124,33 @@ enum LinuxDisplay {
 
     /// Switches between light and dark everywhere at once, and keeps the choice.
     static func toggleAppearance(in window: Window?) {
+        setAppearance(isLight ? .dark : .light, systemPrefersLight: !isLight, in: window)
+    }
+
+    /// Keeps `mode` and draws every window in it; System takes the desktop's style, `systemPrefersLight` when it is known
+    /// and otherwise as last seen.
+    static func setAppearance(_ mode: AppearanceMode, systemPrefersLight: Bool? = nil, in window: Window?) {
+        forcedMode = nil
+        UserDefaults.standard.set(mode.rawValue, forKey: appearanceModeKey)
+        UserDefaults.standard.removeObject(forKey: legacyAppearanceKey)
+        if mode == .system { DesktopAccessibility.apply(to: window) }
+        apply(palette(for: mode, systemPrefersLight: systemPrefersLight ?? lastSystemPrefersLight), in: window)
+    }
+
+    /// The desktop's style as the settings portal last told it.
+    private static var lastSystemPrefersLight = false
+
+    /// The desktop switched between light and dark: followed at once under System.
+    static func systemStyleChanged(prefersLight: Bool, in window: Window?) {
+        lastSystemPrefersLight = prefersLight
+        guard appearanceMode == .system else { return }
+        apply(prefersLight ? .light : .dark, in: window)
+    }
+
+    private static func apply(_ palette: Palette, in window: Window?) {
         let theme = Theme.current
-        theme.palette = isLight ? .dark : .light
-        UserDefaults.standard.set(isLight ? "light" : "dark", forKey: appearanceKey)
+        guard theme.palette.appearance != palette.appearance else { return }
+        theme.palette = palette
         applyScrolling()
         for each in everyWindow(window) {
             each.background = theme.palette.canvas
