@@ -8,7 +8,7 @@ final class YouViewController: UICollectionViewController {
     }
 
     enum Item: Hashable {
-        case demo, freePreview, profile, switchProfile, year, playlists, watchlist, requests, activity, dashboard, history, statistics, settings, server, about
+        case demo, freePreview, profile, switchProfile, year, playlists, watchlist, liveTV, requests, activity, dashboard, history, statistics, settings, server, about
     }
 
     private let api: APIClient
@@ -164,6 +164,10 @@ final class YouViewController: UICollectionViewController {
                 cell.contentConfiguration = content
                 cell.accessories = [.disclosureIndicator()]
                 cell.accessibilityIdentifier = "you.watchlist"
+            case .liveTV:
+                cell.contentConfiguration = IconRowContentConfiguration(symbol: "antenna.radiowaves.left.and.right", title: LiveTVCopy.title, badge: LiveTVCopy.beta)
+                cell.accessories = [.disclosureIndicator()]
+                cell.accessibilityIdentifier = "you.liveTV"
             case .requests:
                 cell.contentConfiguration = IconRowContentConfiguration(symbol: "tray.full", title: SeerrCopy.requests)
                 cell.accessories = [.disclosureIndicator()]
@@ -250,7 +254,7 @@ final class YouViewController: UICollectionViewController {
             snapshot.appendItems([.year], toSection: .year)
         }
         snapshot.appendSections([.activity, .app, .about])
-        snapshot.appendItems([.history, .statistics, .playlists, .watchlist] + (SeerrAccount.shared.isConnected ? [.requests] : []) + [.activity] + (ServerOwnership.isOwner() ? [.dashboard] : []), toSection: .activity)
+        snapshot.appendItems([.history, .statistics, .playlists, .watchlist] + [.liveTV] + (SeerrAccount.shared.isConnected ? [.requests] : []) + [.activity] + (ServerOwnership.isOwner() ? [.dashboard] : []), toSection: .activity)
         snapshot.appendItems(isInDemo ? [.settings] : [.settings, .server], toSection: .app)
         snapshot.appendItems([.about], toSection: .about)
         snapshot.reconfigureItems(snapshot.itemIdentifiers)
@@ -290,6 +294,7 @@ final class YouViewController: UICollectionViewController {
         case .year, .statistics: destination = StatisticsViewController(api: api)
         case .playlists: destination = PlaylistScreens.playlists(api: api)
         case .watchlist: destination = WatchlistScreen.watchlist(api: api)
+        case .liveTV: destination = LiveTVViewController(context: .current(api: api), api: api)
         case .requests: destination = SeerrRequestsViewController(api: api)
         case .activity: destination = ActivityScreen.serverActivity(api: api)
         case .dashboard: destination = ServerDashboardViewController(api: api)

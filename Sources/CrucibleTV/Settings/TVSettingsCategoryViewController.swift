@@ -132,6 +132,7 @@ final class TVSettingsCategoryViewController: TVSettingsScaffold {
         case .crucibleServer: screen = TVCompanionViewController()
         case .trakt: screen = TVTraktSettingsViewController()
         case .seerr: screen = TVSeerrSettingsViewController(env: env)
+        case .liveTV: screen = TVLivePlaylistsViewController(showsDestinationSwitch: true)
         case .diagnostics: screen = TVScreens.settings(env, page: .diagnostics)
         case .about: screen = TVScreens.settings(env, page: .about)
         case .manageStorage, .notificationPermission, .sourceCode: return

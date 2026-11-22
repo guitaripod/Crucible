@@ -9,6 +9,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     private var pendingActivity: NSUserActivity?
     private var pendingInvite: CompanionInvite?
     private var pendingDevice: CompanionDeviceInvite?
+    private var pendingLive: LiveTVLink?
     private var launchTask: Task<Void, Never>?
     private var traktObserver: (any NSObjectProtocol)?
 
@@ -37,6 +38,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         pendingActivity = connectionOptions.userActivities.first ?? (PhoneDebugSession.startsFresh ? nil : session.stateRestorationActivity)
         pendingInvite = connectionOptions.urlContexts.lazy.compactMap { CompanionInvite(url: $0.url) }.first
         pendingDevice = connectionOptions.urlContexts.lazy.compactMap { CompanionDeviceInvite(url: $0.url) }.first
+        pendingLive = connectionOptions.urlContexts.lazy.compactMap { LiveTVLink(url: $0.url) }.first
         CompanionAdvertiser.shared.refresh()
         MidgarLog.notice("Window connected (\(UIApplication.shared.connectedScenes.count) open, activity: \(pendingActivity?.activityType ?? "none"))", category: .lifecycle)
         connectToLibrary()
@@ -65,7 +67,29 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             offerPairing(invite)
         } else if let device = URLContexts.lazy.compactMap({ CompanionDeviceInvite(url: $0.url) }).first {
             offerAdding(device)
+        } else if let live = URLContexts.lazy.compactMap({ LiveTVLink(url: $0.url) }).first {
+            openLiveTV(live)
         }
+    }
+
+    /// Opens Live TV, and for a link that names a channel playlist, asks before adding it.
+    private func openLiveTV(_ link: LiveTVLink) {
+        guard let tabBar = window?.rootViewController as? TabBarController else {
+            pendingLive = link
+            return
+        }
+        if tabBar.presentedViewController != nil { tabBar.dismiss(animated: false) }
+        let screen = tabBar.openLiveTV()
+        guard case .add(let playlist) = link else { return }
+        let alert = UIAlertController(title: LiveTVCopy.importQuestion(playlist.name), message: [LiveTVCopy.importText, playlist.address.host ?? ""].joined(separator: "\n\n"),
+                                      preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel))
+        alert.addAction(UIAlertAction(title: LiveTVCopy.add, style: .default) { _ in
+            let playlists = LivePlaylistsViewController(showsDestinationSwitch: false)
+            (screen?.navigationController ?? tabBar.currentNavigation)?.pushViewController(playlists, animated: true)
+            playlists.add(playlist)
+        })
+        tabBar.present(alert, animated: true)
     }
 
     private func offerAdding(_ device: CompanionDeviceInvite) {
@@ -339,6 +363,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             } else if let device = self.pendingDevice {
                 self.pendingDevice = nil
                 self.offerAdding(device)
+            } else if let live = self.pendingLive {
+                self.pendingLive = nil
+                self.openLiveTV(live)
             }
             guard let pending = self.pendingActivity else { return }
             self.pendingActivity = nil

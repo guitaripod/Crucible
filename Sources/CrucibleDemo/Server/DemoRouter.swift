@@ -17,6 +17,7 @@ struct DemoRouter: Sendable {
         let parts = request.path.split(separator: "/").map(String.init)
         if parts.first == Self.plexTVPrefix {
             let rest = Array(parts.dropFirst())
+            if let live = await DemoLiveTV.shared.respond(rest, request, viaPlexTV: true, assets: assets) { return live }
             if rest.count == 4, rest[0] == "library", rest[1] == "metadata", rest[3] == "children",
                let catalogue = await library.libraryCatalogueChildren(rest[2]) {
                 return catalogue
@@ -24,6 +25,7 @@ struct DemoRouter: Sendable {
             return await handle(DemoRequest(method: request.method, path: "/" + rest.joined(separator: "/"), query: request.query, headers: request.headers, body: request.body))
         }
         if Self.isTrakt(request) { return await traktResponse(parts, request) }
+        if parts.first != nil, let live = await DemoLiveTV.shared.respond(parts, request, viaPlexTV: false, assets: assets) { return live }
         if parts.first == "seerr" { return await seerrResponse(Array(parts.dropFirst()), request) }
         switch parts.first {
         case nil, "identity":

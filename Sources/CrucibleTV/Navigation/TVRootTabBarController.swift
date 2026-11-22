@@ -17,6 +17,7 @@ final class TVRootTabBarController: UITabBarController {
     private static let homeIdentifier = "home"
     private static let searchIdentifier = "search"
     private static let youIdentifier = "you"
+    private static let liveIdentifier = "livetv"
 
     let environment: TVAppEnvironment
 
@@ -58,6 +59,7 @@ final class TVRootTabBarController: UITabBarController {
         case .library: identifier.hasPrefix("library.") || identifier == "more"
         case .search: identifier == searchIdentifier
         case .you: identifier == youIdentifier
+        case .liveTV: identifier == liveIdentifier
         }
     }
 
@@ -88,6 +90,9 @@ final class TVRootTabBarController: UITabBarController {
         }
         if layout.hasMore {
             result.append(Entry(identifier: "more", title: String(localized: "More", comment: "Tab bar title"), symbol: "ellipsis") { TVScreens.more(env) })
+        }
+        if LiveTVPreferences.showsDestination {
+            result.append(Entry(identifier: Self.liveIdentifier, title: LiveTVCopy.title, symbol: "antenna.radiowaves.left.and.right") { TVScreens.liveTV(env) })
         }
         result.append(Entry(identifier: Self.searchIdentifier, title: String(localized: "Search", comment: "Tab bar title"), symbol: "magnifyingglass") { TVScreens.search(env) })
         result.append(Entry(identifier: Self.youIdentifier, title: String(localized: "You", comment: "Tab bar title"), symbol: "person.crop.circle") { TVScreens.you(env) })

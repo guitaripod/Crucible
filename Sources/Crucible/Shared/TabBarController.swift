@@ -5,7 +5,7 @@ import UIKit
 
 final class TabBarController: UITabBarController {
     enum Tab: Int, CaseIterable {
-        case home, library, downloads, you, search
+        case home, library, downloads, you, search, liveTV
 
         var identifier: String {
             switch self {
@@ -14,6 +14,7 @@ final class TabBarController: UITabBarController {
             case .downloads: return "downloads"
             case .you: return "you"
             case .search: return "search"
+            case .liveTV: return "livetv"
             }
         }
 
@@ -33,6 +34,9 @@ final class TabBarController: UITabBarController {
     private var downloadObserver: UUID?
     private var downloadsTab: AnyObject?
     private var searchTab: AnyObject?
+    private var liveTab: AnyObject?
+    nonisolated(unsafe) private var liveObserver: NSObjectProtocol?
+    private lazy var liveNavigation = ContentNavigationController(rootViewController: LiveTVViewController(context: LiveTVGuide.Context(payload: payload), api: api))
     /// The window's player and the bar above the tab bar it shrinks into.
     private(set) lazy var miniPlayer = MiniPlayerDock(tabBar: self)
     private lazy var libraryTabMenu = LibraryTabMenu(title: String(localized: "Library")) { [weak self] in self?.libraryTabMenuContents() }
@@ -55,6 +59,7 @@ final class TabBarController: UITabBarController {
         if let downloadObserver {
             Task { @MainActor in DownloadManager.shared.removeObserver(downloadObserver) }
         }
+        if let liveObserver { NotificationCenter.default.removeObserver(liveObserver) }
     }
 
     override func viewDidLoad() {
@@ -74,6 +79,9 @@ final class TabBarController: UITabBarController {
 
         downloadObserver = DownloadManager.shared.addObserver { [weak self] _ in
             self?.updateDownloadBadge()
+        }
+        liveObserver = NotificationCenter.default.addObserver(forName: .liveDestinationChanged, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.updateLiveTab() }
         }
         updateDownloadBadge()
     }
@@ -169,7 +177,9 @@ final class TabBarController: UITabBarController {
         searchTab.title = String(localized: "Search")
         self.downloadsTab = downloadsTab
         self.searchTab = searchTab
-        tabs = [homeTab, libraryTab, downloadsTab, youTab, searchTab]
+        let live = liveNavigationTab()
+        self.liveTab = live
+        tabs = [homeTab, libraryTab] + (showsLiveTab ? [live] : []) + [downloadsTab, youTab, searchTab]
         customizationIdentifier = "com.guitaripod.crucible.tabs"
         if #available(iOS 26.0, *) {
             tabBarMinimizeBehavior = .onScrollDown
@@ -177,6 +187,48 @@ final class TabBarController: UITabBarController {
         if #available(iOS 27.0, *) {
             sidebar.preferredPlacement = .sidebar
         }
+    }
+
+    /// Live TV has a tab in the iPad's sidebar. The iPhone's tab bar holds five, and a sixth would push You behind More, so
+    /// Live TV is reached from You there.
+    private var showsLiveTab: Bool {
+        LiveTVPreferences.showsDestination && traitCollection.userInterfaceIdiom == .pad
+    }
+
+    @available(iOS 18.0, *)
+    private func liveNavigationTab() -> UITab {
+        let tab = UITab(title: LiveTVCopy.title, image: UIImage(systemName: "antenna.radiowaves.left.and.right"), identifier: Tab.liveTV.identifier) { [unowned self] _ in
+            liveNavigation
+        }
+        tab.allowsHiding = true
+        return tab
+    }
+
+    /// Adds or removes the Live TV tab when the viewer turns it on or off in Settings.
+    private func updateLiveTab() {
+        guard #available(iOS 18.0, *), let live = liveTab as? UITab else { return }
+        let present = tabs.contains { $0 === live }
+        if showsLiveTab, !present {
+            var updated = tabs
+            let index = (updated.firstIndex { $0.identifier == Tab.library.identifier }).map { $0 + 1 } ?? 1
+            updated.insert(live, at: min(index, updated.count))
+            tabs = updated
+        } else if !showsLiveTab, present {
+            if selectedTab === live { select(.home) }
+            tabs = tabs.filter { $0 !== live }
+        }
+    }
+
+    /// Opens Live TV: its tab where it has one, otherwise on top of You.
+    func openLiveTV() -> LiveTVViewController? {
+        if #available(iOS 18.0, *), let live = liveTab as? UITab, tabs.contains(where: { $0 === live }) {
+            select(.liveTV)
+            liveNavigation.popToRootViewController(animated: false)
+            return liveNavigation.viewControllers.first as? LiveTVViewController
+        }
+        let screen = LiveTVViewController(context: LiveTVGuide.Context(payload: payload), api: api)
+        open(.you)?.pushViewController(screen, animated: true)
+        return screen
     }
 
     private static func libraryIdentifier(_ sectionID: String) -> String {

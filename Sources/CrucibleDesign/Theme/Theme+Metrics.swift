@@ -82,4 +82,15 @@ extension Theme {
         package static let monogramDiameter: CGFloat = metric(phone: 56, tv: 150)
         package static let monogramBorderWidth: CGFloat = metric(phone: 1, tv: 2)
     }
+
+    /// The TV guide's grid: the channel column, a row, an hour of airings and the time ruler above.
+    package enum LiveGuide {
+        package static let channelWidth: CGFloat = metric(phone: 128, tv: 380)
+        package static let rowHeight: CGFloat = metric(phone: 64, tv: 110)
+        package static let rowSpacing: CGFloat = metric(phone: 4, tv: 12)
+        package static let pointsPerHour: CGFloat = metric(phone: 300, tv: 760)
+        package static let headerHeight: CGFloat = metric(phone: 30, tv: 64)
+        package static let cellSpacing: CGFloat = metric(phone: 3, tv: 10)
+        package static let nowLineWidth: CGFloat = metric(phone: 2, tv: 4)
+    }
 }

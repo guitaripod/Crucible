@@ -19,8 +19,10 @@ struct TVAppEnvironment {
 
     /// Home, Search and You take three tabs of their own. tvOS 26 packs seven tabs into its bar; tvOS
     /// 18.6 clips the seventh (You vanished from the bar), so older systems get one library tab fewer.
+    /// Live TV's tab takes one library tab's place, so the bar never grows past what it holds.
     private static var libraryTabLimit: Int {
-        if #available(tvOS 26.0, *) { return LibraryTabLayout.defaultLimit }
-        return LibraryTabLayout.defaultLimit - 1
+        let live = LiveTVPreferences.showsDestination ? 1 : 0
+        if #available(tvOS 26.0, *) { return LibraryTabLayout.defaultLimit - live }
+        return LibraryTabLayout.defaultLimit - 1 - live
     }
 }

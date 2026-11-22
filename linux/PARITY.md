@@ -15,7 +15,8 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | Settings and integrations | 68 | 0 | 0 | 2 |
 | Design system | 97 | 0 | 0 | 0 |
 | Linux-only requirements (docs/LINUX.md) | 104 | 1 | 0 | 0 |
-| **All** | 692 | 1 | 0 | 16 |
+| Live TV (Beta) | 6 | 0 | 0 | 0 |
+| **All** | 698 | 1 | 0 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -644,6 +645,15 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [x] `design-tab-bar-focus-pill` (S) Focused tab turns into the light pill with dark text, and the pointer lights the glass under it _Apple TV: Sources/CrucibleTV/DesignSystem/Controls/TVButton.swift:7-10_
 - [x] `design-scroll-overdraw` (S) Focused cards and buttons draw beyond their cells without clipping, so the lift is never cut off _Apple TV: Sources/CrucibleTV/DesignSystem/Focus/TVCollectionView.swift:15-24_
 - [x] `design-gallery` (M) Component gallery showing every card, control, state and hero in focused and hovered states, for review _Apple TV: Sources/CrucibleTV/DesignSystem/Gallery/TVDesignGalleryViewController.swift:1-387_
+
+## Live TV (Beta)
+
+- [x] `live-destination` (M) A Live TV tab (a sidebar entry on the Desktop layout) with the title and a Beta tag that breathes until first opened, onto a note of what Live TV does with Send Feedback; Settings › Home & Libraries › Live TV turns it off. _Apple TV: Sources/CrucibleTV/LiveTV/TVLiveTVViewController.swift, TVLiveSettings.swift (TVLiveBetaNoteViewController)_
+- [x] `live-guide` (L) The guide: channels down the leading edge with logo, number and name, their airings across a timeline from the current half hour with the time ruler pinned, a line at the present, progress on what is on, past airings dimmed, focus moving airing by airing, and the focused airing described above it. _Apple TV: Sources/CrucibleDesign/LiveTV/LiveGuideLayout.swift_
+- [x] `live-sources` (M) Plex's free channels, each DVR on the server and each channel playlist (M3U with its XMLTV guide), with All Channels, Favorites, Recent, each source and a Categories menu as filters. _Apple TV: Sources/CrucibleCore/Features/LiveTV/LiveTVGuide.swift_
+- [x] `live-play` (M) Select plays a channel that is on and offers Watch Live and Record for one to come; the player changes channel up and down, goes back to the previous one and says which channel and what is on. _Apple TV: Sources/CrucibleTV/LiveTV/TVLiveTVPlayer.swift_
+- [x] `live-record` (M) Record offers the server's choices (this airing, the series) and Recordings lists what is recording, scheduled and the rules, each cancelled or deleted from there. _Apple TV: Sources/CrucibleTV/LiveTV/TVLiveSettings.swift (TVLiveRecordingsViewController)_
+- [x] `live-playlists` (M) Channel Playlists adds a playlist by its address (read and counted first), edits its name, addresses and user agent, removes it, turns Plex's free channels off and refreshes; a `crucible://livetv/add` link offers to add one. _Apple TV: Sources/CrucibleTV/LiveTV/TVLiveSettings.swift (TVLivePlaylistsViewController)_
 
 ## Linux-only requirements (docs/LINUX.md)
 

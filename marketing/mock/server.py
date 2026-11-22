@@ -16,6 +16,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, unquote, urlparse
 
 import library
+import livetv
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ASSETS = os.path.join(HERE, "assets")
@@ -164,6 +165,7 @@ DETAIL_PROGRESS_OFFSET = LIB.items[DETAIL_PROGRESS_KEY].get("viewOffset")
 def reset_state():
     """Returns the mock to how it was started: a fresh library and history, no stopped streams or running scans, no runtime overrides, and every flag and plex.tv setting at its default."""
     global LIB, HUBS_MODE, PIN_POLLS, PIN_LIFETIME, PLEXTV_SERVERS, REJECT_TOKEN
+    livetv.reset()
     with LOCK:
         LIB = library.Library()
         PINS.clear()
@@ -869,6 +871,9 @@ class Handler(BaseHTTPRequestHandler):
         if p == "/mock/hubs":
             return self.set_hubs_mode(one("mode", "ok"))
 
+        if livetv.handle(self, p, q, f"http://{self.headers.get('Host') or f'127.0.0.1:{PORT}'}"):
+            return
+
         if p.startswith("/api/v2/") or p.startswith("/mock/"):
             return self.plextv(p, q)
 
@@ -881,8 +886,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.event_stream()
 
         if p in ("/identity", "/"):
-            return self.send_json(container(size=0, claimed=True, machineIdentifier=library.MACHINE_ID,
-                                            version="1.41.4.9463-630c9f557", friendlyName=library.SERVER_NAME))
+            return self.send_json({**container(size=0, claimed=True, machineIdentifier=library.MACHINE_ID,
+                                               version="1.41.4.9463-630c9f557", friendlyName=library.SERVER_NAME), **livetv.provider()})
 
         if p in ("/:/scrobble", "/:/unscrobble") and env("MOCK_FAIL_WATCHED") == "1":
             return self.not_found()
@@ -1606,6 +1611,7 @@ class Server(ThreadingHTTPServer):
 
 def main():
     srv = Server(("0.0.0.0", PORT), Handler)
+    threading.Thread(target=livetv.ensure_assets, daemon=True).start()
     sys.stderr.write(f"Mock Plex server '{library.SERVER_NAME}' on :{PORT}, {len(LIB.items)} items, {len(LIB.history)} history rows\n")
     try:
         srv.serve_forever()

@@ -115,6 +115,8 @@ final class SettingsNavigator {
             host.navigationController?.pushViewController(TraktSettingsViewController(api: api), animated: true)
         case .seerr:
             host.navigationController?.pushViewController(SeerrSettingsViewController(api: api), animated: true)
+        case .liveTV:
+            host.navigationController?.pushViewController(LivePlaylistsViewController(showsDestinationSwitch: true), animated: true)
         case .manageStorage:
             (host.tabBarController as? TabBarController)?.select(.downloads)
         case .notificationPermission:

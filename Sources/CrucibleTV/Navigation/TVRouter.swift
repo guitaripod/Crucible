@@ -9,6 +9,7 @@ import UIKit
 final class TVRouter {
     private weak var tabBar: TVRootTabBarController?
     private var pending: DeepLink?
+    private var pendingLive: LiveTVLink?
     private var resolveTask: Task<Void, Never>?
     #if DEBUG
     private static var launchLinkConsumed = false
@@ -22,6 +23,10 @@ final class TVRouter {
         TVDebugWalk.startIfRequested(on: tabBar)
         queueLaunchLink()
         #endif
+        if let live = pendingLive {
+            pendingLive = nil
+            open(live)
+        }
         guard let link = pending else { return }
         pending = nil
         handle(link)
@@ -53,17 +58,38 @@ final class TVRouter {
     }
     #endif
 
+    /// Opens Live TV, and for a link that names a channel playlist, asks before adding it.
+    private func open(_ link: LiveTVLink) {
+        guard let tabBar, let navigation = tabBar.select(.liveTV) else { return }
+        navigation.popToRootViewController(animated: false)
+        guard case .add(let playlist) = link, let host = navigation.topViewController else { return }
+        let alert = UIAlertController(title: LiveTVCopy.importQuestion(playlist.name), message: [LiveTVCopy.importText, playlist.address.host ?? ""].joined(separator: "\n\n"),
+                                      preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel))
+        alert.addAction(UIAlertAction(title: LiveTVCopy.add, style: .default) { _ in
+            let playlists = TVLivePlaylistsViewController(showsDestinationSwitch: false)
+            navigation.pushViewController(playlists, animated: TVMotion.animationsEnabled)
+            playlists.add(playlist)
+        })
+        host.present(alert, animated: TVMotion.animationsEnabled)
+    }
+
     /// Called when the main UI goes away (sign out, relaunch); drops anything still queued.
     func deactivate() {
         resolveTask?.cancel()
         resolveTask = nil
         tabBar = nil
         pending = nil
+        pendingLive = nil
     }
 
     /// Routes a `crucible://` URL. Returns false when the URL is not one of ours.
     @discardableResult
     func handle(_ url: URL) -> Bool {
+        if let live = LiveTVLink(url: url) {
+            if tabBar == nil { pendingLive = live } else { open(live) }
+            return true
+        }
         guard let link = DeepLink(url: url) else {
             MidgarLog.notice("Ignored unrecognised URL \(Self.redacted(url))", category: .lifecycle)
             return false
