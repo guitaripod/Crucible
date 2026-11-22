@@ -27,6 +27,22 @@ actor DemoLiveTV {
                                 "Night Ferry", "Lanterns", "The Keeper", "Tidewater", "Glasswork", "Driftwood Kitchen", "The Inspector Calls Again"]
     private static let episodes = ["Low Tide", "The Signal", "Fog Bank", "First Light", "The Map Room", "Undertow", "A Ship Called Hope", "Breakwater",
                                    "Lantern Night", "The Last Ferry", "Northbound", "Salt", "The Keeper's Log", "Harbour Master"]
+    private static let synopses: [String: String] = [
+        "Harbour Lights": "A harbour pilot and her estranged brother keep the port running through one hard winter.",
+        "The Long Crossing": "Six strangers share a cabin on a ferry that never quite reaches the other side.",
+        "Ember & Ash": "Two rival bakers inherit the same shop and refuse to share the oven.",
+        "North of Nowhere": "A rookie constable takes the only post above the Arctic Circle, and the town takes him in.",
+        "Saltwater": "A family of oyster farmers fights to keep their beds through a season of storms.",
+        "The Quiet Coast": "Wildlife cameras follow seals, puffins and foxes along an empty shoreline.",
+        "Cartography": "Mapmakers retrace the routes of the old surveys, one coastline at a time.",
+        "Night Ferry": "A night-shift deckhand hears every secret aboard the last crossing of the day.",
+        "Lanterns": "A lighthouse keeper's daughter solves small mysteries in a fishing village.",
+        "The Keeper": "The last keeper of a remote light decides whether to leave the rock for good.",
+        "Tidewater": "A river-delta town argues over the flood barrier that will change it for ever.",
+        "Glasswork": "A glassblower's workshop takes on its most ambitious commission yet.",
+        "Driftwood Kitchen": "A chef cooks only what the morning's catch and the tide line bring in.",
+        "The Inspector Calls Again": "A retired inspector keeps being asked back for one last case.",
+    ]
 
     private var subscriptions: [String: (guid: String, type: Int)] = [:]
     private var nextKey = 1
@@ -104,7 +120,7 @@ actor DemoLiveTV {
             result.append([
                 "guid": guid, "ratingKey": guid, "type": "episode", "title": episode, "grandparentTitle": show,
                 "parentIndex": 1 + seed % 4, "index": 1 + (seed / 13) % 12, "contentRating": "TV-PG",
-                "summary": "\(show): \(episode). A made-up airing on the demo's channel, so the guide has something to show.",
+                "summary": synopses[show] ?? show,
                 "Genre": [["tag": "Drama"]],
                 "Media": [["beginsAt": start, "endsAt": start + length, "onAir": start <= now && now < start + length, "premiere": seed % 9 == 0,
                            "channelIdentifier": channel, "channelTitle": channel]],

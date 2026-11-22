@@ -38,6 +38,22 @@ SHOWS = ["Harbour Lights", "The Long Crossing", "Ember & Ash", "North of Nowhere
          "Night Ferry", "Lanterns", "The Keeper", "Tidewater", "Glasswork", "Driftwood Kitchen", "The Inspector Calls Again"]
 EPISODES = ["Low Tide", "The Signal", "Fog Bank", "First Light", "The Map Room", "Undertow", "A Ship Called Hope", "Breakwater",
             "Lantern Night", "The Last Ferry", "Northbound", "Salt", "The Keeper's Log", "Harbour Master"]
+SYNOPSES = {
+    "Harbour Lights": "A harbour pilot and her estranged brother keep the port running through one hard winter.",
+    "The Long Crossing": "Six strangers share a cabin on a ferry that never quite reaches the other side.",
+    "Ember & Ash": "Two rival bakers inherit the same shop and refuse to share the oven.",
+    "North of Nowhere": "A rookie constable takes the only post above the Arctic Circle, and the town takes him in.",
+    "Saltwater": "A family of oyster farmers fights to keep their beds through a season of storms.",
+    "The Quiet Coast": "Wildlife cameras follow seals, puffins and foxes along an empty shoreline.",
+    "Cartography": "Mapmakers retrace the routes of the old surveys, one coastline at a time.",
+    "Night Ferry": "A night-shift deckhand hears every secret aboard the last crossing of the day.",
+    "Lanterns": "A lighthouse keeper's daughter solves small mysteries in a fishing village.",
+    "The Keeper": "The last keeper of a remote light decides whether to leave the rock for good.",
+    "Tidewater": "A river-delta town argues over the flood barrier that will change it for ever.",
+    "Glasswork": "A glassblower's workshop takes on its most ambitious commission yet.",
+    "Driftwood Kitchen": "A chef cooks only what the morning's catch and the tide line bring in.",
+    "The Inspector Calls Again": "A retired inspector keeps being asked back for one last case.",
+}
 
 LOCK = threading.Lock()
 SUBSCRIPTIONS = {}
@@ -67,8 +83,7 @@ def ensure_assets():
                     font = ImageFont.truetype(candidate, 54)
                     break
             font = font or ImageFont.load_default()
-            words = title.upper().split()
-            lines = [" ".join(words[:2]), " ".join(words[2:])] if len(words) > 2 else [title.upper()]
+            lines = logo_lines(title.upper(), font, draw)
             y = 140 - 34 * len(lines)
             for line in lines:
                 width = draw.textlength(line, font=font)
@@ -81,6 +96,22 @@ def ensure_assets():
     if not os.path.exists(TS_FILE) and os.path.exists(clip):
         subprocess.run(["ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-i", clip, "-c:v", "libx264", "-preset", "veryfast", "-g", "48",
                         "-keyint_min", "48", "-c:a", "aac", "-f", "mpegts", TS_FILE], check=False)
+
+
+def logo_lines(text, font, draw, room=380):
+    """The word mark's lines: the whole name when it is short enough to fit, else a word or two a line. Ten letters is the
+    limit as well as the measured width, as some system fonts measure narrower than they draw."""
+    if len(text) <= 10 and draw.textlength(text, font=font) <= room:
+        return [text]
+    words = text.split()
+    lines = [words[0]]
+    for word in words[1:]:
+        joined = f"{lines[-1]} {word}"
+        if len(joined) <= 10 and draw.textlength(joined, font=font) <= room:
+            lines[-1] = joined
+        else:
+            lines.append(word)
+    return lines[:2]
 
 
 def hsl(hue, saturation, lightness):
@@ -112,7 +143,7 @@ def airings(channel_key, day_start, base_url):
         result.append({
             "guid": guid, "ratingKey": guid, "key": f"/{EPG}/metadata/{quote(guid, safe='')}", "type": "episode", "title": episode,
             "grandparentTitle": show, "grandparentGuid": f"plex://show/mock-{slug(show)}", "parentIndex": season, "index": number,
-            "summary": f"{show}: {episode}. A fictional airing on the mock server's {channel_key} channel.", "contentRating": "TV-PG",
+            "summary": SYNOPSES[show], "contentRating": "TV-PG",
             "thumb": f"{base_url}/library/metadata/{1001 + seed % 20}/art/1", "Genre": [{"tag": "Drama"}],
             "Media": [{"beginsAt": t, "endsAt": t + length, "onAir": t <= time.time() < t + length, "premiere": seed % 9 == 0,
                        "channelIdentifier": channel_key, "channelTitle": channel_key, "channelVcn": channel_key}],
