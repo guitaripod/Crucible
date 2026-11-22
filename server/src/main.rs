@@ -110,6 +110,10 @@ enum Command {
         /// Agree to where searches go without being asked.
         #[arg(long)]
         agree: bool,
+        /// The hours research may run on this machine's clock, such as "mon-fri 01-07, sat-sun all day" or "daily 22-06"
+        /// (past midnight into the next day); "always" runs at any time.
+        #[arg(long, value_name = "HOURS")]
+        schedule: Option<String>,
         /// What a chosen library holds, as LIBRARY=KIND (sports, adult or general); repeat for more.
         #[arg(long = "kind", value_name = "LIBRARY=KIND")]
         kinds: Vec<String>,
@@ -192,8 +196,9 @@ async fn run(command: Command, paths: Paths) -> Result<(), String> {
             setup::model(&paths, setup::ModelOptions { url, name, key_file, context, assume_yes: yes }, off).await
         }
         Command::Serve => serve::run(&paths).await,
-        Command::Sports { searxng, brave_key_file, libraries, on, off, agree, kinds, try_name, try_kind, undo, undo_library, again } => {
-            let options = sports::cli::Options { searxng, brave_key_file, libraries, on, off, agree, kinds, try_name, try_kind, undo, undo_library, again };
+        Command::Sports { searxng, brave_key_file, libraries, on, off, agree, schedule, kinds, try_name, try_kind, undo, undo_library, again } => {
+            let options =
+                sports::cli::Options { searxng, brave_key_file, libraries, on, off, agree, schedule, kinds, try_name, try_kind, undo, undo_library, again };
             sports::cli::run(&paths, options).await
         }
         Command::Pair => {

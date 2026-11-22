@@ -10,6 +10,7 @@ use super::record::days_from_civil;
 use super::release::Release;
 use super::research::{research, Step};
 use super::runner::Sports;
+use super::schedule::{self, Week};
 use super::web::{Engine, Web};
 use crate::brain::Brain;
 use crate::config::Config;
@@ -27,6 +28,7 @@ pub struct Options {
     pub on: bool,
     pub off: bool,
     pub agree: bool,
+    pub schedule: Option<String>,
     pub kinds: Vec<String>,
     pub try_name: Option<String>,
     pub try_kind: Option<String>,
@@ -37,7 +39,14 @@ pub struct Options {
 
 impl Options {
     fn changes_anything(&self) -> bool {
-        self.searxng.is_some() || self.brave_key_file.is_some() || !self.libraries.is_empty() || !self.kinds.is_empty() || self.on || self.off || self.agree
+        self.searxng.is_some()
+            || self.brave_key_file.is_some()
+            || !self.libraries.is_empty()
+            || !self.kinds.is_empty()
+            || self.on
+            || self.off
+            || self.agree
+            || self.schedule.is_some()
     }
 }
 
@@ -78,6 +87,7 @@ pub async fn run(paths: &Paths, options: Options) -> Result<(), String> {
             println!("  {:<11} {fix}", "");
         }
     }
+    println!("{}", hours_line(&config));
     let (items, counts) = sports.items(10);
     if !counts.is_empty() {
         println!("\n{}", counts.iter().map(|(state, count)| format!("{count} {state}")).collect::<Vec<_>>().join(", "));
@@ -140,6 +150,12 @@ async fn change(paths: &Paths, config: &mut Config, plex: &Plex, owner_token: Op
                 sports.agreed = Some(engine.destination());
             }
         }
+    }
+    if let Some(text) = &options.schedule {
+        sports.schedule = match text.trim().to_lowercase().as_str() {
+            "always" | "any time" | "anytime" => None,
+            _ => Some(Week::parse(text)?).filter(|week| !week.is_always()),
+        };
     }
     if options.on {
         sports.on = true;
@@ -254,4 +270,20 @@ async fn try_one(paths: &Paths, config: &Config, name: &str) -> Result<(), Strin
     );
     println!("\n{:.0} s, {} searches, {} pages, {} turns.", started.elapsed().as_secs_f64(), done.searches, done.reads, done.turns);
     Ok(())
+}
+
+/// When research runs, in a line: any time, or the schedule's hours and when it next starts or stops.
+fn hours_line(config: &Config) -> String {
+    let Some(week) = config.sports.schedule else { return "\nResearch runs at any time (set hours with --schedule).".into() };
+    let clock = schedule::local_now();
+    let zone = schedule::zone_name(&clock).unwrap_or_else(|| clock.offset().to_string());
+    let next = week.next_change(&clock).map(|at| {
+        let verb = if week.open_at(&clock) { "stops" } else { "starts" };
+        format!(", {verb} {} at {:02}:00", day_name(at.weekday().to_monday_zero_offset()), at.hour())
+    });
+    format!("\nResearch runs {} ({} hours a week, {zone}){}.", week.spec(), week.hours(), next.unwrap_or_default())
+}
+
+fn day_name(monday_zero: i8) -> &'static str {
+    ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"][monday_zero.rem_euclid(7) as usize]
 }

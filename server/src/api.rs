@@ -215,7 +215,7 @@ async fn hello(State(state): State<Shared>) -> Json<Value> {
         "fingerprint": state.fingerprint,
         "brain": state.writer.is_some(),
         "sports": state.sports.is_some(),
-        "sportsVersion": 3,
+        "sportsVersion": 4,
         "plexMachineIdentifier": state.config.machine_identifier,
         "addresses": crate::net::reachable_addresses().into_iter().map(|ip| crate::net::host_port(ip, state.config.port)).collect::<Vec<_>>(),
     }))
@@ -453,6 +453,7 @@ async fn sports_status(State(state): State<Shared>, headers: HeaderMap) -> Resul
     let sports = sports(&state)?;
     let is_owner = state.home.is_owner(&caller.plex_token).await;
     let settings = sports.settings();
+    let clock = crate::sports::schedule::local_now();
     let mut checks = sports.checks(false).await;
     let ready = crate::sports::checks::ready(&checks);
     let mut status = sports.status();
@@ -494,6 +495,11 @@ async fn sports_status(State(state): State<Shared>, headers: HeaderMap) -> Resul
             "engine": settings.engine.as_ref().filter(|_| is_owner).map(|engine| engine.label()),
             "destination": settings.engine.as_ref().filter(|_| is_owner).map(|engine| engine.destination()),
             "agreed": settings.agreed_to_engine(),
+            "schedule": settings.schedule.map(|week| week.0.to_vec()),
+            "timeZone": crate::sports::schedule::zone_name(&clock),
+            "utcOffset": crate::sports::schedule::utc_offset(&clock),
+            "weekday": clock.weekday().to_monday_zero_offset(),
+            "hour": clock.hour(),
         },
         "libraries": libraries,
         "model": sports.model().filter(|_| is_owner).map(|(name, host)| json!({"name": name, "host": host})),
@@ -510,6 +516,8 @@ struct SportsChange {
     libraries: Option<Vec<String>>,
     kinds: Option<std::collections::BTreeMap<String, String>>,
     agree: Option<bool>,
+    /// The hours research may run, seven masks from Monday; an empty list means any time.
+    schedule: Option<Vec<u32>>,
 }
 
 /// The owner turns research on or off, chooses libraries, or agrees to where searches go.
@@ -526,8 +534,18 @@ async fn sports_settings(State(state): State<Shared>, headers: HeaderMap, Json(c
             ));
         }
     }
+    let schedule = match &change.schedule {
+        None => None,
+        Some(masks) if masks.is_empty() => Some(None),
+        Some(masks) => Some(Some(crate::sports::schedule::Week::from_masks(masks).ok_or_else(|| {
+            ApiError::new(StatusCode::BAD_REQUEST, "schedule", "A schedule is seven days of hours, Monday first, with at least one hour chosen.")
+        })?)),
+    };
     let updated = sports
         .update(|settings| {
+            if let Some(schedule) = schedule {
+                settings.schedule = schedule.filter(|week| !week.is_always());
+            }
             if let Some(on) = change.on {
                 settings.on = on;
             }
@@ -546,14 +564,21 @@ async fn sports_settings(State(state): State<Shared>, headers: HeaderMap, Json(c
             }
         })
         .map_err(|error| ApiError::new(StatusCode::INTERNAL_SERVER_ERROR, "config", error))?;
-    tracing::info!(on = updated.on, libraries = ?updated.libraries, kinds = ?updated.kinds, agreed = updated.agreed_to_engine(), "the owner changed sports research");
+    tracing::info!(
+        on = updated.on,
+        libraries = ?updated.libraries,
+        kinds = ?updated.kinds,
+        agreed = updated.agreed_to_engine(),
+        schedule = updated.schedule.map_or_else(|| "any time".to_string(), |week| week.spec()),
+        "the owner changed sports research"
+    );
     Ok(Json(json!({"on": updated.on, "libraries": updated.libraries, "agreed": updated.agreed_to_engine()})))
 }
 
 /// The owner asks the server to look at the libraries now.
 async fn sports_run(State(state): State<Shared>, headers: HeaderMap) -> Result<StatusCode, ApiError> {
     owner(&state, &headers).await?;
-    sports(&state)?.wake();
+    sports(&state)?.run_by_hand();
     Ok(StatusCode::ACCEPTED)
 }
 

@@ -139,7 +139,17 @@ crucible-server research --try "01 - Wings of Liberty - The Deal.mkv" --as gener
 crucible-server research --undo "UFC 334 Prelims 1080p WEB-DL H264-FBB.mp4"      # take one file back
 crucible-server research --undo-library Sports                                    # take a whole library back
 crucible-server research --again "UFC 334 Prelims 1080p WEB-DL H264-FBB.mp4"     # research it again
+crucible-server research --schedule "mon-fri 01-07, sat-sun all day"              # only in these hours
+crucible-server research --schedule always                                        # at any time again
 ```
+
+Research can keep to a schedule, so the graphics card is free for games, films or other models when you use them: a
+week of hours on this machine's clock, set from the Schedule screen in Crucible (a grid of the week to tap or paint, and
+ready-made schedules: Overnight, While I'm at work, Nights and weekends, Weekends) or with `--schedule`, which reads days
+(`mon`, `mon-fri`, `sat+sun`, `daily`, `weekdays`, `weekends`) followed by hour ranges (`01-07`, `22-06` runs past
+midnight, `all day`). Outside its hours research waits and the apps say when it starts again; a file still being
+researched when the hours end stops and is researched again in the next ones. Look for new files now runs one pass at
+any time.
 
 Search goes through a [SearXNG](https://docs.searxng.org) you run (turn its JSON format on) or Brave Search with your
 own key (`--brave-key-file`). Enable several engines in SearXNG (Bing, Yahoo, DuckDuckGo, Mojeek): each limits how often

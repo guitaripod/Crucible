@@ -15,6 +15,7 @@ use super::checks::{self, Check, Inputs};
 use super::record::{days_from_civil, Desired, Record};
 use super::release::Release;
 use super::research::{research, ResearchError, Step};
+use super::schedule;
 use super::web::{Engine, Web};
 use super::work::{research_work, Work, WorkRecord};
 use crate::brain::Brain;
@@ -90,8 +91,9 @@ impl Found {
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Status {
-    /// `idle`, `looking`, `researching`, `writing`, `waiting` (not everything is ready) or `paused` (the search engines
-    /// turned research away; it goes on at `paused_until`).
+    /// `idle`, `looking`, `researching`, `writing`, `waiting` (not everything is ready), `paused` (the search engines
+    /// turned research away; it goes on at `paused_until`) or `scheduled` (outside the owner's hours; it goes on at
+    /// `opens_at`).
     pub phase: String,
     /// When research looks again after the search engines turned it away.
     pub paused_until: Option<i64>,
@@ -106,6 +108,12 @@ pub struct Status {
     pub queued: usize,
     pub last_pass: Option<i64>,
     pub last_error: Option<String>,
+    /// When research may start again, while the owner's schedule keeps it waiting (`phase` is `scheduled`).
+    pub opens_at: Option<i64>,
+    /// When the owner's schedule stops research, while it may run.
+    pub closes_at: Option<i64>,
+    /// Whether the pass under way runs because the owner asked for it outside the schedule's hours.
+    pub by_hand: bool,
 }
 
 /// The file being researched and the step the model is on.
@@ -221,6 +229,8 @@ pub struct Sports {
     status: Mutex<Status>,
     checked: Mutex<Option<(i64, Vec<Check>)>>,
     wake: Notify,
+    /// Set while a pass the owner asked for runs outside the schedule's hours.
+    by_hand: AtomicBool,
     /// Counts every change of the settings, so research running in a library the owner took out stops at once.
     changed: tokio::sync::watch::Sender<u64>,
     /// One lock per item, so research writing an item and the owner taking it back never run at once.
@@ -307,6 +317,7 @@ impl Sports {
             status: Mutex::new(Status { phase: "idle".into(), ..Status::default() }),
             checked: Mutex::new(None),
             wake: Notify::new(),
+            by_hand: AtomicBool::new(false),
             changed: tokio::sync::watch::channel(0).0,
             item_locks: Mutex::new(HashMap::new()),
             paths,
@@ -330,7 +341,29 @@ impl Sports {
             current.elapsed = (now() - current.started).max(0);
         }
         status.current = status.running.first().cloned();
+        let settings = self.settings();
+        let clock = schedule::local_now();
+        let by_hand = self.by_hand.load(Ordering::Relaxed);
+        let open = settings.in_hours(&clock);
+        let change = settings.schedule.and_then(|week| week.next_change(&clock)).map(|at| at.timestamp().as_second());
+        (status.opens_at, status.closes_at) = if open { (None, change) } else { (change, None) };
+        status.by_hand = by_hand && !open;
+        if settings.on && !open && !by_hand && matches!(status.phase.as_str(), "idle" | "paused") {
+            status.phase = "scheduled".into();
+        }
         status
+    }
+
+    /// Whether research may run now: inside the owner's hours, or in a pass they asked for.
+    fn in_hours(&self) -> bool {
+        self.by_hand.load(Ordering::Relaxed) || self.settings().in_hours(&schedule::local_now())
+    }
+
+    /// How long until the schedule next starts or stops research, when it has hours.
+    fn until_schedule_changes(&self) -> Option<Duration> {
+        let clock = schedule::local_now();
+        let at = self.settings().schedule?.next_change(&clock)?;
+        Some(Duration::from_secs((at.timestamp().as_second() - clock.timestamp().as_second()).max(1) as u64))
     }
 
     fn web(&self) -> Option<Web> {
@@ -366,14 +399,23 @@ impl Sports {
         self.store.sports_item(rating_key).ok().flatten().is_some_and(|row| row.state == "undone")
     }
 
-    /// Whether research is off or the owner took `section` out of it.
+    /// Whether research is off, the owner took `section` out of it, or the schedule's hours ended.
     fn left_research(&self, section: &str) -> bool {
         let settings = self.settings();
-        !settings.on || !settings.libraries.contains(&section.to_string())
+        !settings.on || !settings.libraries.contains(&section.to_string()) || !self.in_hours()
     }
 
     /// Looks at the libraries now instead of at the next interval.
     pub fn wake(&self) {
+        self.wake.notify_one();
+    }
+
+    /// The owner asks for a look now: one pass runs even outside the schedule's hours.
+    pub fn run_by_hand(&self) {
+        if !self.settings().in_hours(&schedule::local_now()) {
+            self.by_hand.store(true, Ordering::Relaxed);
+            self.changed.send_modify(|count| *count += 1);
+        }
         self.wake.notify_one();
     }
 
@@ -425,10 +467,14 @@ impl Sports {
     pub async fn run(self: Arc<Self>) {
         tokio::time::sleep(Duration::from_secs(15)).await;
         loop {
-            if self.settings().on {
+            if self.settings().on && self.in_hours() {
                 self.pass().await;
             }
-            let wait = self.status().paused_until.map_or(EVERY, |until| Duration::from_secs((until - now()).clamp(60, EVERY.as_secs() as i64) as u64));
+            self.by_hand.store(false, Ordering::Relaxed);
+            let mut wait = self.status().paused_until.map_or(EVERY, |until| Duration::from_secs((until - now()).clamp(60, EVERY.as_secs() as i64) as u64));
+            if let Some(change) = self.until_schedule_changes() {
+                wait = wait.min(change + Duration::from_secs(1));
+            }
             tokio::select! {
                 _ = self.wake.notified() => {}
                 _ = tokio::time::sleep(wait) => {}
@@ -504,7 +550,7 @@ impl Sports {
                 async move {
                     for (section, item) in group {
                         let settings = self.settings();
-                        if paused.load(Ordering::Relaxed) || !settings.on || !settings.agreed_to_engine() {
+                        if paused.load(Ordering::Relaxed) || !settings.on || !settings.agreed_to_engine() || !self.in_hours() {
                             return;
                         }
                         if !settings.libraries.contains(section) {
@@ -565,15 +611,21 @@ impl Sports {
         }
     }
 
-    /// Resolves once the owner takes `section` out of research or switches research off.
+    /// Resolves once the owner takes `section` out of research, switches research off or the schedule's hours end.
     async fn stopped(&self, section: &str) {
         let mut changes = self.changed.subscribe();
         loop {
             if self.left_research(section) {
                 return;
             }
-            if changes.changed().await.is_err() {
-                std::future::pending::<()>().await;
+            let hours_end = self.until_schedule_changes().filter(|_| !self.by_hand.load(Ordering::Relaxed));
+            tokio::select! {
+                changed = changes.changed() => {
+                    if changed.is_err() {
+                        std::future::pending::<()>().await;
+                    }
+                }
+                () = tokio::time::sleep(hours_end.unwrap_or(EVERY) + Duration::from_secs(1)) => {}
             }
         }
     }

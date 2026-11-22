@@ -81,6 +81,9 @@ pub struct Sports {
     /// The destination the owner agreed searches go to, as the engine describes it; a changed engine needs agreeing again.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub agreed: Option<String>,
+    /// The hours of the week research may run on the server's clock; none means any time.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub schedule: Option<crate::sports::schedule::Week>,
 }
 
 /// What a library holds, which decides how its files are researched.
@@ -119,6 +122,11 @@ impl Sports {
     /// What the library with `section` holds.
     pub fn kind_of(&self, section: &str) -> Kind {
         self.kinds.get(section).copied().unwrap_or_default()
+    }
+
+    /// Whether research may run at `at` on the server's clock.
+    pub fn in_hours(&self, at: &jiff::ZonedDateTime) -> bool {
+        self.schedule.is_none_or(|week| week.open_at(at))
     }
 
     /// Whether the owner agreed to the engine that is set now.
