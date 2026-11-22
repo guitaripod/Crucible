@@ -331,7 +331,7 @@ package enum StreamResolver {
         return true
     }
 
-    private static func directPlayURL(baseURL: URL, partKey: String, token: String) -> URL? {
+    package static func directPlayURL(baseURL: URL, partKey: String, token: String) -> URL? {
         let query = "X-Plex-Token=\(token)&X-Plex-Client-Identifier=\(PlexHeaders.clientIdentifier)"
         return plexURL(base: baseURL, path: partKey, query: query)
     }

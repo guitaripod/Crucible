@@ -368,11 +368,33 @@ final class PlayerScreen: View {
         }
     }
 
+    /// Moves the intro's marker onto the picture's own edges once ffmpeg has read them (`MarkerSharpener`), while the same
+    /// stream still plays.
+    private func sharpenIntro(of resolved: ResolvedStream, ratingKey: String, api: APIClient) {
+        let segments = resolved.segments
+        guard segments.contains(where: { $0.kind == .intro && !$0.fromChapter }) else { return }
+        let partKey = resolved.media?.Part?.first?.key
+        Task { [weak self] in
+            let partURL: URL?
+            if resolved.isDirectPlay {
+                partURL = resolved.url
+            } else if let partKey {
+                partURL = StreamResolver.directPlayURL(baseURL: await api.baseURL, partKey: partKey, token: api.token)
+            } else {
+                partURL = nil
+            }
+            guard let partURL, let sharpened = await MarkerSharpener.sharpen(segments, ratingKey: ratingKey, partURL: partURL),
+                  let self, self.stream?.sessionId == resolved.sessionId, self.stream?.url == resolved.url, self.segments == segments else { return }
+            self.segments = sharpened
+        }
+    }
+
     /// Plays `resolved` from `requested` (the title's resume point by default).
     func load(_ resolved: ResolvedStream, from requested: Double? = nil, paused: Bool = false) {
         guard case .plex(let api, let item, let resumePosition) = source else { return }
         stream = resolved
         segments = resolved.segments
+        sharpenIntro(of: resolved, ratingKey: item.id, api: api)
         let start = Self.streamStart(of: resolved, at: requested ?? resumePosition)
         streamOffset = resolved.isDirectPlay ? 0 : start
         upNext = UpNextResolver(ratingKey: item.id, isEpisode: item.mediaType == "episode", seasonRatingKey: item.parentRatingKey,
