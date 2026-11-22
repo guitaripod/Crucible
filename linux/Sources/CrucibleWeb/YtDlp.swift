@@ -79,9 +79,12 @@ package struct YtDlp: Sendable {
     }
 
     /// Runs yt-dlp with `arguments` and returns what it printed, or the reason it gave for failing.
+    /// A browser whose cookies cannot be read on this machine (not installed, or its store locked) does not stop playback:
+    /// the run goes again as a guest.
     private func run(_ arguments: [String], timeout: Duration, signedIn: Bool = true, gated: Bool = true) async throws -> Data {
         var full = ["--no-warnings", "--no-progress", "--socket-timeout", "20"]
-        if signedIn, let cookiesBrowser, !cookiesBrowser.isEmpty { full += ["--cookies-from-browser", cookiesBrowser] }
+        let cookies = signedIn ? cookiesBrowser.flatMap { YtDlp.cookiesArgument(for: $0) } : nil
+        if let cookies { full += ["--cookies-from-browser", cookies] }
         full += arguments
         if gated { await YtDlpGate.shared.enter() }
         let outcome: Result<WebProcess.Output, any Error>
@@ -93,7 +96,11 @@ package struct YtDlp: Sendable {
         if gated { await YtDlpGate.shared.leave() }
         switch outcome {
         case .success(let output):
-            guard output.status == 0 else { throw YtDlpError(standardError: output.standardError) }
+            guard output.status == 0 else {
+                let error = YtDlpError(standardError: output.standardError)
+                if case .cookiesUnreadable = error, cookies != nil { return try await run(arguments, timeout: timeout, signedIn: false, gated: gated) }
+                throw error
+            }
             return output.standardOutput
         case .failure(WebProcess.Failure.timedOut):
             throw YtDlpError.timedOut
@@ -105,6 +112,32 @@ package struct YtDlp: Sendable {
     }
 }
 
+extension YtDlp {
+    /// Where browsers installed from Flathub keep their profiles, under `~/.var/app/<id>/`, as yt-dlp's names for them.
+    static let flatpakProfiles: [String: (app: String, profile: String)] = [
+        "vivaldi": ("com.vivaldi.Vivaldi", "config/vivaldi"),
+        "chrome": ("com.google.Chrome", "config/google-chrome"),
+        "chromium": ("org.chromium.Chromium", "config/chromium"),
+        "brave": ("com.brave.Browser", "config/BraveSoftware/Brave-Browser"),
+        "edge": ("com.microsoft.Edge", "config/microsoft-edge"),
+        "opera": ("com.opera.Opera", "config/opera"),
+        "firefox": ("org.mozilla.firefox", ".mozilla/firefox"),
+    ]
+
+    /// What `--cookies-from-browser` is given for `browser`: the name alone where yt-dlp finds the browser's profile
+    /// itself, the Flatpak profile's folder after it where only the Flathub copy is installed (as on a Steam Deck), and
+    /// nil for no browser. `exists` stands in for the file system in tests.
+    package static func cookiesArgument(for browser: String, home: String = NSHomeDirectory(),
+                                        exists: (String) -> Bool = { FileManager.default.fileExists(atPath: $0) }) -> String? {
+        let name = browser.trimmingCharacters(in: .whitespaces)
+        guard !name.isEmpty else { return nil }
+        guard !name.contains(":"), let flatpak = flatpakProfiles[name.lowercased()] else { return name }
+        let native = name.lowercased() == "firefox" ? "\(home)/.mozilla/firefox" : "\(home)/.config/\(flatpak.profile.dropFirst("config/".count))"
+        let sandboxed = "\(home)/.var/app/\(flatpak.app)/\(flatpak.profile)"
+        return !exists(native) && exists(sandboxed) ? "\(name):\(sandboxed)" : name
+    }
+}
+
 /// Why yt-dlp could not answer.
 package enum YtDlpError: Error, Equatable, Sendable {
     case notInstalled
@@ -112,6 +145,8 @@ package enum YtDlpError: Error, Equatable, Sendable {
     case botCheck
     /// The video is private, for members or for adults, and the viewer is not signed in.
     case signInRequired(String)
+    /// The browser set for signing in has no cookies yt-dlp can read here.
+    case cookiesUnreadable(String)
     case unavailable(String)
     case rateLimited
     case unsupported
@@ -136,7 +171,9 @@ package enum YtDlpError: Error, Equatable, Sendable {
         }
         if let cause = message.range(of: " (caused by ") { message = String(message[..<cause.lowerBound]) }
         let lowered = message.lowercased()
-        if lowered.contains("not a bot") {
+        if lowered.contains("cookies database") || lowered.contains("failed to decrypt") || (lowered.contains("could not copy") && lowered.contains("cookie")) {
+            self = .cookiesUnreadable(message)
+        } else if lowered.contains("not a bot") {
             self = .botCheck
         } else if lowered.contains("http error 429") || lowered.contains("too many requests") || lowered.contains("rate-limited") {
             self = .rateLimited

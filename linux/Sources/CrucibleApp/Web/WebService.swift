@@ -241,7 +241,7 @@ final class WebService {
         case .malformed:
             return String(localized: "yt-dlp answered in a way Crucible couldn’t read. Updating yt-dlp usually fixes this.",
                           comment: "Web video error: unexpected output")
-        case .failed(let reason):
+        case .failed(let reason), .cookiesUnreadable(let reason):
             return String(localized: "yt-dlp couldn’t read this video. Updating yt-dlp usually fixes this.\n\(reason)",
                           comment: "Web video error with yt-dlp's own message on the second line")
         }

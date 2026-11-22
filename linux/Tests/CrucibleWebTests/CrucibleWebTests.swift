@@ -424,3 +424,24 @@ enum Fixture {
         #expect(pager.pull == 0)
     }
 }
+
+@Suite struct YtDlpCookiesTests {
+    @Test func readsAFlathubBrowsersProfileWhereOnlyThatOneIsInstalled() {
+        let home = "/home/deck"
+        let sandboxed = "/home/deck/.var/app/com.vivaldi.Vivaldi/config/vivaldi"
+        #expect(YtDlp.cookiesArgument(for: "vivaldi", home: home) { $0 == sandboxed } == "vivaldi:\(sandboxed)")
+        #expect(YtDlp.cookiesArgument(for: "vivaldi", home: home) { $0 == sandboxed || $0 == "/home/deck/.config/vivaldi" } == "vivaldi")
+        #expect(YtDlp.cookiesArgument(for: "firefox", home: home) { $0 == "/home/deck/.var/app/org.mozilla.firefox/.mozilla/firefox" }
+                == "firefox:/home/deck/.var/app/org.mozilla.firefox/.mozilla/firefox")
+        #expect(YtDlp.cookiesArgument(for: "chrome:Profile 1", home: home) { _ in false } == "chrome:Profile 1")
+        #expect(YtDlp.cookiesArgument(for: "safari", home: home) { _ in false } == "safari")
+        #expect(YtDlp.cookiesArgument(for: " ", home: home) { _ in true } == nil)
+    }
+
+    @Test func tellsUnreadableCookiesFromAVideoThatNeedsAnAccount() {
+        let missing = YtDlpError(standardError: #"ERROR: could not find vivaldi cookies database in "/home/deck/.config/vivaldi""#)
+        #expect(missing == .cookiesUnreadable(#"could not find vivaldi cookies database in "/home/deck/.config/vivaldi""#))
+        let members = YtDlpError(standardError: "ERROR: [youtube] abc: Join this channel to get access to members-only content")
+        if case .signInRequired = members {} else { Issue.record("members-only content should need an account, got \(members)") }
+    }
+}
