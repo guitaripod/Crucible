@@ -45,6 +45,7 @@ final class RootView: View, WindowRestoration.Restorable {
         if libraryLayout.hasMore {
             tabs.append(.init(id: "more", title: String(localized: "More", comment: "Tab bar title"), symbol: "ellipsis"))
         }
+        if Self.showsLiveTV { tabs.append(.init(id: Self.liveID, title: LiveTVCopy.title, symbol: "antenna.radiowaves.left.and.right")) }
         if Self.showsWeb { tabs.append(.init(id: Self.webID, title: WebCopy.destination, symbol: "play.rectangle")) }
         tabs.append(.init(id: "search", title: String(localized: "Search"), symbol: "magnifyingglass"))
         tabs.append(.init(id: "you", title: String(localized: "You"), symbol: "person.crop.circle"))
@@ -59,6 +60,12 @@ final class RootView: View, WindowRestoration.Restorable {
 
     /// The YouTube destination's name among the tabs.
     static let webID = "web"
+
+    /// Live TV's name among the tabs.
+    static let liveID = "livetv"
+
+    /// Whether Live TV is listed: the viewer kept it.
+    static var showsLiveTV: Bool { LiveTVPreferences.showsDestination }
 
     /// Whether the YouTube destination is listed: the viewer kept it, and this is not the demo, whose library is its own
     /// fiction.
@@ -89,6 +96,9 @@ final class RootView: View, WindowRestoration.Restorable {
         ]
         var sections = [SidebarView.Section(items: top)]
         if !libraries.isEmpty { sections.append(.init(title: String(localized: "Libraries"), items: libraries)) }
+        if Self.showsLiveTV {
+            sections.append(.init(title: LiveTVCopy.title, items: [.init(id: Self.liveID, title: LiveTVCopy.guide, symbol: "antenna.radiowaves.left.and.right")]))
+        }
         if Self.showsWeb {
             sections.append(.init(title: String(localized: "Web", comment: "Sidebar section holding video from the web"),
                                   items: [.init(id: Self.webID, title: WebCopy.destination, symbol: "play.rectangle")]))
@@ -204,6 +214,8 @@ final class RootView: View, WindowRestoration.Restorable {
             screen = MoreScreen(api: payload.api, libraries: libraryLayout.overflow)
         } else if id == Self.webID {
             screen = WebHomeScreen()
+        } else if id == Self.liveID {
+            screen = LiveTVScreen(payload: payload)
         } else if id == "search" {
             screen = SearchScreen(api: payload.api)
         } else if id == "you" {
@@ -436,6 +448,35 @@ final class RootView: View, WindowRestoration.Restorable {
             if wasMini { self?.minimizePlayer() }
         }
         present(screen)
+    }
+
+    /// Plays a live channel, with the guide it came from for changing channel.
+    func playLive(_ channel: LiveChannel, guide: LiveTVGuide?) {
+        shorts?.close(animated: false)
+        if let current = player {
+            guard current.live == nil else {
+                current.tune(channel)
+                return
+            }
+            current.close()
+        }
+        guard player == nil else { return }
+        present(PlayerScreen(source: .live(LiveSession(channel: channel, guide: guide))))
+    }
+
+    /// Opens Live TV, or offers to add the playlist a link names.
+    func openLiveTV(_ link: LiveTVLink) {
+        closePlayer()
+        if Self.showsLiveTV { select(Self.liveID) }
+        guard case .add(let playlist) = link, let window else { return }
+        AlertView(title: LiveTVCopy.importQuestion(playlist.name), message: [LiveTVCopy.importText, playlist.address.host ?? ""].joined(separator: "\n\n"), actions: [
+            AlertView.Action(LiveTVCopy.add) { [weak self] in
+                let screen = LivePlaylistsScreen()
+                self?.push(screen)
+                screen.add(playlist)
+            },
+            AlertView.Action(String(localized: "Cancel"), role: .cancel),
+        ]).present(in: window)
     }
 
     /// Puts a player over everything; focus returns where it was when it closes.

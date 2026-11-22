@@ -138,6 +138,8 @@ extension PlayerScreen {
         switch source {
         case .file(_, let title):
             return (title, nil, nil)
+        case .live(let session):
+            return (session.channel.numberedTitle, session.guide?.nowAndNext(session.channel.id).now?.title, nil)
         case .web(let playback):
             let entry = web?.video.map(WebEntry.init) ?? playback.entry
             return (entry.title, entry.channel, WebArtwork.url(entry.thumbnailCandidates)?.absoluteString)

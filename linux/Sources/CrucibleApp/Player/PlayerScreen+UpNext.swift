@@ -90,8 +90,8 @@ extension PlayerScreen {
             guard offset != 0 else { return }
             seek(to: playhead + Double(offset > 0 ? Preferences.skipForwardSeconds : -Preferences.skipBackSeconds))
         case .setPosition(let target): seek(to: target)
-        case .next: offerNext(.requested)
-        case .previous: startOver()
+        case .next: if live != nil { zap(by: 1) } else { offerNext(.requested) }
+        case .previous: if live != nil { zap(by: -1) } else { startOver() }
         case .raise: window?.raise()
         case .quit: MediaControls.onQuit?()
         }

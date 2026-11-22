@@ -10,6 +10,7 @@ final class Router {
     private weak var root: RootView?
     private var pending: DeepLink?
     private var pendingWeb: WebLink?
+    private var pendingLive: LiveTVLink?
     private var resolveTask: Task<Void, Never>?
 
     /// Called once the main UI is on screen; runs a link that arrived earlier.
@@ -18,6 +19,10 @@ final class Router {
         if let web = pendingWeb {
             pendingWeb = nil
             root.open(web)
+        }
+        if let live = pendingLive {
+            pendingLive = nil
+            root.openLiveTV(live)
         }
         guard let link = pending else { return }
         pending = nil
@@ -31,6 +36,7 @@ final class Router {
         root = nil
         pending = nil
         pendingWeb = nil
+        pendingLive = nil
     }
 
     /// Routes a `crucible://` URL, or a web address, which plays through yt-dlp; false when it is neither.
@@ -39,6 +45,11 @@ final class Router {
         if let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https", let web = WebLink(url.absoluteString) {
             MidgarLog.notice("Web link from \(url.host ?? "?"), main UI \(root == nil ? "not ready" : "ready")", category: .lifecycle)
             if let root { root.open(web) } else { pendingWeb = web }
+            return true
+        }
+        if let live = LiveTVLink(url: url) {
+            MidgarLog.notice("Live TV link, main UI \(root == nil ? "not ready" : "ready")", category: .lifecycle)
+            if let root { root.openLiveTV(live) } else { pendingLive = live }
             return true
         }
         guard let link = DeepLink(url: url) else {

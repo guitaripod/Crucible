@@ -26,6 +26,7 @@ final class PlayerScreen: View {
         case plex(APIClient, PlexMetadata, resume: Double)
         case web(WebPlayback)
         case file(URL, title: String)
+        case live(LiveSession)
     }
 
     var onClose: (() -> Void)?
@@ -44,6 +45,8 @@ final class PlayerScreen: View {
     var onPlayWeb: ((WebPlayback, PlayerRun) -> Void)?
     /// The web side of the player while a web video plays.
     var web: WebSession?
+    /// The live TV side of the player while a channel plays.
+    var live: LiveSession?
     /// The viewer asked for the mini player (P, its button, the menu) or for the full player back from it.
     var onMinimize: (() -> Void)?
     var onExpand: (() -> Void)?
@@ -204,6 +207,9 @@ final class PlayerScreen: View {
         case .web(let playback):
             transport.title = playback.entry.title
             web = WebSession(playback: playback)
+        case .live(let session):
+            transport.title = session.channel.numberedTitle
+            live = session
         }
         transport.onScrub = { [weak self] fraction, phase in
             self?.viewerActed()
@@ -307,6 +313,10 @@ final class PlayerScreen: View {
         showPreroll()
         startHeartbeat()
         guard case .plex = source else {
+            if live != nil {
+                startLive()
+                return
+            }
             if case .file(let url, _) = source {
                 loadTweaks()
                 player?.load(url)
@@ -608,6 +618,10 @@ final class PlayerScreen: View {
         if !onPicture, [Key.left, .right, .up, .down, .return, .keypadEnter, .space].contains(event.key) { return false }
         viewerActed()
         if event.modifiers.contains(.shift), handleShifted(event) {
+            showChrome(autoHide: true)
+            return true
+        }
+        if live != nil, liveKey(event) {
             showChrome(autoHide: true)
             return true
         }

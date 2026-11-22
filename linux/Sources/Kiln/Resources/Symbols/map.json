@@ -194,6 +194,8 @@
   "qrcode": "qr-code",
   "questionmark.circle": "circle-question-mark",
   "questionmark.circle.fill": {"icon": "circle-question-mark", "knockout": true},
+  "record.circle": {"icon": "circle-dot"},
+  "record.circle.fill": {"icon": "circle", "fill": true},
   "rectangle.grid.1x2": "rows-2",
   "rectangle.on.rectangle": "copy",
   "rectangle.portrait.and.arrow.right": "log-out",

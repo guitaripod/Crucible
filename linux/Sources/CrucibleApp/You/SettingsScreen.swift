@@ -538,6 +538,7 @@ final class SettingsCategoryScreen: ScreenView {
         case .libraries: LibrariesScreen(api: api)
         case .trakt: TraktSettingsScreen()
         case .seerr: SeerrSettingsScreen(api: api)
+        case .liveTV: LivePlaylistsScreen(title: LiveTVCopy.title, showsDestinationToggle: true)
         case .serverConnection: ServerConnectionScreen()
         case .about: AboutScreen()
         case .diagnostics: DiagnosticsScreen()
@@ -548,7 +549,7 @@ final class SettingsCategoryScreen: ScreenView {
     /// Whether the Linux client has a screen for `destination`; the others show as plain text.
     private static func opens(_ destination: SettingsDestination) -> Bool {
         switch destination {
-        case .homeRows, .libraries, .trakt, .seerr, .serverConnection, .about, .diagnostics: true
+        case .homeRows, .libraries, .trakt, .seerr, .liveTV, .serverConnection, .about, .diagnostics: true
         default: false
         }
     }
@@ -569,6 +570,7 @@ final class SettingsCategoryScreen: ScreenView {
         case .libraries: LibrariesSettings.summary
         case .trakt: TraktAccount.shared.rowStatus
         case .seerr: SeerrAccount.shared.connection?.displayName ?? String(localized: "Off", comment: "Integrations summary when nothing is connected")
+        case .liveTV: LiveTVPreferences.showsDestination ? nil : String(localized: "Off", comment: "Integrations summary when nothing is connected")
         case .about: AppInfo.versionSummary
         default: nil
         }
