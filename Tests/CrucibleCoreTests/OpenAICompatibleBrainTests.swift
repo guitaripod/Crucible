@@ -10,7 +10,7 @@ struct OpenAICompatibleBrainTests {
     private static let aliasesJSON = Data("""
     {"version": 1, "aliases": [
       {"alias": "watch.plan.v1", "max_tokens": 300, "response_schema": {"type": "object", "properties": {"kind": {"type": "string"}}}},
-      {"alias": "recap.describe.v1", "max_tokens": 2000},
+      {"alias": "recap.describe.v1", "max_tokens": 2000, "reasoning": "low"},
       {"alias": "missing.v1", "max_tokens": 100}
     ]}
     """.utf8)
@@ -115,7 +115,7 @@ struct OpenAICompatibleBrainTests {
         #expect(server.requests.count == 2)
     }
 
-    @Test func anAliasWithoutASchemaIsNotAskedTwice() async {
+    @Test func aReasoningAliasWithoutASchemaIsNotAskedTwice() async {
         let server = DetailStubServer()
         server.reply(path: "/v1/chat/completions", status: 400, body: [:])
         await #expect(throws: HostedBrainError.declined) { try await brain("http://\(server.host)").ask(alias: "recap.describe.v1", input: "x", language: "English") }

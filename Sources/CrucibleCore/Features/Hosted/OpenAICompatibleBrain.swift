@@ -11,6 +11,9 @@ package struct OpenAICompatiblePrompts: Sendable {
         package let instructions: String
         package let maxTokens: Int
         package let schema: Data?
+        /// Whether the hosted alias reasons before answering; one that does not is asked of a local model with its
+        /// thinking off, which answers a quick request in a second instead of ten.
+        package var reasons = false
     }
 
     package let aliases: [String: Alias]
@@ -23,7 +26,7 @@ package struct OpenAICompatiblePrompts: Sendable {
         for entry in entries {
             guard let name = entry["alias"] as? String, let text = instructions(name) else { continue }
             let schema = (entry["response_schema"] as? [String: Any]).flatMap { try? JSONSerialization.data(withJSONObject: $0, options: .sortedKeys) }
-            aliases[name] = Alias(instructions: text, maxTokens: entry["max_tokens"] as? Int ?? 400, schema: schema)
+            aliases[name] = Alias(instructions: text, maxTokens: entry["max_tokens"] as? Int ?? 400, schema: schema, reasons: entry["reasoning"] is String)
         }
         self.aliases = aliases
     }
@@ -60,14 +63,16 @@ package struct OpenAICompatibleBrain: HostedBrainProviding {
         guard let entry = prompts.aliases[alias] else { throw .unavailable }
         do {
             return try await send(request(for: entry, alias: alias, input: input, language: language, shaped: true), alias: alias)
-        } catch HostedBrainError.declined where entry.schema != nil {
-            return try await send(request(for: entry, alias: alias, input: input, language: language, shaped: false), alias: alias)
+        } catch HostedBrainError.declined where entry.schema != nil || !entry.reasons {
+            return try await send(request(for: entry, alias: alias, input: input, language: language, shaped: false, plain: true), alias: alias)
         }
     }
 
     /// The chat completions request for one alias; `shaped` asks the server to hold the reply to the alias's JSON
-    /// schema, which not every server takes. The token cap leaves room for a thinking model's reasoning.
-    package func request(for entry: OpenAICompatiblePrompts.Alias, alias: String, input: String, language: String, shaped: Bool) -> URLRequest {
+    /// schema, which not every server takes, and `plain` leaves out the switch that turns a model's thinking off, which a
+    /// server that knows no such switch may refuse. The token cap leaves room for a thinking model's reasoning.
+    package func request(for entry: OpenAICompatiblePrompts.Alias, alias: String, input: String, language: String, shaped: Bool,
+                         plain: Bool = false) -> URLRequest {
         var body: [String: Any] = [
             "model": model,
             "messages": [
@@ -78,6 +83,7 @@ package struct OpenAICompatibleBrain: HostedBrainProviding {
             "temperature": 0.3,
             "stream": false,
         ]
+        if !entry.reasons, !plain { body["chat_template_kwargs"] = ["enable_thinking": false] }
         if shaped, let schema = entry.schema, let object = try? JSONSerialization.jsonObject(with: schema) {
             body["response_format"] = ["type": "json_schema", "json_schema": ["name": alias.replacingOccurrences(of: ".", with: "_"), "schema": object]]
         }

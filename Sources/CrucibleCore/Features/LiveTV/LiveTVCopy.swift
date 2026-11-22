@@ -27,6 +27,21 @@ package enum LiveTVCopy {
     package static let filter = String(localized: "Filter", comment: "Button that picks which live TV channels the guide shows")
     package static let sources = String(localized: "Sources", comment: "Button that picks which source of live TV channels the guide shows (Plex's channels, a tuner, a playlist)")
     package static let categories = String(localized: "Categories", comment: "Button that picks a category (group) of live TV channels")
+    package static let searchPlaceholder = String(localized: "Search Channels and Shows", comment: "Placeholder of the live TV search field")
+    package static let searchLater = String(localized: "Later", comment: "Live TV search: heading over airings still to come that match")
+    package static let searchNothing = String(localized: "Nothing on any channel matches that.", comment: "Live TV search: no channel or airing matches the words typed")
+    package static let searchStillLoading = String(localized: "Reading every channel’s guide…", comment: "Live TV search: the guides of channels not yet shown are still loading, so more matches may come")
+    package static let aboutThinking = String(localized: "Asking your model about it…", comment: "Live TV hover card: the person's own AI model is writing a few sentences about the programme")
+
+    /// When an airing to come starts: its time today, or the day and time.
+    package static func startsAt(_ date: Date, now: Date = Date(), calendar: Calendar = .current) -> String {
+        let time = LiveGuideMath.slotLabel(date)
+        if calendar.isDate(date, inSameDayAs: now) { return time }
+        if let tomorrow = calendar.date(byAdding: .day, value: 1, to: now), calendar.isDate(date, inSameDayAs: tomorrow) {
+            return String(localized: "Tomorrow \(time)", comment: "Live TV: an airing starts tomorrow at the time given")
+        }
+        return date.formatted(.dateTime.weekday(.abbreviated)) + " " + time
+    }
     package static let jumpToNow = String(localized: "Now", comment: "Button that scrolls the TV guide back to the current time")
 
     package static let emptyTitle = String(localized: "No Channels Yet", comment: "Title shown in Live TV when no source has any channels")
