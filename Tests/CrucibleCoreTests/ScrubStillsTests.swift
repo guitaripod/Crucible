@@ -150,4 +150,53 @@ struct ScrubStillsTests {
         #expect(index.spansOutward(from: 0, size: 4) == [0, 1, 2])
         #expect(index.spansOutward(from: 99, size: 4) == [2, 1, 0])
     }
+
+    @Test func aTitleIsDividedIntoAtMostAThousandSlotsOfAtLeastTwoSeconds() {
+        let film = LocalStillPlan(duration: 7200)
+        #expect(film.count == 1000)
+        #expect(film.interval == 7.2)
+        #expect(film.slot(at: 3600) == 500)
+        #expect(film.moment(of: 500) == 3603.6)
+        let clip = LocalStillPlan(duration: 61)
+        #expect(clip.interval == 2)
+        #expect(clip.count == 31)
+        #expect(clip.slot(at: 500) == 30)
+        #expect(LocalStillPlan(duration: 0).count == 1)
+    }
+
+    @Test func theOverviewCoversTheTitleEvenlyAtEveryStage() {
+        let plan = LocalStillPlan(duration: 7200)
+        #expect(plan.overview.count == LocalStillPlan.overviewSize)
+        #expect(Set(plan.overview).count == plan.overview.count)
+        #expect(plan.overview.allSatisfy { (0..<plan.count).contains($0) })
+        for stage in [2, 4, 8, 16, 48] {
+            let made = plan.overview.prefix(stage).sorted()
+            let gaps = zip([0] + made, made + [plan.count]).map { $1 - $0 }
+            #expect(gaps.max()! <= 2 * plan.count / stage + 1)
+        }
+        #expect(LocalStillPlan(duration: 20).overview.sorted() == Array(0..<10))
+    }
+
+    @Test func whereTheScrubberPointsComesFirstThenItsNeighboursThenTheOverview() {
+        let plan = LocalStillPlan(duration: 7200)
+        var held: Set<Int> = []
+        #expect(plan.next(pointer: 400, isSettled: held.contains) == 400)
+        held.insert(400)
+        #expect(plan.next(pointer: 400, isSettled: held.contains) == 401)
+        held.insert(401)
+        #expect(plan.next(pointer: 400, isSettled: held.contains) == 399)
+        held.formUnion(397...403)
+        #expect(plan.next(pointer: 400, isSettled: held.contains) == plan.overview[0])
+        #expect(plan.next(pointer: nil, isSettled: held.contains) == plan.overview[0])
+        held.formUnion(plan.overview)
+        #expect(plan.next(pointer: 400, isSettled: held.contains) == nil)
+        #expect(plan.next(pointer: 999, isSettled: { _ in false }) == 999)
+        held.insert(999)
+        #expect(plan.next(pointer: 999, isSettled: held.contains) == 998)
+    }
+
+    @Test func aStillFromAsFarAsTheOverviewIsSpacedStandsIn() {
+        #expect(LocalStillPlan(duration: 7200).standInReach == 21)
+        #expect(LocalStillPlan(duration: 120).standInReach == 15)
+    }
 }

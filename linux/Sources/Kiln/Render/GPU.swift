@@ -34,6 +34,10 @@ public final class Texture {
         height = Int(kiln_tex_height(handle))
     }
 
+    /// Whether the GPU has finished the picture a video player last drew into this texture. Drawing the texture before
+    /// that makes the window's frame wait for it, a decoded 4K picture's worth of GPU time.
+    public var isVideoDrawn: Bool { kiln_tex_video_drawn(gpu.handle, handle) }
+
     public func upload(_ pixels: UnsafeRawPointer, rowBytes: Int) -> Bool {
         FrameTrace.uploads += 1
         return kiln_tex_upload(gpu.handle, handle, pixels, rowBytes)

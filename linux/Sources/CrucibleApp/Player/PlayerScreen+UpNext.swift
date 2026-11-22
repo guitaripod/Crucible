@@ -115,6 +115,7 @@ extension PlayerScreen {
         }
         if mode == .exact, abs(target - position) >= Self.jumpWorthReturning { veil(at: target) }
         seekTarget = (target, .now)
+        stills?.titleSeeks(true)
         player?.seek(to: target - streamOffset, mode: mode)
         controls?.seeked(to: target)
         showChrome(autoHide: true)

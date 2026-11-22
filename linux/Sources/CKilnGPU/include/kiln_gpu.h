@@ -96,6 +96,9 @@ void kiln_readback_destroy(kiln_gpu *gpu, kiln_readback *readback);
 
 /** The VkImage behind a renderable texture, held for an external user (mpv) until `kiln_tex_release_vulkan`. */
 bool kiln_tex_hold_vulkan(kiln_gpu *gpu, kiln_tex *tex, void **image, void **view, uint32_t *format, uint32_t *layout);
+/** Whether the GPU has finished what mpv last drew into a texture handed to it, so sampling it waits for nothing; true for
+ * a texture mpv never drew into. */
+bool kiln_tex_video_drawn(kiln_gpu *gpu, kiln_tex *tex);
 void kiln_tex_release_vulkan(kiln_gpu *gpu, kiln_tex *tex, uint32_t layout);
 
 /** Runs a full-screen (or `rect`) GLSL pass into `target`. `body` writes `color` (vec4); samplers and uniforms are

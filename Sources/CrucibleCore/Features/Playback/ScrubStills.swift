@@ -186,3 +186,81 @@ package struct BIFIndex: Sendable, Equatable {
         return order
     }
 }
+
+/// Which stills a player makes itself for a file the server has none for, and in what order (`LocalStillMaker` on Linux).
+/// The title is divided into slots with one still each. Where the scrubber points is always made first; while it rests
+/// there its neighbours follow, so a small move shows its still at once; and from the first time the scrubber is pointed at,
+/// an overview of the whole title fills in between those, spread evenly at every stage, so a jump anywhere shows a still
+/// from nearby at once while its own is made.
+package struct LocalStillPlan: Sendable, Equatable {
+    /// How many seconds of the title one still stands for.
+    package let interval: Double
+    /// How many slots the title has.
+    package let count: Int
+    /// The overview's slots, in the order they are made.
+    package let overview: [Int]
+
+    /// The most slots a title is divided into, which is more than a pointer can tell apart along a bar.
+    package static let mostSlots = 1000
+    /// The shortest stretch of a title one still stands for, in seconds: keyframes rarely sit closer.
+    package static let shortestInterval = 2.0
+    /// How many stills the overview has.
+    package static let overviewSize = 48
+    /// How many slots either side of where the scrubber rests are made ahead of the overview.
+    package static let neighbourhood = 3
+
+    package init(duration: Double) {
+        let length = duration.isFinite ? max(duration, 0) : 0
+        interval = max(length / Double(Self.mostSlots), Self.shortestInterval)
+        count = max(Int((length / interval).rounded(.up)), 1)
+        overview = Self.spread(Self.overviewSize, over: count)
+    }
+
+    /// The slot `seconds` into the title falls in.
+    package func slot(at seconds: Double) -> Int {
+        guard seconds.isFinite else { return 0 }
+        return min(max(Int(seconds / interval), 0), count - 1)
+    }
+
+    /// The moment a slot's still is taken at: its middle.
+    package func moment(of slot: Int) -> Double {
+        (Double(slot) + 0.5) * interval
+    }
+
+    /// How many slots away a held still may be and still stand in for one being made: as far as the overview's stills lie
+    /// apart, and no less than `ScrubStills.standInReach` seconds.
+    package var standInReach: Int {
+        max((count + overview.count - 1) / max(overview.count, 1), Int(Double(ScrubStills.standInReach) / interval), 1)
+    }
+
+    /// The slot to make next, or nil when there is nothing left to make. `pointer` is the slot the scrubber points at
+    /// now, when it points at one; `isSettled` says whether a slot's still is held or was found impossible to make.
+    package func next(pointer: Int?, isSettled: (Int) -> Bool) -> Int? {
+        if let pointer, (0..<count).contains(pointer) {
+            if !isSettled(pointer) { return pointer }
+            for distance in 1...Self.neighbourhood {
+                for neighbour in [pointer + distance, pointer - distance] where (0..<count).contains(neighbour) && !isSettled(neighbour) {
+                    return neighbour
+                }
+            }
+        }
+        return overview.first { !isSettled($0) }
+    }
+
+    /// `size` slots spread evenly over `count`, ordered so that every leading run of them is itself spread evenly: the
+    /// middles of `size` equal stretches, taken in bit-reversed order.
+    private static func spread(_ size: Int, over count: Int) -> [Int] {
+        let wanted = min(size, count)
+        var bits = 0
+        while 1 << bits < wanted { bits += 1 }
+        var slots: [Int] = []
+        for index in 0..<(1 << bits) {
+            var reversed = 0
+            for bit in 0..<bits where index & (1 << bit) != 0 { reversed |= 1 << (bits - 1 - bit) }
+            guard reversed < wanted else { continue }
+            let slot = min(Int((Double(reversed) + 0.5) * Double(count) / Double(wanted)), count - 1)
+            if !slots.contains(slot) { slots.append(slot) }
+        }
+        return slots
+    }
+}

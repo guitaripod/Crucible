@@ -72,6 +72,16 @@ final class ScrubStillLoader {
         return ScrubStillQueue.standIn(for: second, among: stills.keys).flatMap { stills[$0] }
     }
 
+    /// The viewer reached for the controls: stills made here are begun ahead of the scrubber asking.
+    func prepare() {
+        local?.prepare()
+    }
+
+    /// The title playing began a seek of its own, or that seek landed: stills made here give way to it meanwhile.
+    func titleSeeks(_ isSeeking: Bool) {
+        if isSeeking { local?.titleSeekBegan() } else { local?.titleSeekLanded() }
+    }
+
     /// Turns to stills made here from now on; false when this file's cannot be.
     @discardableResult
     private func useLocal() -> Bool {

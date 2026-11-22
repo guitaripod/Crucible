@@ -482,6 +482,14 @@ bool kiln_tex_hold_vulkan(kiln_gpu *g, kiln_tex *t, void **image, void **view, u
     return true;
 }
 
+bool kiln_tex_video_drawn(kiln_gpu *g, kiln_tex *t) {
+    if (!t->semaphore) return true;
+    PFN_vkGetSemaphoreCounterValue counter = (PFN_vkGetSemaphoreCounterValue) g->instance->get_proc_addr(g->instance->instance, "vkGetSemaphoreCounterValue");
+    uint64_t value = 0;
+    if (!counter || counter(g->vulkan->device, t->semaphore, &value) != VK_SUCCESS) return true;
+    return value >= t->semaphore_value;
+}
+
 void kiln_tex_release_vulkan(kiln_gpu *g, kiln_tex *t, uint32_t layout) {
     pl_vulkan_release_ex(g->gpu, pl_vulkan_release_params(.tex = t->tex, .layout = (VkImageLayout) layout, .qf = VK_QUEUE_FAMILY_IGNORED));
 }

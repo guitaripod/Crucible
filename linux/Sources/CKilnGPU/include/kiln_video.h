@@ -47,6 +47,8 @@ uint32_t kiln_video_poll(kiln_video *video, kiln_video_state *state);
 
 /** Renders the current frame into `target` (a renderable FP16 texture of the size the video should fill). */
 bool kiln_video_render(kiln_video *video, kiln_gpu *gpu, kiln_tex *target);
+/** Takes the frame mpv waits to have drawn without drawing it, so mpv goes on; a later render still draws that frame. */
+void kiln_video_skip_frame(kiln_video *video);
 
 /** Tells mpv a frame it rendered reached the screen, for its timing. */
 void kiln_video_report_swap(kiln_video *video);

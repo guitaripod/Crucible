@@ -470,6 +470,7 @@ final class PlayerScreen: View {
             settleFileTracks()
         case .seeked:
             seekVeil?.lift()
+            stills?.titleSeeks(false)
         case .ended:
             if web?.isReplacing == true { return }
             if endedShort() { return }
@@ -772,6 +773,7 @@ final class PlayerScreen: View {
         if location == previous { return }
         if chrome.target < 0.5, let rest = restingPointer, abs(location.x - rest.x) + abs(location.y - rest.y) < Theme.current.metrics.tv(24) { return }
         restingPointer = nil
+        stills?.prepare()
         showChrome(autoHide: true, rest: overBar ? Self.chromeRestOnBar : Self.chromeRest)
     }
 

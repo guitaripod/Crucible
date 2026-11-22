@@ -300,6 +300,15 @@ bool kiln_video_render(kiln_video *v, kiln_gpu *g, kiln_tex *t) {
     return true;
 }
 
+void kiln_video_skip_frame(kiln_video *v) {
+    int skip = 1;
+    mpv_render_param params[] = {
+        { MPV_RENDER_PARAM_SKIP_RENDERING, &skip },
+        { MPV_RENDER_PARAM_INVALID, NULL },
+    };
+    mpv_render_context_render(v->render, params);
+}
+
 void kiln_video_report_swap(kiln_video *v) { mpv_render_context_report_swap(v->render); }
 
 int kiln_video_command(kiln_video *v, const char **arguments) { return mpv_command(v->mpv, arguments); }

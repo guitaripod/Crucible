@@ -324,7 +324,9 @@ public final class VideoPlayer {
         kiln_video_set_property_async(handle, property, value)
     }
 
-    private func commandLater(_ arguments: [String]) {
+    /// Sends an mpv command without waiting for mpv to take it. A command that waits holds this thread for as long as
+    /// mpv's core is itself waiting, which it does, a fifth of a second at a time, for a picture this thread has yet to draw.
+    public func commandLater(_ arguments: [String]) {
         withCArguments(arguments) { kiln_video_command_async(handle, $0) }
     }
 
@@ -341,6 +343,13 @@ public final class VideoPlayer {
     public func render(into target: Texture) -> Bool {
         hasNewFrame = false
         return kiln_video_render(handle, gpu.handle, target.handle)
+    }
+
+    /// Lets go of the newest frame without drawing it. mpv holds its next step until each frame is drawn or let go, and a
+    /// later `render(into:)` still draws that frame.
+    public func skipFrame() {
+        hasNewFrame = false
+        kiln_video_skip_frame(handle)
     }
 
     public func reportSwap() { kiln_video_report_swap(handle) }
