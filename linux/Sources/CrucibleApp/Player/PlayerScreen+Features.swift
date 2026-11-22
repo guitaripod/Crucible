@@ -253,19 +253,38 @@ extension PlayerScreen {
         }
     }
 
-    /// Shows the file's preview stills above the scrubber when the server has made them, keeping the ones already
-    /// loaded when the same file is loaded again.
+    /// Shows the file's preview stills above the scrubber: the server's when it has made them, else ones made here from
+    /// the file itself, so every title has them. The ones already loaded are kept when the same file is loaded again.
+    /// `CRUCIBLE_LOCAL_STILLS=1` makes them here whatever the server has, for checking that path on any title.
     func showStills(of resolved: ResolvedStream, api: APIClient) {
-        guard let part = ScrubStills.part(of: resolved.media) else {
+        guard let media = resolved.media, let part = media.Part?.first else {
             stills = nil
             transport.still = nil
             return
         }
         guard stills?.partID != part.id else { return }
-        let loader = ScrubStillLoader(partID: part.id, api: api, window: window)
+        let file = Self.fileAddress(of: part, for: resolved)
+        let headers = PlexHeaders.allHeaders(token: api.token)
+        let length = part.duration.map { Double($0) / 1000 } ?? duration
+        let hasServerStills = ScrubStills.part(of: media) != nil && ProcessInfo.processInfo.environment["CRUCIBLE_LOCAL_STILLS"] != "1"
+        let loader = ScrubStillLoader(partID: part.id, api: api, window: window, hasServerStills: hasServerStills) { [weak self] in
+            guard let file, length > 0 else { return nil }
+            return LocalStillMaker(url: file, headers: headers, duration: length, width: media.width, height: media.height, window: self?.window)
+        }
         loader.onChange = { [weak self] in self?.transport.setNeedsDisplay() }
         stills = loader
         transport.still = { [weak loader] time in loader?.still(at: time) }
+    }
+
+    /// Where the file itself is read from: the address a direct play already uses, else the part's own on the server the
+    /// converted stream comes from.
+    private static func fileAddress(of part: PlexPart, for resolved: ResolvedStream) -> URL? {
+        guard !resolved.isDirectPlay else { return resolved.url }
+        guard var address = URLComponents(url: resolved.url, resolvingAgainstBaseURL: false) else { return nil }
+        address.path = part.key
+        address.query = nil
+        address.fragment = nil
+        return address.url
     }
 
     /// Saves the poster where the desktop's media controls can read it, keeping only the one playing.

@@ -14,8 +14,8 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 | You, profiles, history, statistics and manage | 84 | 0 | 0 | 3 |
 | Settings and integrations | 67 | 0 | 0 | 2 |
 | Design system | 97 | 0 | 0 | 0 |
-| Linux-only requirements (docs/LINUX.md) | 103 | 1 | 0 | 0 |
-| **All** | 690 | 1 | 0 | 16 |
+| Linux-only requirements (docs/LINUX.md) | 104 | 1 | 0 | 0 |
+| **All** | 691 | 1 | 0 | 16 |
 
 ## Sign in, launch, tabs and navigation
 
@@ -744,6 +744,7 @@ Each row: `[x]` done, `[ ]` open; **partial** rows say what is missing. Size: S 
 - [ ] `linux-player-hdr-into-kiln` (M) **partial** HDR10 and Dolby Vision play through mpv's render API into Kiln's FP16 image, with the chrome composited over the picture Gap: The Vulkan render context is in code (CKilnGPU/kiln_video.c:17, 72-81; vendored mpv under linux/Vendor/mpv). docs/LINUX.md §12 lists the open checks: 144 Hz pacing on the C5, output HDR switching and TrueHD passthrough, not yet done. _Apple TV: docs/LINUX.md §7.3 Video and HDR_
 - [x] `linux-player-direct-play-capabilities` (S) Direct play is the default on Linux: mpv decodes every container and codec, so the server transcodes only for bandwidth _Apple TV: docs/LINUX.md §7.2 What plays directly_
 - [x] `linux-player-scrub-thumbnails` (M) The player's scrubber shows thumbnail previews from Plex's index thumbnails while hovering or scrubbing _Apple TV: docs/LINUX.md §7.5 Player chrome_
+- [x] `linux-player-scrub-thumbnails-local` (M) A file the server has made no preview thumbnails for gets them made in the player, from the file's own keyframes, so the scrubber shows a preview on every title _Apple TV: docs/LINUX.md §7.5 Player chrome_
 - [x] `linux-player-time-left` (S) The transport shows the time left as a negative clock beside the position _Apple TV: docs/LINUX.md §7.5 Player chrome_
 - [x] `linux-sign-in-browser-xdg-open` (S) Sign in opens the browser with xdg-open on a desk _Apple TV: docs/LINUX.md §6 Screens (Sign in)_
 - [x] `linux-kb-ctrl-q-quit` (S) Ctrl+Q quits Crucible through the same path as closing the window _Apple TV: docs/LINUX.md §9 Clean exit_

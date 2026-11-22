@@ -6,7 +6,8 @@ import MidgarCore
 /// The playing file's preview stills for the scrubber (`ScrubStills`). The whole index (`BIFIndex`) is fetched once as the
 /// player opens, so any point of the bar has its still at once; each is decoded and uploaded off the main thread the first
 /// time it is shown, and the nearest one already held stands in for the moment that takes. A server without the whole
-/// index is asked for one still at a time instead. Nothing is written to the artwork cache: stills are throwaway.
+/// index is asked for one still at a time instead, and a file the server has made no stills for, or serves none of, has
+/// them made here (`LocalStillMaker`). Nothing is written to the artwork cache: stills are throwaway.
 @MainActor
 final class ScrubStillLoader {
     /// A still arrived, so the scrubber should draw again.
@@ -25,16 +26,27 @@ final class ScrubStillLoader {
     private var indexFailed = false
     private var decoding: Int?
     private var wantedFrame: Int?
+    /// Makes the stills here; nil for a file that cannot be (`local` stays nil then).
+    private let makeLocal: () -> LocalStillMaker?
+    private var local: LocalStillMaker?
 
     /// How many stills stay in memory (about 230 KB each at 320 by 180).
     private static let capacity = 120
 
-    init(partID: Int, api: APIClient, window: Window?) {
+    /// `hasServerStills` is whether the server says it has made the file's stills; without them, and when it turns out to
+    /// serve none, `makeLocal` gives what makes them here.
+    init(partID: Int, api: APIClient, window: Window?, hasServerStills: Bool, makeLocal: @escaping () -> LocalStillMaker?) {
         self.partID = partID
         self.api = api
         fetch = PlexArtworkPipeline.fetcher(token: api.token)
         self.window = window
-        loadIndex()
+        self.makeLocal = makeLocal
+        if hasServerStills {
+            loadIndex()
+        } else {
+            indexFailed = true
+            useLocal()
+        }
     }
 
     deinit {
@@ -44,6 +56,7 @@ final class ScrubStillLoader {
 
     /// The still for `seconds` into the title, or the nearest one held while it loads; nil when there is none to show.
     func still(at seconds: Double) -> Texture? {
+        if let local { return local.still(at: seconds) }
         if let index {
             guard let frame = index.frames.frame(at: seconds) else { return nil }
             if let held = stills[frame] { return held }
@@ -54,8 +67,18 @@ final class ScrubStillLoader {
         let second = ScrubStills.second(seconds)
         let held = stills[second]
         if let next = queue.want(second, held: held != nil) { load(next) }
+        if queue.isUnavailable, useLocal() { return local?.still(at: seconds) }
         if let held { return held }
         return ScrubStillQueue.standIn(for: second, among: stills.keys).flatMap { stills[$0] }
+    }
+
+    /// Turns to stills made here from now on; false when this file's cannot be.
+    @discardableResult
+    private func useLocal() -> Bool {
+        guard local == nil, let maker = makeLocal() else { return local != nil }
+        maker.onChange = { [weak self] in self?.onChange?() }
+        local = maker
+        return true
     }
 
     /// How many frames of the index a stand-in still may be from the one wanted: `ScrubStills.standInReach` seconds.
