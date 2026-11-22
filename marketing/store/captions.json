@@ -2,10 +2,10 @@
   "iphone": [
     {"screen": "15-what-to-watch", "headline": "Ask what to watch", "subhead": "Say what you feel like, get picks from your own library"},
     {"screen": "04c-essentials-offer", "headline": "Skip the filler", "subhead": "Essentials hides the anime-only episodes of long shows"},
+    {"screen": "18-livetv", "headline": "Live TV with a real guide", "subhead": "Plex's free channels, your tuner and your own playlists"},
     {"screen": "09c-scrub-preview", "headline": "Scrub with a preview", "subhead": "The moment under your finger, with Skip Intro and Skip Recap", "stack": ["09c-scrub-preview", "09b-skip-recap"]},
     {"screen": "17-community", "headline": "See what people say", "subhead": "Reviews, replies and reactions from Trakt on every title"},
     {"screen": "01-home", "headline": "Pick up where you left off", "subhead": "A Resume-first Home for your whole Plex library"},
-    {"screen": "02b-library-settled", "headline": "Every library at your fingertips", "subhead": "Filters, sort, an A–Z index and Recently Watched"},
     {"screen": "03-detail", "headline": "Everything about a title", "subhead": "Trakt and IMDb scores, audio and subtitles, cast and crew"},
     {"screen": "05b-search-request", "headline": "Find anything, even what's missing", "subhead": "Not on your server? Request it through Seerr"},
     {"screen": "06-downloads", "headline": "Take it offline", "subhead": "Movies, seasons or episodes in the quality you pick"},
@@ -38,6 +38,7 @@
   "creative": {"headline": "Ask what to watch", "subline": "Picks from your own Plex library"},
   "l10n": {
     "de-DE": {
+      "18-livetv": {"headline": "Live-TV mit echtem Programm", "subhead": "Kostenlose Plex-Kanäle, dein Tuner und deine eigenen Kanallisten"},
       "04c-essentials-offer": {"headline": "Füllfolgen überspringen", "subhead": "Essentials blendet die reinen Anime-Folgen langer Serien aus"},
       "09c-scrub-preview": {"headline": "Scrubben mit Vorschau", "subhead": "Der Moment unter deinem Finger, mit Intro und Rückblick überspringen"},
       "09b-skip-recap": {"headline": "Rückblick überspringen", "subhead": "Intro, Rückblick und Vorschau überspringen, dank der Kapitel deiner Dateien"},
@@ -56,6 +57,7 @@
       "creative": {"headline": "Frag, was du schauen willst", "subline": "Tipps aus deiner eigenen Plex-Bibliothek"}
     },
     "es-ES": {
+      "18-livetv": {"headline": "TV en directo con guía", "subhead": "Los canales gratis de Plex, tu sintonizador y tus propias listas"},
       "04c-essentials-offer": {"headline": "Sáltate el relleno", "subhead": "Esenciales oculta los episodios exclusivos del anime en series largas"},
       "09c-scrub-preview": {"headline": "Avanza con vista previa", "subhead": "El momento bajo tu dedo, con Saltar intro y resumen"},
       "09b-skip-recap": {"headline": "Sáltate el resumen", "subhead": "Omite intro, resumen y avance con los capítulos de tus archivos"},
@@ -74,6 +76,7 @@
       "creative": {"headline": "Pregúntale qué ver", "subline": "Ideas de tu propia biblioteca de Plex"}
     },
     "fr-FR": {
+      "18-livetv": {"headline": "La TV en direct, avec un vrai guide", "subhead": "Les chaînes gratuites de Plex, ton tuner et tes propres listes"},
       "04c-essentials-offer": {"headline": "Passe les fillers", "subhead": "Essentiels masque les épisodes hors-série des longues séries"},
       "09c-scrub-preview": {"headline": "Glisse avec un aperçu", "subhead": "L'instant sous ton doigt, avec Passe l'intro et Passe le récap"},
       "09b-skip-recap": {"headline": "Passe le récap", "subhead": "Passe le générique, le récap et l'aperçu grâce aux chapitres de tes fichiers"},
@@ -92,6 +95,7 @@
       "creative": {"headline": "Demande quoi regarder", "subline": "Des idées de ta propre bibliothèque Plex"}
     },
     "it": {
+      "18-livetv": {"headline": "TV in diretta con una vera guida", "subhead": "I canali gratuiti di Plex, il tuo sintonizzatore e le tue liste"},
       "04c-essentials-offer": {"headline": "Salta i filler", "subhead": "Essenziali nasconde gli episodi esclusivi dell'anime nelle serie lunghe"},
       "09c-scrub-preview": {"headline": "Scorri con l'anteprima", "subhead": "Il momento sotto il dito, con Salta sigla e Salta riassunto"},
       "09b-skip-recap": {"headline": "Salta il riassunto", "subhead": "Salta sigla, riassunto e anteprima grazie ai capitoli dei tuoi file"},
@@ -110,6 +114,7 @@
       "creative": {"headline": "Chiedi cosa guardare", "subline": "Consigli dalla tua libreria Plex"}
     },
     "ja": {
+      "18-livetv": {"headline": "番組表つきのライブTV", "subhead": "Plexの無料チャンネル、チューナー、自分のチャンネルリスト"},
       "04c-essentials-offer": {"headline": "フィラーをスキップ", "subhead": "エッセンシャルで長編アニメのアニメオリジナル回を非表示に"},
       "09c-scrub-preview": {"headline": "プレビューでシーク", "subhead": "指の下の今の場面を、OP・あらすじのスキップ付きで"},
       "09b-skip-recap": {"headline": "あらすじをスキップ", "subhead": "ファイルのチャプターでOP・あらすじ・予告をスキップ"},
@@ -128,6 +133,7 @@
       "creative": {"headline": "何を観るか聞く", "subline": "自分のPlexライブラリからおすすめ"}
     },
     "ko": {
+      "18-livetv": {"headline": "편성표가 있는 라이브 TV", "subhead": "Plex 무료 채널, 내 튜너, 내 채널 목록까지"},
       "04c-essentials-offer": {"headline": "필러는 건너뛰기", "subhead": "에센셜이 긴 시리즈의 애니 오리지널 회차를 숨겨요"},
       "09c-scrub-preview": {"headline": "미리보며 탐색하기", "subhead": "손가락 아래의 그 순간, 오프닝과 요약 건너뛰기까지"},
       "09b-skip-recap": {"headline": "요약 건너뛰기", "subhead": "파일 챕터로 오프닝, 요약, 예고를 건너뛰어요"},
@@ -146,6 +152,7 @@
       "creative": {"headline": "뭘 볼지 물어보기", "subline": "내 Plex 라이브러리에서 골라 드려요"}
     },
     "pl": {
+      "18-livetv": {"headline": "Telewizja na żywo z prawdziwym programem", "subhead": "Darmowe kanały Plex, Twój tuner i Twoje własne listy"},
       "04c-essentials-offer": {"headline": "Pomiń fillery", "subhead": "Essentials ukrywa odcinki tylko z anime w długich serialach"},
       "09c-scrub-preview": {"headline": "Przewijaj z podglądem", "subhead": "Moment pod palcem, z Pomiń intro i Pomiń streszczenie"},
       "09b-skip-recap": {"headline": "Pomiń streszczenie", "subhead": "Pomiń czołówkę, streszczenie i zapowiedź dzięki rozdziałom twoich plików"},
@@ -164,6 +171,7 @@
       "creative": {"headline": "Zapytaj, co obejrzeć", "subline": "Propozycje z twojej biblioteki Plex"}
     },
     "pt-BR": {
+      "18-livetv": {"headline": "TV ao vivo com guia de verdade", "subhead": "Os canais grátis do Plex, seu sintonizador e suas próprias listas"},
       "04c-essentials-offer": {"headline": "Pule os fillers", "subhead": "Essenciais esconde os episódios exclusivos do anime em séries longas"},
       "09c-scrub-preview": {"headline": "Arraste com uma prévia", "subhead": "O momento sob o dedo, com Pular abertura e Pular recapitulação"},
       "09b-skip-recap": {"headline": "Pule o resumo", "subhead": "Pule abertura, resumo e prévia com os capítulos dos seus arquivos"},
@@ -182,6 +190,7 @@
       "creative": {"headline": "Pergunte o que assistir", "subline": "Sugestões da sua própria biblioteca Plex"}
     },
     "zh-Hans": {
+      "18-livetv": {"headline": "带节目指南的直播电视", "subhead": "Plex 免费频道、你的调谐器和你自己的频道列表"},
       "04c-essentials-offer": {"headline": "跳过填充集", "subhead": "「精选」隐藏长篇动画的动画原创集"},
       "09c-scrub-preview": {"headline": "拖动，先看画面", "subhead": "手指按住的那一刻，配合跳过片头与跳过回顾"},
       "09b-skip-recap": {"headline": "跳过前情回顾", "subhead": "借助文件自带章节跳过片头、回顾与预告"},
@@ -200,6 +209,7 @@
       "creative": {"headline": "问问该看什么", "subline": "只从你自己的 Plex 媒体库里挑选"}
     },
     "zh-Hant": {
+      "18-livetv": {"headline": "附節目表的直播電視", "subhead": "Plex 免費頻道、你的調諧器和你自己的頻道清單"},
       "04c-essentials-offer": {"headline": "跳過填充集", "subhead": "「精選」隱藏長篇動畫的動畫原創集"},
       "09c-scrub-preview": {"headline": "拖曳，先看畫面", "subhead": "手指所在的那一刻，配合跳過片頭與跳過回顧"},
       "09b-skip-recap": {"headline": "跳過前情回顧", "subhead": "借助檔案自帶章節跳過片頭、回顧與預告"},
@@ -218,6 +228,7 @@
       "creative": {"headline": "問問該看什麼", "subline": "只從你自己的 Plex 媒體庫裡挑選"}
     },
     "sv": {
+      "18-livetv": {"headline": "Live-tv med riktig tablå", "subhead": "Plex gratiskanaler, din tuner och dina egna kanallistor"},
       "01-home": {"headline": "Fortsätt där du slutade", "subhead": "Startsidan med Återuppta först för hela ditt Plex-bibliotek"},
       "04c-essentials-offer": {"headline": "Hoppa över fillers", "subhead": "Essentials döljer de enbart anime-avsnitten i långa serier"},
       "09c-scrub-preview": {"headline": "Spola med förhandsvisning", "subhead": "Ögonblicket under fingret, med Hoppa över intro och Hoppa över sammanfattning"},
@@ -235,6 +246,7 @@
       "creative": {"headline": "Fråga vad du ska titta på", "subline": "Tips från ditt eget Plex-bibliotek"}
     },
     "da": {
+      "18-livetv": {"headline": "Live-tv med rigtig programoversigt", "subhead": "Plex' gratis kanaler, din tuner og dine egne kanallister"},
       "01-home": {"headline": "Fortsæt, hvor du slap", "subhead": "Startsiden med Genoptag først for hele dit Plex-bibliotek"},
       "04c-essentials-offer": {"headline": "Spring fillers over", "subhead": "Essentials skjuler de kun anime-afsnit i lange serier"},
       "09c-scrub-preview": {"headline": "Scrub med forhåndsvisning", "subhead": "Øjeblikket under fingeren, med Spring intro og Spring resumé"},
@@ -252,6 +264,7 @@
       "creative": {"headline": "Spørg, hvad du skal se", "subline": "Forslag fra dit eget Plex-bibliotek"}
     },
     "no": {
+      "18-livetv": {"headline": "Direkte-TV med ekte programoversikt", "subhead": "Plex' gratiskanaler, tuneren din og dine egne kanallister"},
       "01-home": {"headline": "Fortsett der du slapp", "subhead": "Startsiden med Fortsett først for hele Plex-biblioteket ditt"},
       "04c-essentials-offer": {"headline": "Hopp over filler", "subhead": "Essentials skjuler de bare anime-episodene i lange serier"},
       "09c-scrub-preview": {"headline": "Spol med forhåndsvisning", "subhead": "Øyeblikket under fingeren, med Hopp over intro og Hopp over oppsummering"},
@@ -269,6 +282,7 @@
       "creative": {"headline": "Spør hva du vil se", "subline": "Tips fra ditt eget Plex-bibliotek"}
     },
     "fi": {
+      "18-livetv": {"headline": "Suora TV oikealla ohjelmaoppaalla", "subhead": "Plexin ilmaiskanavat, virittimesi ja omat kanavalistasi"},
       "01-home": {"headline": "Jatka siitä, mihin jäit", "subhead": "Koti, jossa Jatka on ensin, koko Plex-kirjastollesi"},
       "04c-essentials-offer": {"headline": "Ohita täytejaksot", "subhead": "Essentials piilottaa pitkien sarjojen vain animessa olevat jaksot"},
       "09c-scrub-preview": {"headline": "Kelaa esikatselulla", "subhead": "Sormesi alla oleva hetki, ohita intro ja kertaus"},
@@ -286,15 +300,19 @@
       "creative": {"headline": "Kysy, mitä katsoa", "subline": "Ehdotukset omasta Plex-kirjastostasi"}
     },
     "ru": {
+      "18-livetv": {"headline": "Прямой эфир с настоящей программой", "subhead": "Бесплатные каналы Plex, ваш тюнер и ваши собственные списки"},
       "creative": {"headline": "Спроси, что посмотреть", "subline": "Подборка из твоей библиотеки Plex"}
     },
     "tr": {
+      "18-livetv": {"headline": "Gerçek rehberli canlı TV", "subhead": "Plex'in ücretsiz kanalları, tuner'ınız ve kendi listeleriniz"},
       "creative": {"headline": "Ne izlesem diye sor", "subline": "Kendi Plex kütüphanenden öneriler"}
     },
     "id": {
+      "18-livetv": {"headline": "TV langsung dengan panduan sungguhan", "subhead": "Saluran gratis Plex, tuner Anda, dan daftar saluran Anda sendiri"},
       "creative": {"headline": "Tanya mau nonton apa", "subline": "Saran dari perpustakaan Plex-mu sendiri"}
     },
     "vi": {
+      "18-livetv": {"headline": "Truyền hình trực tiếp với lịch phát sóng", "subhead": "Kênh miễn phí của Plex, bộ thu của bạn và danh sách kênh của riêng bạn"},
       "creative": {"headline": "Hỏi nên xem gì", "subline": "Gợi ý từ chính thư viện Plex của bạn"}
     }
   }

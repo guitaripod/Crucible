@@ -84,6 +84,8 @@ def ensure_assets():
                     break
             font = font or ImageFont.load_default()
             lines = logo_lines(title.upper(), font, draw)
+            while font.size > 30 and max(draw.textlength(line, font=font) for line in lines) > 380 and hasattr(font, "font_variant"):
+                font = font.font_variant(size=font.size - 4)
             y = 140 - 34 * len(lines)
             for line in lines:
                 width = draw.textlength(line, font=font)

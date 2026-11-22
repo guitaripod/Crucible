@@ -45,7 +45,29 @@ enum StoreShotScript {
         await WatchShotScript.scenes(tabBar: tabBar, api: api)
         await statistics(tabBar: tabBar, api: api)
         await ShotScript.playRecap(api: api, tabBar: tabBar)
+        await liveTV(tabBar: tabBar, api: api)
         await ShotHarness.capture("done")
+    }
+
+    /// Only Live TV's guide, for adding its screen to a set in every language without the whole run (SHOT_SCRIPT=livetv).
+    static func runLiveTV() async {
+        guard let tabBar = await ShotHarness.waitForTabBar() else { return }
+        let api = APIClient(baseURL: ServerBootstrap.connection()!.serverURI, token: "mock-token")
+        await ShotHarness.settle(3)
+        await liveTV(tabBar: tabBar, api: api)
+        await ShotHarness.capture("done")
+    }
+
+    /// The guide with the mock's antenna and Plex's free channels, the airing on now shown above it.
+    private static func liveTV(tabBar: TabBarController, api: APIClient) async {
+        tabBar.select(.home)
+        await ShotHarness.settle(1)
+        let home = ShotScript.navigation(tabBar)
+        home?.popToRootViewController(animated: false)
+        home?.pushViewController(LiveTVViewController(context: LiveTVGuide.Context.current(api: api), api: api), animated: false)
+        await ShotHarness.settle(9)
+        await ShotHarness.capture("18-livetv")
+        home?.popToRootViewController(animated: false)
     }
 
     /// Only the library and the player, the screens 2.14.0 changed (the folder button, the scrubber's preview), for
