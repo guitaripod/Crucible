@@ -830,9 +830,24 @@ final class MediaDetailViewController: UICollectionViewController {
                 if let manage = ManageMenus.itemMenu(for: item, api: api, host: self, reload: { [weak self] in self?.loadData() }) {
                     elements.append(manage)
                 }
+                if let copies = await copiesMenu(for: item) { elements.append(copies) }
                 completion(elements)
             }
         }])
+    }
+
+    /// The other copies of this title on the server, each opening its own page.
+    private func copiesMenu(for item: PlexMetadata) async -> UIMenu? {
+        let copies = await LibraryDuplicates.copies(of: item, api: api)
+        guard !copies.isEmpty else { return nil }
+        let actions = copies.map { copy in
+            UIAction(title: LibraryDuplicates.label(of: copy), image: UIImage(systemName: "square.on.square")) { [weak self] _ in
+                guard let self, let key = copy.ratingKey else { return }
+                let route = DetailRoute.item(ratingKey: key, mediaType: copy.mediaType, showRatingKey: nil, seasonRatingKey: nil)
+                navigationController?.pushViewController(DetailRouter.viewController(for: route, api: api), animated: true)
+            }
+        }
+        return UIMenu(title: LibraryDuplicates.otherCopiesTitle, image: UIImage(systemName: "square.on.square"), children: actions)
     }
 
     private func openCollection(named name: String) {

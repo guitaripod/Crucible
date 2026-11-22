@@ -17,6 +17,7 @@ struct TVDetailAction {
         case goToShow
         case nextEpisode
         case manage
+        case copies
         case essentialsOffer
         case essentials
         case previouslyOn

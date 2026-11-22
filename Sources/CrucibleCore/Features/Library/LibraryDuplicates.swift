@@ -49,6 +49,30 @@ package enum LibraryDuplicates {
         return result
     }
 
+    /// The other copies of `item` in its library, the best first, read from the server so a detail screen opened from
+    /// anywhere offers them. Empty when merging is off or the item has none.
+    package static func copies(of item: PlexMetadata, api: APIClient) async -> [PlexMetadata] {
+        guard Preferences.mergesDuplicateTitles, key(of: item) != nil, let section = item.librarySectionID else { return [] }
+        let endpoint = PlexEndpoint.sectionItems(sectionId: String(section), size: 50, filters: ["title": item.title])
+        guard let found = try? await api.requestContainer(endpoint).Metadata else { return [] }
+        return found.filter { areCopies($0, item) }.sorted { outranks($0, $1) }
+    }
+
+    package static let otherCopiesTitle = String(localized: "Other Copies", comment: "Menu listing the other copies of a title the server has, such as the same video in another format or folder")
+
+    /// What tells a copy apart in a menu: its format, picture size and folder ("MP4 · 1080p · 2001").
+    package static func label(of item: PlexMetadata) -> String {
+        let media = item.Media?.first
+        var parts: [String] = []
+        if let container = media?.container, !container.isEmpty { parts.append(container == "mpeg" ? "MPG" : container.uppercased()) }
+        if let height = media?.height, height > 0 { parts.append(height >= 2000 ? "4K" : "\(height)p") }
+        if let file = media?.Part?.first?.file {
+            let folder = URL(fileURLWithPath: file).deletingLastPathComponent().lastPathComponent
+            if !folder.isEmpty, folder != "/" { parts.append(folder) }
+        }
+        return parts.isEmpty ? item.title : parts.joined(separator: " · ")
+    }
+
     private static func isMatched(_ guid: String) -> Bool {
         !(guid.hasPrefix("local://") || guid.contains("agents.none") || guid.hasPrefix("com.plexapp.agents.none"))
     }

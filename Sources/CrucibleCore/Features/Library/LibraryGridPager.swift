@@ -42,6 +42,12 @@ package struct LibraryGridPager: Sendable {
         (copiesById[id] ?? []).compactMap { itemsById[$0] }
     }
 
+    /// How many titles the section holds once copies are merged: exact when every page is read, otherwise the server's count
+    /// less the copies found so far.
+    package var titleCount: Int {
+        max(ids.count, totalSize - copiesById.values.reduce(0) { $0 + $1.count })
+    }
+
     /// The grid index of the item at `offset` of the whole section.
     package func index(ofOffset offset: Int) -> Int {
         guard !indexByOffset.isEmpty else { return offset }

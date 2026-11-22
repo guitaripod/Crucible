@@ -225,7 +225,7 @@ final class LibraryScreen: ScreenView {
     /// "1,248 movies", or "12 movies · Filtered" while a filter narrows the grid; empty until the first page arrived.
     private func countText() -> String? {
         guard model.pager.hasLoaded else { return nil }
-        let total = model.pager.totalSize
+        let total = model.pager.titleCount
         let count = total.formatted(.number.locale(Formatters.displayLocale))
         let summary: String
         switch (kind == .movie, total == 1) {

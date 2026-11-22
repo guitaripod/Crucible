@@ -60,3 +60,19 @@ struct LibraryDuplicatesTests {
         #expect(pager.ids == ["a", "a2"])
     }
 }
+
+@Suite("Library duplicates labels and counts")
+struct LibraryDuplicatesLabelTests {
+    @Test func aCopyIsLabelledByFormatPictureAndFolder() {
+        let copy = DetailFixtures.item(["ratingKey": "1", "title": "x", "Media": [["container": "mpeg", "height": 480, "Part": [["id": 1, "key": "/p", "file": "/media/hg/2001/1-1-01.mpg"]]]]])
+        #expect(LibraryDuplicates.label(of: copy) == "MPG · 480p · 2001")
+    }
+
+    @Test func theTitleCountLeavesOutTheCopiesFound() {
+        var pager = LibraryGridPager(foldsCopies: true)
+        let a = DetailFixtures.item(["ratingKey": "a", "title": "A", "duration": 60000])
+        let b = DetailFixtures.item(["ratingKey": "b", "title": "A", "duration": 60000])
+        pager.apply(items: [a, b], offset: 0, totalSize: 10)
+        #expect(pager.titleCount == 9)
+    }
+}

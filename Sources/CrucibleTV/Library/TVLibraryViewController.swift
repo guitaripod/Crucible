@@ -261,7 +261,7 @@ final class TVLibraryViewController: TVScreenViewController {
     /// "1,248 movies", or "12 movies · Filtered" while a filter narrows the grid; empty until the first page arrived.
     private func countText() -> String? {
         guard model.pager.hasLoaded else { return nil }
-        let total = model.pager.totalSize
+        let total = model.pager.titleCount
         let count = total.formatted(.number)
         let summary: String
         switch (section.kind == .movie, total == 1) {

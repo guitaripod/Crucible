@@ -116388,6 +116388,101 @@
         }
       }
     },
+    "Merge Duplicates" : {
+      "comment" : "Setting: show copies of one title the server lists separately as one",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flet dubletter"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Duplikate zusammenführen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Combinar duplicados"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yhdistä kaksoiskappaleet"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fusionner les doublons"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sameina tvítök"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unisci duplicati"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重複をまとめる"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "중복 항목 합치기"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slå sammen duplikater"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scalaj duplikaty"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mesclar duplicados"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slå ihop dubbletter"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "合并重复项"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "合併重複項目"
+          }
+        }
+      }
+    },
     "Middle Click" : {
       "comment" : "Linux setting: what a middle click on the playing picture does",
       "extractionState" : "manual",
@@ -139488,6 +139583,101 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "「原始」會在裝置允許時直接播放檔案。較低畫質會要求伺服器將其轉換為對應的位元速率。"
+          }
+        }
+      }
+    },
+    "Other Copies" : {
+      "comment" : "Menu listing the other copies of a title the server has, such as the same video in another format or folder",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Andre kopier"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weitere Kopien"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otras copias"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muut kopiot"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autres copies"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Önnur eintök"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Altre copie"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ほかのコピー"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다른 사본"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Andre kopier"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inne kopie"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Outras cópias"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Andra kopior"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "其他副本"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "其他副本"
           }
         }
       }
@@ -187007,6 +187197,101 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "當多個播放清單、Plex 或高畫質與備用來源提供同一頻道時只顯示一次，播放最佳來源，失敗時自動切換到其他來源。"
+          }
+        }
+      }
+    },
+    "Shows a title once when your server lists it twice, such as the same video in two formats or folders, and plays the best copy." : {
+      "comment" : "Footer of the Merge Duplicates setting",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Viser en titel én gang, når din server viser den to gange, f.eks. den samme video i to formater eller mapper, og afspiller den bedste kopi."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeigt einen Titel nur einmal, wenn dein Server ihn doppelt führt, etwa dasselbe Video in zwei Formaten oder Ordnern, und spielt die beste Kopie."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muestra un título una sola vez cuando tu servidor lo lista dos veces, como el mismo vídeo en dos formatos o carpetas, y reproduce la mejor copia."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Näyttää nimikkeen kerran, kun palvelimesi listaa sen kahdesti, kuten saman videon kahdessa muodossa tai kansiossa, ja toistaa parhaan kopion."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Affiche un titre une seule fois quand ton serveur le liste deux fois, comme la même vidéo dans deux formats ou dossiers, et lit la meilleure copie."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sýnir titil einu sinni þegar þjónninn þinn listar hann tvisvar, t.d. sama myndband á tveimur sniðum eða í tveimur möppum, og spilar besta eintakið."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra un titolo una sola volta quando il server lo elenca due volte, come lo stesso video in due formati o cartelle, e riproduce la copia migliore."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同じ動画が 2 つの形式やフォルダにあるなど、サーバーが同じタイトルを重複して表示する場合に 1 つにまとめ、最良のコピーを再生します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "같은 동영상이 두 가지 형식이나 폴더에 있는 등 서버에 같은 항목이 두 번 있으면 한 번만 표시하고 가장 좋은 사본을 재생합니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Viser en tittel én gang når serveren viser den to ganger, for eksempel samme video i to formater eller mapper, og spiller den beste kopien."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokazuje tytuł raz, gdy serwer wyświetla go dwukrotnie, np. ten sam film w dwóch formatach lub folderach, i odtwarza najlepszą kopię."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra um título uma vez quando o servidor o lista duas vezes, como o mesmo vídeo em dois formatos ou pastas, e reproduz a melhor cópia."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Visar en titel en gång när servern listar den två gånger, till exempel samma video i två format eller mappar, och spelar den bästa kopian."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当服务器重复列出同一标题（例如同一视频的两种格式或在两个文件夹中）时只显示一次，并播放最佳副本。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "當伺服器重複列出同一標題（例如同一影片的兩種格式或在兩個資料夾中）時只顯示一次，並播放最佳副本。"
           }
         }
       }
@@ -249090,6 +249375,101 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "下載中，%lld%%"
+          }
+        }
+      }
+    },
+    "duplicates, copies, versions, twice, double, same" : {
+      "comment" : "Search keywords for the Merge Duplicates setting, comma separated",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "dubletter, kopier, versioner, to gange, dobbelt, samme"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Duplikate, Kopien, Versionen, doppelt, zweimal, gleich"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "duplicados, copias, versiones, dos veces, doble, mismo"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "kaksoiskappaleet, kopiot, versiot, kahdesti, tupla, sama"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "doublons, copies, versions, deux fois, double, même"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "tvítök, afrit, útgáfur, tvisvar, tvöfalt, sama"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "duplicati, copie, versioni, due volte, doppio, stesso"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重複, コピー, バージョン, 2回, ダブり, 同じ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "중복, 사본, 버전, 두 번, 이중, 같은"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "duplikater, kopier, versjoner, to ganger, dobbel, samme"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "duplikaty, kopie, wersje, dwa razy, podwójne, to samo"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "duplicados, cópias, versões, duas vezes, duplo, mesmo"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "dubbletter, kopior, versioner, två gånger, dubbel, samma"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重复, 副本, 版本, 两次, 双份, 相同"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重複, 副本, 版本, 兩次, 雙份, 相同"
           }
         }
       }

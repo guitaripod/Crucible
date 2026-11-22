@@ -20,6 +20,8 @@ final class MediaDetailScreen: DetailScreen {
     private var subtitlesBeforeSearch: Set<Int>?
     private var isOnWatchlist: Bool?
     private var watchlistTask: Task<Void, Never>?
+    private var copies: [PlexMetadata] = []
+    private var copiesTask: Task<Void, Never>?
     private lazy var scores: [TraktScore] = TraktScores.shared.cached(ratingKey: ratingKey)
     private let extras = ShelfView(header: SectionHeader(title: String(localized: "Extras")), style: .episode)
     private let cast = ShelfView(header: SectionHeader(title: String(localized: "Cast & Crew")), style: .person)
@@ -103,6 +105,7 @@ final class MediaDetailScreen: DetailScreen {
         subtitleID = tracks.subtitleId
         selectDownloadedSubtitle(in: loaded)
         loadWatchlistState(for: loaded.item)
+        loadCopies(of: loaded.item)
         community.titleName = loaded.item.title
         rebuild()
         community.load(ratingKey: ratingKey)
@@ -175,7 +178,28 @@ final class MediaDetailScreen: DetailScreen {
         }
         if let playback = playbackSettingsAction(for: item) { list.append(playback) }
         if let manage = manageAction(for: item) { list.append(manage) }
+        if !copies.isEmpty {
+            let copies = copies
+            let items = copies.enumerated().map { index, copy in MenuView.Item(id: "\(index)", title: LibraryDuplicates.label(of: copy)) }
+            list.append(DetailAction(id: "copies", title: LibraryDuplicates.otherCopiesTitle, symbol: "rectangle.on.rectangle",
+                                     behaviour: .menu(title: LibraryDuplicates.otherCopiesTitle, items: items) { [weak self] chosen in
+                guard let index = Int(chosen.id), copies.indices.contains(index), let key = copies[index].ratingKey else { return }
+                self?.push(.item(ratingKey: key, mediaType: copies[index].mediaType, showRatingKey: nil, seasonRatingKey: nil))
+            }))
+        }
         return list
+    }
+
+    /// Looks up, once, the other copies of the title the server lists, for the Other Copies menu.
+    private func loadCopies(of item: PlexMetadata) {
+        guard copiesTask == nil else { return }
+        let api = api
+        copiesTask = Task { [weak self] in
+            let found = await LibraryDuplicates.copies(of: item, api: api)
+            guard let self, !found.isEmpty, !Task.isCancelled else { return }
+            self.copies = found
+            self.rebuild()
+        }
     }
 
     private func audioMenu(for model: MovieDetailModel) -> DetailAction.Behaviour {

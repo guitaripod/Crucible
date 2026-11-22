@@ -22,6 +22,8 @@ final class TVMediaDetailViewController: TVDetailViewController {
     private var isOnWatchlist: Bool?
     /// The watchlist is being read alongside the page, so a second read is not started.
     private var watchlistPending = false
+    private var copies: [PlexMetadata] = []
+    private var copiesLoadedFor: String?
     private lazy var watchlistSlot = makeTaskSlot()
     private lazy var subtitleSearchSlot = makeTaskSlot()
     private lazy var nextEpisodeSlot = makeTaskSlot()
@@ -273,7 +275,30 @@ final class TVMediaDetailViewController: TVDetailViewController {
         subtitleID = tracks.subtitleId
         selectDownloadedSubtitle(in: loaded)
         loadWatchlistState(for: loaded.item)
+        loadCopies(of: loaded.item)
         rebuild()
+    }
+
+    /// Looks up, once, the other copies of the title the server lists, for the Other Copies menu.
+    private func loadCopies(of item: PlexMetadata) {
+        guard copiesLoadedFor != item.id else { return }
+        copiesLoadedFor = item.id
+        let api = env.api
+        Task { [weak self] in
+            let found = await LibraryDuplicates.copies(of: item, api: api)
+            guard let self, !found.isEmpty else { return }
+            copies = found
+            rebuild()
+        }
+    }
+
+    private func copiesMenu() -> UIMenu {
+        UIMenu(title: LibraryDuplicates.otherCopiesTitle, children: copies.map { copy in
+            UIAction(title: LibraryDuplicates.label(of: copy), image: UIImage(systemName: "square.on.square")) { [weak self] _ in
+                guard let key = copy.ratingKey else { return }
+                self?.push(.item(ratingKey: key, mediaType: copy.mediaType, showRatingKey: nil, seasonRatingKey: nil))
+            }
+        })
     }
 
     private func rebuild() {
@@ -412,6 +437,9 @@ final class TVMediaDetailViewController: TVDetailViewController {
         }
         if let manage = TVManageMenus.itemMenu(for: item, env: env, host: self, leavesScreenWhenDeleted: true, reload: { [weak self] in self?.reload() }) {
             actions.append(TVDetailAction(kind: .manage, title: ManageCopy.menuTitle, symbol: "wrench.and.screwdriver", menu: manage))
+        }
+        if !copies.isEmpty {
+            actions.append(TVDetailAction(kind: .copies, title: LibraryDuplicates.otherCopiesTitle, symbol: "square.on.square", menu: copiesMenu()))
         }
         return actions
     }
