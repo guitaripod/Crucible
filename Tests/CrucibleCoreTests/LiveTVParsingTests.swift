@@ -152,6 +152,16 @@ struct LiveTVParsingTests {
         #expect(PlaylistChannelSource.match(byID, in: parsed, index: index) == "espn.us")
         #expect(PlaylistChannelSource.match(byName, in: parsed, index: index) == "other")
         #expect(PlaylistChannelSource.match(none, in: parsed, index: index) == nil)
+        let extra = try XMLTVGuide.parse(Data("""
+        <tv><channel id="fn"><display-name>Fox News Channel HD</display-name></channel>
+        <channel id="fnr"><display-name>Fox News Radio Talk Live Now</display-name></channel>
+        <channel id="hm"><display-name>Hallmark Channel East</display-name></channel></tv>
+        """.utf8))
+        let extraIndex = PlaylistChannelSource.guideIndex(extra)
+        let fox = LiveChannel(id: "4", source: source, title: "02 US: FOX News", guideKey: "foxnews.us", stream: .address(URL(string: "http://d")!, userAgent: nil, referrer: nil))
+        let hallmark = LiveChannel(id: "5", source: source, title: "03 US: Hallmark Channel (D)", guideKey: "hallmark.us", stream: .address(URL(string: "http://e")!, userAgent: nil, referrer: nil))
+        #expect(PlaylistChannelSource.match(fox, in: extra, index: extraIndex) == "fn")
+        #expect(PlaylistChannelSource.match(hallmark, in: extra, index: extraIndex) == "hm")
     }
 
     private func date(_ text: String) -> Date {

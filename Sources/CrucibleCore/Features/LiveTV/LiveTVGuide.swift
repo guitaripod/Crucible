@@ -34,6 +34,13 @@ package final class LiveTVGuide {
             self.serverName = serverName
         }
 
+        /// The context of the saved server, for a screen opened without the launch's payload.
+        package static func current(api: APIClient) -> Context {
+            let connection = ServerBootstrap.connection()
+            return Context(api: api, token: ServerBootstrap.plexTVToken ?? api.token, machineIdentifier: connection?.machineIdentifier,
+                           serverName: connection?.serverName)
+        }
+
         /// The context of the server the app connected to: its client for a tuner, the plex.tv token for Plex's free channels.
         package init(payload: LaunchPayload) {
             self.init(api: payload.api, token: payload.connection.plexTVToken, machineIdentifier: payload.connection.machineIdentifier,

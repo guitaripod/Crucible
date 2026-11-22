@@ -141,7 +141,7 @@ final class LivePlaylistScreen: SettingsScaffold {
         setRows([
             RowItem(id: RowID.name, title: LiveTVCopy.playlistName, value: playlist.name, symbol: "pencil", accessory: .chevron),
             RowItem(id: RowID.address, title: LiveTVCopy.playlistAddress, value: playlist.address.host, symbol: "link", accessory: .chevron),
-            RowItem(id: RowID.guide, title: LiveTVCopy.guideAddress, value: playlist.guideAddress?.host ?? "", symbol: "calendar", accessory: .chevron),
+            RowItem(id: RowID.guide, title: LiveTVCopy.guideAddress, value: playlist.guideAddresses.compactMap(\.host).joined(separator: ", "), symbol: "calendar", accessory: .chevron),
             RowItem(id: RowID.agent, title: LiveTVCopy.userAgent, value: playlist.userAgent ?? "", symbol: "person", accessory: .chevron),
             RowItem(id: RowID.remove, title: LiveTVCopy.removePlaylist, symbol: "trash", isDestructive: true),
         ])
@@ -166,8 +166,8 @@ final class LivePlaylistScreen: SettingsScaffold {
                 LivePlaylistStore.save(playlist)
             }
         case RowID.guide:
-            ask(LiveTVCopy.guideAddress, text: playlist.guideAddress?.absoluteString ?? "") { text in
-                playlist.guideAddress = text.isEmpty ? nil : LivePlaylist.address(from: text)
+            ask(LiveTVCopy.guideAddress, text: playlist.guideAddressesText) { text in
+                playlist.guideAddresses = LivePlaylist.addresses(from: text)
                 LivePlaylistStore.save(playlist)
             }
         case RowID.agent:

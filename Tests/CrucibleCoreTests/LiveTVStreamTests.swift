@@ -130,6 +130,20 @@ struct TransportStreamSegmenterTests {
         #expect(segments.allSatisfy { abs($0.duration - 2) < 0.01 })
     }
 
+    @Test func cutsWhereTheTimestampsStartOver() {
+        var maker = TransportStreamMaker()
+        var segmenter = TransportStreamSegmenter(targetDuration: 2)
+        var data = maker.stream(frames: 30 * 3)
+        data += maker.stream(frames: 30 * 5)
+        let segments = segmenter.append(data)
+        #expect(segments.count == 4)
+        #expect(segments.allSatisfy { $0.duration > 0.5 && $0.duration < 2.1 })
+        #expect(segments.map(\.discontinuity) == [false, false, true, false])
+        var window = LiveHLSWindow(capacity: 10)
+        segments.forEach { window.add($0) }
+        #expect(window.playlist.contains("#EXT-X-DISCONTINUITY\n#EXTINF:2.000,\nsegment-2.ts"))
+    }
+
     @Test func windowListsTheLatestSegments() {
         var window = LiveHLSWindow(capacity: 3)
         for sequence in 0..<5 { window.add(TransportStreamSegmenter.Segment(sequence: sequence, data: Data([0]), duration: sequence == 4 ? 2.4 : 2)) }
@@ -141,6 +155,25 @@ struct TransportStreamSegmenterTests {
         #expect(text.contains("#EXT-X-MEDIA-SEQUENCE:2"))
         #expect(text.contains("#EXTINF:2.400,\nsegment-4.ts"))
         #expect(!text.contains("ENDLIST"))
+    }
+
+    @Test func windowMarksAStreamReadAgain() {
+        var window = LiveHLSWindow(capacity: 3)
+        let segment = { (sequence: Int) in TransportStreamSegmenter.Segment(sequence: sequence, data: Data([0]), duration: 2) }
+        window.add(segment(0))
+        window.add(segment(1))
+        window.add(segment(2), discontinuity: true)
+        #expect(window.playlist.contains("segment-1.ts\n#EXT-X-DISCONTINUITY\n#EXTINF:2.000,\nsegment-2.ts"))
+        #expect(!window.playlist.contains("DISCONTINUITY-SEQUENCE"))
+        window.add(segment(3))
+        window.add(segment(4))
+        window.add(segment(5))
+        #expect(window.playlist.contains("#EXT-X-DISCONTINUITY-SEQUENCE:1"))
+        #expect(!window.playlist.contains("#EXT-X-DISCONTINUITY\n"))
+        var restarted = TransportStreamSegmenter(targetDuration: 2, firstSequence: 7)
+        #expect(restarted.nextSequenceNumber == 7)
+        var maker = TransportStreamMaker()
+        #expect(restarted.append(maker.stream(frames: 30 * 3)).first?.sequence == 7)
     }
 
     @Test func playlistAddressesThatNameHLSPlayDirectly() {
@@ -332,7 +365,7 @@ struct LiveGuideTests {
 
     @Test func linksAddPlaylists() throws {
         let playlist = LivePlaylist(name: "My TV", address: URL(string: "https://provider.example/iptv.php/25/Key/@top")!,
-                                    guideAddress: URL(string: "https://guide.example/epg.xml.gz?u=a&p=b")!, userAgent: "VLC/3")
+                                    guideAddresses: [URL(string: "https://guide.example/epg.xml.gz?u=a&p=b")!, URL(string: "https://guide.example/uk.xml")!], userAgent: "VLC/3")
         let url = try #require(LiveTVLink.url(adding: playlist))
         #expect(url.absoluteString.hasPrefix("crucible://livetv/add?"))
         guard case .add(let parsed)? = LiveTVLink(url: url) else {
@@ -340,7 +373,8 @@ struct LiveGuideTests {
             return
         }
         #expect(parsed.address == playlist.address)
-        #expect(parsed.guideAddress == playlist.guideAddress)
+        #expect(parsed.guideAddresses == playlist.guideAddresses)
+        #expect(LivePlaylist.addresses(from: "https://a.example/1.xml, b.example/2.xml\nnot a url").map(\.absoluteString) == ["https://a.example/1.xml", "http://b.example/2.xml"])
         #expect(parsed.name == "My TV")
         #expect(parsed.userAgent == "VLC/3")
         #expect(LiveTVLink(url: URL(string: "crucible://livetv")!) == .open)
@@ -352,5 +386,13 @@ struct LiveGuideTests {
         }
         #expect(bare.name == "iptv.example")
         #expect(bare.address.absoluteString == "http://www.iptv.example/list.m3u")
+    }
+
+    @Test func aPlaylistSavedWithOneGuideAddressKeepsIt() throws {
+        let saved = Data(#"{"id":"P","name":"Mine","address":"https://provider.example/list.m3u","guideAddress":"https://provider.example/epg.xml","addedAt":0}"#.utf8)
+        let playlist = try JSONDecoder().decode(LivePlaylist.self, from: saved)
+        #expect(playlist.guideAddresses.map(\.absoluteString) == ["https://provider.example/epg.xml"])
+        let again = try JSONDecoder().decode(LivePlaylist.self, from: JSONEncoder().encode(playlist))
+        #expect(again == playlist)
     }
 }

@@ -34,8 +34,18 @@ package struct XMLTVGuide: Sendable {
     /// Reads `data` (plain or gzip), keeping only airings that overlap `window` and, when `channelIDs` is given, only those
     /// channels.
     package static func parse(_ data: Data, window: DateInterval? = nil, channelIDs: Set<String>? = nil) throws -> XMLTVGuide {
-        let bytes = Gunzip.isGzip(data) ? try Gunzip.unpack(data) : data
-        var scanner = XMLScanner(bytes: [UInt8](bytes))
+        try parse(bytes: unpack(data), window: window, channelIDs: channelIDs)
+    }
+
+    /// The guide's bytes, unpacked when gzipped.
+    package static func unpack(_ data: Data) throws -> [UInt8] {
+        Gunzip.isGzip(data) ? try Gunzip.unpackBytes(data) : [UInt8](data)
+    }
+
+    /// Reads unpacked guide bytes; without `includeProgrammes`, only the channels, which is how a large guide is matched
+    /// before its airings are read.
+    package static func parse(bytes: [UInt8], window: DateInterval? = nil, channelIDs: Set<String>? = nil, includeProgrammes: Bool = true) throws -> XMLTVGuide {
+        var scanner = XMLScanner(bytes: bytes)
         var channels: [String: Channel] = [:]
         var programmes: [String: [Programme]] = [:]
         var channel: Channel?
@@ -50,7 +60,7 @@ package struct XMLTVGuide: Sendable {
                 case "channel":
                     if let id = attributes["id"] { channel = Channel(id: id) }
                 case "programme":
-                    guard let id = attributes["channel"], let start = attributes["start"].flatMap(Self.date), let stop = attributes["stop"].flatMap(Self.date) ?? Optional(start.addingTimeInterval(1800)) else { break }
+                    guard includeProgrammes, let id = attributes["channel"], let start = attributes["start"].flatMap(Self.date), let stop = attributes["stop"].flatMap(Self.date) ?? Optional(start.addingTimeInterval(1800)) else { break }
                     if let channelIDs, !channelIDs.contains(id) { break }
                     if let window, stop <= window.start || start >= window.end { break }
                     programme = Programme(channel: id, start: start, stop: stop)

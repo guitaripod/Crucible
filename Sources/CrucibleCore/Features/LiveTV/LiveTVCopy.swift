@@ -25,6 +25,7 @@ package enum LiveTVCopy {
     package static let new = String(localized: "NEW", comment: "Badge on a TV airing that is a new episode; keep it short")
     package static let tryAgain = String(localized: "Try Again", comment: "Button that reloads live TV after a failure")
     package static let filter = String(localized: "Filter", comment: "Button that picks which live TV channels the guide shows")
+    package static let sources = String(localized: "Sources", comment: "Button that picks which source of live TV channels the guide shows (Plex's channels, a tuner, a playlist)")
     package static let categories = String(localized: "Categories", comment: "Button that picks a category (group) of live TV channels")
     package static let jumpToNow = String(localized: "Now", comment: "Button that scrolls the TV guide back to the current time")
 
@@ -94,7 +95,7 @@ package enum LiveTVCopy {
     package static let removePlaylistText = String(localized: "Its channels leave the guide. You can add it again with its address.", comment: "Message of the confirmation before removing a channel playlist")
     package static let playlistName = String(localized: "Name", comment: "Field label for a channel playlist's name")
     package static let playlistAddress = String(localized: "Playlist Address (M3U)", comment: "Field label for a channel playlist's M3U address")
-    package static let guideAddress = String(localized: "Guide Address (XMLTV, Optional)", comment: "Field label for a channel playlist's XMLTV guide address")
+    package static let guideAddress = String(localized: "Guide Addresses (XMLTV, Optional)", comment: "Field label for a channel playlist's XMLTV guide addresses; several may be given, separated by spaces")
     package static let userAgent = String(localized: "User Agent (Optional)", comment: "Field label for the user agent a channel playlist's streams are asked with")
     package static let playlistNote = String(localized: "Use a playlist from a TV provider you subscribe to. The addresses usually carry your account, so Crucible keeps them in the device’s secure storage and never shares them.",
                                              comment: "Note under the fields for adding a channel playlist")
@@ -102,6 +103,9 @@ package enum LiveTVCopy {
     package static let checkingPlaylist = String(localized: "Checking the playlist…", comment: "Shown while a new channel playlist is loaded to check it")
     package static let showPlexChannels = String(localized: "Plex’s Free Channels", comment: "Setting that shows or hides Plex's free live channels in the guide")
     package static let showPlexChannelsFooter = String(localized: "Hundreds of free channels from Plex, with ads, available on every Plex account.", comment: "Footer under the setting for Plex's free live channels")
+    package static let sendToDevice = String(localized: "Send to Another Device", comment: "Button that shares a link adding this channel playlist on another device")
+    package static let sendToDeviceFooter = String(localized: "A link that adds this playlist in Crucible on another device. It carries the playlist’s address, so share it only with yourself.",
+                                                   comment: "Explains the link that adds a channel playlist on another device")
     package static let refreshPlaylists = String(localized: "Refresh Channels", comment: "Button that loads every channel playlist and guide again")
 
     package static func playlistAdded(_ name: String, channels: Int) -> String {

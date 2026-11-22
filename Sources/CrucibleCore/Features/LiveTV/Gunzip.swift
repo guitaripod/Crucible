@@ -19,7 +19,23 @@ package enum Gunzip {
 
     /// The unpacked bytes of every member of a gzip file, refusing to grow past `limit` bytes.
     package static func unpack(_ data: Data, limit: Int = 1 << 30) throws -> Data {
+        Data(try unpackBytes(data, limit: limit))
+    }
+
+    /// The unpacked bytes as an array, for a reader that scans them without another copy. On Apple platforms a single-member
+    /// file goes through the system's zlib, which is far faster than the portable inflate; anything else takes the portable path.
+    package static func unpackBytes(_ data: Data, limit: Int = 1 << 30) throws -> [UInt8] {
         let bytes = [UInt8](data)
+        #if canImport(Darwin)
+        if bytes.count > 18, bytes[0] == 0x1F, bytes[1] == 0x8B, let start = try? skipHeader(bytes, from: 0) {
+            let size = Int(bytes[bytes.count - 4]) | Int(bytes[bytes.count - 3]) << 8 | Int(bytes[bytes.count - 2]) << 16 | Int(bytes[bytes.count - 1]) << 24
+            if let inflated = try? (Data(bytes[start..<(bytes.count - 8)]) as NSData).decompressed(using: .zlib) as Data,
+               UInt32(truncatingIfNeeded: inflated.count) == UInt32(truncatingIfNeeded: size) {
+                guard inflated.count <= limit else { throw Failure.tooLarge }
+                return [UInt8](inflated)
+            }
+        }
+        #endif
         var output: [UInt8] = []
         output.reserveCapacity(min(bytes.count * 6, limit))
         var offset = 0
@@ -30,7 +46,7 @@ package enum Gunzip {
             offset = inflater.bytePosition + 8
         }
         guard !output.isEmpty || bytes.isEmpty else { throw Failure.badHeader }
-        return Data(output)
+        return output
     }
 
     /// The unpacked bytes of a raw DEFLATE stream.

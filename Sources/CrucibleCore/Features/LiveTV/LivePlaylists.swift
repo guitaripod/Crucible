@@ -11,17 +11,58 @@ package struct LivePlaylist: Codable, Sendable, Hashable, Identifiable {
     package let id: String
     package var name: String
     package var address: URL
-    package var guideAddress: URL?
+    /// The XMLTV guides the viewer named, read beside the ones the playlist names itself: one per country is common.
+    package var guideAddresses: [URL]
     package var userAgent: String?
     package let addedAt: Date
 
-    package init(id: String = UUID().uuidString, name: String, address: URL, guideAddress: URL? = nil, userAgent: String? = nil, addedAt: Date = Date()) {
+    package init(id: String = UUID().uuidString, name: String, address: URL, guideAddresses: [URL] = [], userAgent: String? = nil, addedAt: Date = Date()) {
         self.id = id
         self.name = name
         self.address = address
-        self.guideAddress = guideAddress
+        self.guideAddresses = guideAddresses
         self.userAgent = userAgent
         self.addedAt = addedAt
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, name, address, guideAddresses, userAgent, addedAt
+        case guideAddress
+    }
+
+    /// Reads a saved playlist, including one saved with a single `guideAddress` before a playlist could name several guides.
+    package init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        address = try container.decode(URL.self, forKey: .address)
+        if let guides = try container.decodeIfPresent([URL].self, forKey: .guideAddresses) {
+            guideAddresses = guides
+        } else {
+            guideAddresses = try container.decodeIfPresent(URL.self, forKey: .guideAddress).map { [$0] } ?? []
+        }
+        userAgent = try container.decodeIfPresent(String.self, forKey: .userAgent)
+        addedAt = try container.decode(Date.self, forKey: .addedAt)
+    }
+
+    package func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(name, forKey: .name)
+        try container.encode(address, forKey: .address)
+        try container.encode(guideAddresses, forKey: .guideAddresses)
+        try container.encodeIfPresent(userAgent, forKey: .userAgent)
+        try container.encode(addedAt, forKey: .addedAt)
+    }
+
+    /// The guide addresses as one line to edit, separated by spaces.
+    package var guideAddressesText: String {
+        guideAddresses.map(\.absoluteString).joined(separator: " ")
+    }
+
+    /// Every web address in what the viewer typed or pasted, split at spaces, commas and new lines.
+    package static func addresses(from text: String) -> [URL] {
+        text.split { $0.isWhitespace || $0 == "," }.filter { $0.contains(".") }.compactMap { address(from: String($0)) }
     }
 
     package var sourceID: LiveSourceID { LiveSourceID(kind: .playlist, key: id) }
@@ -119,7 +160,8 @@ enum PlaylistCache {
     }
 
     static func forget(id: String) {
-        for kind in ["m3u", "xmltv"] { try? FileManager.default.removeItem(at: url(id: id, kind: kind)) }
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? []
+        for name in names where name.hasPrefix(id + ".") { try? FileManager.default.removeItem(at: directory.appendingPathComponent(name)) }
     }
 
     static func forgetAll() {
@@ -162,51 +204,68 @@ package enum LiveStreamRequest {
     }
 }
 
-/// Holds a playlist's parsed guide in memory once read, as parsing a large guide takes a moment.
+/// Holds a playlist's airings in memory once read, as reading a large guide takes a moment. Each guide is read twice from
+/// one unpacked copy: first its channels alone, to find which of them the playlist's channels are, then the airings of
+/// those channels only, so a national guide of hundreds of channels costs no more memory than the few the playlist has.
 actor PlaylistGuideStore {
     static let shared = PlaylistGuideStore()
-    private var guides: [String: (guide: XMLTVGuide, window: DateInterval, at: Date)] = [:]
-    private var loading: [String: Task<XMLTVGuide?, Never>] = [:]
+    private var held: [String: (programmes: [String: [XMLTVGuide.Programme]], window: DateInterval, at: Date)] = [:]
+    private var loading: [String: Task<[String: [XMLTVGuide.Programme]], Never>] = [:]
 
-    /// The playlist's guide covering `window`, read from the network when the copy on disk is old or missing.
-    func guide(for playlist: LivePlaylist, addresses: [URL], channelIDs: Set<String>, covering window: DateInterval) async -> XMLTVGuide? {
-        if let held = guides[playlist.id], held.window.start <= window.start, held.window.end >= window.end, Date().timeIntervalSince(held.at) < 3600 {
-            return held.guide
+    /// The airings of each of `channels` (by channel id) covering `window`, read from the network when the copies on disk
+    /// are old or missing.
+    func programmes(for playlist: LivePlaylist, addresses: [URL], channels: [LiveChannel], covering window: DateInterval) async -> [String: [XMLTVGuide.Programme]] {
+        if let cached = held[playlist.id], cached.window.start <= window.start, cached.window.end >= window.end, Date().timeIntervalSince(cached.at) < 3600 {
+            return cached.programmes
         }
         if let running = loading[playlist.id] { return await running.value }
         let span = DateInterval(start: window.start.addingTimeInterval(-6 * 3600), end: max(window.end, Date().addingTimeInterval(36 * 3600)))
-        let task = Task<XMLTVGuide?, Never> {
-            guard let data = await Self.guideData(for: playlist, addresses: addresses) else { return nil }
-            do {
-                return try XMLTVGuide.parse(data, window: span, channelIDs: channelIDs.isEmpty ? nil : channelIDs)
-            } catch {
-                MidgarLog.error("The guide of playlist \(playlist.name) could not be read: \(error)", category: .liveTV)
-                return nil
+        let task = Task<[String: [XMLTVGuide.Programme]], Never>.detached(priority: .utility) {
+            var found: [String: [XMLTVGuide.Programme]] = [:]
+            for (index, address) in addresses.enumerated() {
+                guard found.count < channels.count, let data = await Self.guideData(for: playlist, address: address, index: index) else { continue }
+                do {
+                    let bytes = try XMLTVGuide.unpack(data)
+                    let directory = try XMLTVGuide.parse(bytes: bytes, includeProgrammes: false)
+                    let names = PlaylistChannelSource.guideIndex(directory)
+                    var wanted: [String: [String]] = [:]
+                    for channel in channels where found[channel.id] == nil {
+                        if let key = PlaylistChannelSource.match(channel, in: directory, index: names) { wanted[key, default: []].append(channel.id) }
+                    }
+                    guard !wanted.isEmpty else { continue }
+                    let guide = try XMLTVGuide.parse(bytes: bytes, window: span, channelIDs: Set(wanted.keys))
+                    for (key, ids) in wanted {
+                        for id in ids { found[id] = guide.programmes[key] ?? [] }
+                    }
+                    MidgarLog.notice("Guide \(index + 1) of playlist \(playlist.name) matched \(wanted.count) channels", category: .liveTV)
+                } catch {
+                    MidgarLog.error("Guide \(index + 1) of playlist \(playlist.name) could not be read: \(error)", category: .liveTV)
+                }
             }
+            return found
         }
         loading[playlist.id] = task
-        let guide = await task.value
+        let programmes = await task.value
         loading[playlist.id] = nil
-        if let guide { guides[playlist.id] = (guide, span, Date()) }
-        return guide
+        held[playlist.id] = (programmes, span, Date())
+        return programmes
     }
 
     func forget(id: String) {
-        guides[id] = nil
+        held[id] = nil
     }
 
-    private static func guideData(for playlist: LivePlaylist, addresses: [URL]) async -> Data? {
-        if PlaylistCache.isFresh(id: playlist.id, kind: "xmltv"), let cached = PlaylistCache.read(id: playlist.id, kind: "xmltv") { return cached }
-        for address in addresses {
-            do {
-                let data = try await PlaylistFetch.data(address, userAgent: playlist.userAgent, timeout: 120)
-                PlaylistCache.write(data, id: playlist.id, kind: "xmltv")
-                return data
-            } catch {
-                MidgarLog.error("Guide of playlist \(playlist.name) failed to load: \(error.localizedDescription)", category: .liveTV)
-            }
+    private static func guideData(for playlist: LivePlaylist, address: URL, index: Int) async -> Data? {
+        let kind = "xmltv.\(LiveHash.fnv1a(address.absoluteString))"
+        if PlaylistCache.isFresh(id: playlist.id, kind: kind), let cached = PlaylistCache.read(id: playlist.id, kind: kind) { return cached }
+        do {
+            let data = try await PlaylistFetch.data(address, userAgent: playlist.userAgent, timeout: 180)
+            PlaylistCache.write(data, id: playlist.id, kind: kind)
+            return data
+        } catch {
+            MidgarLog.error("Guide \(index + 1) of playlist \(playlist.name) failed to load: \(error.localizedDescription)", category: .liveTV)
+            return PlaylistCache.read(id: playlist.id, kind: kind)
         }
-        return PlaylistCache.read(id: playlist.id, kind: "xmltv")
     }
 }
 
@@ -261,16 +320,15 @@ package struct PlaylistChannelSource: LiveChannelSource {
 
     package func programs(for channels: [LiveChannel], in window: DateInterval) async throws -> [String: [LiveProgram]] {
         let parsed = try await loadPlaylist()
-        let addresses = [playlist.guideAddress].compactMap { $0 } + parsed.guideURLs
+        var seen = Set<URL>()
+        let addresses = (playlist.guideAddresses + parsed.guideURLs).filter { seen.insert($0).inserted }
         guard !addresses.isEmpty else { return [:] }
         let all = Self.channels(of: playlist, in: parsed)
-        guard let guide = await PlaylistGuideStore.shared.guide(for: playlist, addresses: addresses, channelIDs: [], covering: window) else { return [:] }
-        let index = Self.guideIndex(guide)
-        var result: [String: [LiveProgram]] = [:]
+        let programmes = await PlaylistGuideStore.shared.programmes(for: playlist, addresses: addresses, channels: all, covering: window)
         let wanted = Set(channels.map(\.id))
-        for channel in all where wanted.contains(channel.id) {
-            guard let key = Self.match(channel, in: guide, index: index), let programmes = guide.programmes[key] else { continue }
-            result[channel.id] = LiveGuideMath.normalized(programmes.map { Self.program($0, channelID: channel.id) }, in: window)
+        var result: [String: [LiveProgram]] = [:]
+        for (id, list) in programmes where wanted.contains(id) {
+            result[id] = LiveGuideMath.normalized(list.map { Self.program($0, channelID: id) }, in: window)
         }
         return result
     }
@@ -285,18 +343,33 @@ package struct PlaylistChannelSource: LiveChannelSource {
     }
 
     /// The guide channel that belongs to `channel`: its `tvg-id`, else a guide channel of the same name, ignoring case,
-    /// country prefixes like "US:" and quality marks like "HD".
+    /// country prefixes like "US:" and quality marks like "HD", else the guide channel whose name holds every word of the
+    /// channel's with the fewest words besides ("Fox News" is "Fox News Channel", never "Fox News Radio Talk Live").
     static func match(_ channel: LiveChannel, in guide: XMLTVGuide, index: [String: String]) -> String? {
-        if let key = channel.guideKey, guide.programmes[key] != nil { return key }
-        if let key = channel.guideKey, let lowered = guide.programmes.keys.first(where: { $0.lowercased() == key.lowercased() }) { return lowered }
-        return index[normalize(channel.title)] ?? channel.guideKey.flatMap { index[normalize($0)] }
+        if let key = channel.guideKey, guide.channels[key] != nil || guide.programmes[key] != nil { return key }
+        if let key = channel.guideKey?.lowercased(),
+           let found = guide.channels.keys.first(where: { $0.lowercased() == key }) ?? guide.programmes.keys.first(where: { $0.lowercased() == key }) {
+            return found
+        }
+        if let exact = index[normalize(channel.title)] ?? channel.guideKey.flatMap({ index[normalize($0)] }) { return exact }
+        let words = Set(normalize(channel.title).split(separator: " "))
+        guard !words.isEmpty else { return nil }
+        var best: (id: String, extra: Int)?
+        for (name, id) in index {
+            let other = Set(name.split(separator: " "))
+            guard other.count > words.count, words.isSubset(of: other) else { continue }
+            let extra = other.count - words.count
+            guard extra <= 2 else { continue }
+            if best == nil || extra < best!.extra || (extra == best!.extra && id < best!.id) { best = (id, extra) }
+        }
+        return best?.id
     }
 
     static func normalize(_ name: String) -> String {
         var text = name.lowercased()
         if let colon = text.firstIndex(of: ":"), text.distance(from: text.startIndex, to: colon) <= 8 { text = String(text[text.index(after: colon)...]) }
         let drop = ["fhd", "uhd", "hd", "sd", "4k", "hevc", "h265", "+1"]
-        let words = text.split { !$0.isLetter && !$0.isNumber }.map(String.init).filter { !drop.contains($0) }
+        let words = text.split { !$0.isLetter && !$0.isNumber }.map(String.init).filter { !drop.contains($0) && !($0.count == 1 && $0.first?.isLetter == true) }
         let trimmed = words.drop { Int($0) != nil }
         return trimmed.joined(separator: " ")
     }

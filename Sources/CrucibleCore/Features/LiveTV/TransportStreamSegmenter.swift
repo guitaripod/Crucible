@@ -8,6 +8,15 @@ package struct TransportStreamSegmenter: Sendable {
         package let sequence: Int
         package let data: Data
         package let duration: Double
+        /// The stream's clock started over at this segment (a looped or restarted channel), which HLS must be told.
+        package var discontinuity = false
+
+        package init(sequence: Int, data: Data, duration: Double, discontinuity: Bool = false) {
+            self.sequence = sequence
+            self.data = data
+            self.duration = duration
+            self.discontinuity = discontinuity
+        }
     }
 
     private static let packetSize = 188
@@ -30,13 +39,19 @@ package struct TransportStreamSegmenter: Sendable {
     private var lastPTS: Int64?
     private var nextSequence = 0
     private var started = false
+    private var currentIsDiscontinuity = false
     /// The bytes read so far, for the relay's log.
     package private(set) var bytesRead = 0
 
-    package init(targetDuration: Double = 2, maximumDuration: Double = 8) {
+    /// `firstSequence` carries the numbering on when a dropped stream is read again from scratch.
+    package init(targetDuration: Double = 2, maximumDuration: Double = 8, firstSequence: Int = 0) {
         self.targetDuration = targetDuration
         self.maximumDuration = maximumDuration
+        nextSequence = firstSequence
     }
+
+    /// The number the next segment will carry.
+    package var nextSequenceNumber: Int { nextSequence }
 
     /// Whether the stream's tables named a video stream.
     package var hasVideo: Bool { videoPID != nil }
@@ -104,7 +119,12 @@ package struct TransportStreamSegmenter: Sendable {
                 }
             } else if let startPTS = currentStartPTS {
                 let elapsed = Self.seconds(from: startPTS, to: pts)
-                if (isKey && elapsed >= targetDuration) || elapsed >= maximumDuration {
+                let jumped = elapsed < 0 || elapsed > maximumDuration * 4
+                if jumped, isKey {
+                    segment = cut(at: lastPTS ?? pts)
+                    begin(at: pts)
+                    currentIsDiscontinuity = true
+                } else if !jumped, (isKey && elapsed >= targetDuration) || elapsed >= maximumDuration {
                     segment = cut(at: pts)
                     begin(at: pts)
                 }
@@ -125,7 +145,8 @@ package struct TransportStreamSegmenter: Sendable {
     private mutating func cut(at pts: Int64?) -> Segment? {
         guard let start = currentStartPTS else { return nil }
         let duration = pts.map { Self.seconds(from: start, to: $0) } ?? targetDuration
-        let segment = Segment(sequence: nextSequence, data: Data(current), duration: max(duration, 0.1))
+        let segment = Segment(sequence: nextSequence, data: Data(current), duration: max(duration, 0.1), discontinuity: currentIsDiscontinuity)
+        currentIsDiscontinuity = false
         nextSequence += 1
         current.removeAll(keepingCapacity: true)
         currentStartPTS = nil
@@ -236,14 +257,24 @@ package struct TransportStreamSegmenter: Sendable {
 package struct LiveHLSWindow: Sendable {
     package let capacity: Int
     package private(set) var segments: [TransportStreamSegmenter.Segment] = []
+    /// Segments that begin a stream read again after it dropped, which the playlist marks as a discontinuity.
+    private var discontinuities: Set<Int> = []
+    /// Discontinuities that slid out of the window, which `EXT-X-DISCONTINUITY-SEQUENCE` counts.
+    private var passedDiscontinuities = 0
 
     package init(capacity: Int = 10) {
         self.capacity = capacity
     }
 
-    package mutating func add(_ segment: TransportStreamSegmenter.Segment) {
+    package mutating func add(_ segment: TransportStreamSegmenter.Segment, discontinuity: Bool = false) {
         segments.append(segment)
+        if discontinuity || segment.discontinuity { discontinuities.insert(segment.sequence) }
         if segments.count > capacity { segments.removeFirst(segments.count - capacity) }
+        if let first = segments.first?.sequence {
+            let passed = discontinuities.filter { $0 <= first }
+            passedDiscontinuities += passed.count
+            discontinuities.subtract(passed)
+        }
     }
 
     package func segment(_ sequence: Int) -> TransportStreamSegmenter.Segment? {
@@ -253,8 +284,12 @@ package struct LiveHLSWindow: Sendable {
     /// The media playlist naming the segments as `segment-<n>.ts`, relative to the playlist.
     package var playlist: String {
         let target = Int((segments.map(\.duration).max() ?? 2).rounded(.up))
-        var lines = ["#EXTM3U", "#EXT-X-VERSION:3", "#EXT-X-TARGETDURATION:\(max(target, 1))", "#EXT-X-MEDIA-SEQUENCE:\(segments.first?.sequence ?? 0)"]
+        let first = segments.first?.sequence ?? 0
+        let discontinuitySequence = passedDiscontinuities
+        var lines = ["#EXTM3U", "#EXT-X-VERSION:3", "#EXT-X-TARGETDURATION:\(max(target, 1))", "#EXT-X-MEDIA-SEQUENCE:\(first)"]
+        if discontinuitySequence > 0 { lines.append("#EXT-X-DISCONTINUITY-SEQUENCE:\(discontinuitySequence)") }
         for segment in segments {
+            if discontinuities.contains(segment.sequence) { lines.append("#EXT-X-DISCONTINUITY") }
             lines.append(String(format: "#EXTINF:%.3f,", segment.duration))
             lines.append("segment-\(segment.sequence).ts")
         }
