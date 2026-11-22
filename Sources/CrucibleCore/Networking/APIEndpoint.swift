@@ -84,10 +84,26 @@ package enum PlexEndpoint: Sendable {
     case homeUsers
     case switchHomeUser(uuid: String, pin: String?)
     case account
+    /// Plex's free live channels and their guide, on its live TV service.
+    case liveTVProvider
+    case liveTVChannels
+    case liveTVGrid(channelGridKey: String, date: String)
+    /// The tuners the server records with, and their guide through the server's own EPG provider.
+    case dvrs
+    case dvrChannels(provider: String)
+    case dvrGrid(provider: String, channelGridKey: String, date: String)
+    case tuneChannel(dvrKey: String, channel: String)
+    case recordingRules
+    case scheduledRecordings
+    case recordingTemplate(guid: String)
+    case createRecording(query: [URLQueryItem])
+    case deleteRecordingRule(key: String)
+    case cancelRecording(operationID: String)
 
     var isPlexTV: Bool {
         switch self {
-        case .requestPin, .checkPin, .resources, .watchlist, .catalogMetadata, .catalogChildren, .addToWatchlist, .removeFromWatchlist, .homeUsers, .switchHomeUser, .account: return true
+        case .requestPin, .checkPin, .resources, .watchlist, .catalogMetadata, .catalogChildren, .addToWatchlist, .removeFromWatchlist, .homeUsers, .switchHomeUser, .account,
+             .liveTVProvider, .liveTVChannels, .liveTVGrid: return true
         default: return false
         }
     }
@@ -103,6 +119,7 @@ package enum PlexEndpoint: Sendable {
         case .watchlist, .catalogMetadata: return PlexTVHost.discover
         case .addToWatchlist, .removeFromWatchlist, .catalogChildren: return PlexTVHost.metadata
         case .account: return PlexTVHost.account
+        case .liveTVProvider, .liveTVChannels, .liveTVGrid: return PlexTVHost.liveTV
         default: return Self.plexTVBaseURL
         }
     }
@@ -112,8 +129,10 @@ package enum PlexEndpoint: Sendable {
         case .scrobble, .unscrobble, .rate, .timeline, .progress, .stopTranscode, .pingTranscode, .addToPlaylist, .removeFromPlaylist, .movePlaylistItem, .deletePlaylist,
              .removeFromContinueWatching:
             return 10
-        case .searchSubtitles, .downloadSubtitle, .matches:
+        case .searchSubtitles, .downloadSubtitle, .matches, .tuneChannel:
             return 60
+        case .dvrGrid, .liveTVGrid, .liveTVChannels, .dvrChannels:
+            return 30
         case .eventSource:
             return ServerEventStream.idleTimeout
         default:
@@ -126,7 +145,7 @@ package enum PlexEndpoint: Sendable {
         case .analyzeSection, .emptyTrash, .refreshItem, .analyzeItem, .match, .unmatch, .editFields, .selectArtwork,
              .updaterCheck, .updaterApply, .setItemPreferences:
             return "PUT"
-        case .deleteItem, .cancelActivity, .deleteHistoryEntry:
+        case .deleteItem, .cancelActivity, .deleteHistoryEntry, .deleteRecordingRule, .cancelRecording:
             return "DELETE"
         case .requestPin, .switchHomeUser:
             return "POST"
@@ -134,7 +153,7 @@ package enum PlexEndpoint: Sendable {
             return "DELETE"
         case .rate, .addToPlaylist, .movePlaylistItem, .downloadSubtitle, .addToWatchlist, .removeFromWatchlist, .removeFromContinueWatching:
             return "PUT"
-        case .createPlaylist:
+        case .createPlaylist, .tuneChannel, .createRecording:
             return "POST"
         default:
             return "GET"
@@ -281,6 +300,30 @@ package enum PlexEndpoint: Sendable {
             return "/api/v2/home/users/\(uuid)/switch"
         case .account:
             return "/api/v2/user"
+        case .liveTVProvider:
+            return "/"
+        case .liveTVChannels:
+            return "/lineups/plex/channels"
+        case .liveTVGrid:
+            return "/grid"
+        case .dvrs:
+            return "/livetv/dvrs"
+        case .dvrChannels(let provider):
+            return "/\(provider)/lineups/dvr/channels"
+        case .dvrGrid(let provider, _, _):
+            return "/\(provider)/grid"
+        case .tuneChannel(let dvrKey, let channel):
+            return "/livetv/dvrs/\(dvrKey)/channels/\(channel.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed.subtracting(CharacterSet(charactersIn: "/"))) ?? channel)/tune"
+        case .recordingRules, .createRecording:
+            return "/media/subscriptions"
+        case .scheduledRecordings:
+            return "/media/subscriptions/scheduled"
+        case .recordingTemplate:
+            return "/media/subscriptions/template"
+        case .deleteRecordingRule(let key):
+            return "/media/subscriptions/\(key)"
+        case .cancelRecording(let operationID):
+            return "/media/grabbers/operations/\(operationID)"
         }
     }
 
@@ -440,6 +483,14 @@ package enum PlexEndpoint: Sendable {
             return values.sorted { $0.key < $1.key }.map { URLQueryItem(name: $0.key, value: $0.value) }
         case .pingTranscode(let session):
             return [URLQueryItem(name: "session", value: session)]
+        case .liveTVGrid(let key, let date), .dvrGrid(_, let key, let date):
+            return [URLQueryItem(name: "channelGridKey", value: key), URLQueryItem(name: "date", value: date)]
+        case .recordingRules:
+            return [URLQueryItem(name: "includeGrabs", value: "1"), URLQueryItem(name: "includeStorage", value: "1")]
+        case .recordingTemplate(let guid):
+            return [URLQueryItem(name: "guid", value: guid)]
+        case .createRecording(let query):
+            return query
         default:
             return nil
         }

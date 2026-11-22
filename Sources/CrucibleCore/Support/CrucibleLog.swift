@@ -50,4 +50,5 @@ extension MidgarLog.Category {
     package static let persistence = MidgarLog.Category("persistence")
     package static let stats = MidgarLog.Category("stats")
     package static let store = MidgarLog.Category("store")
+    package static let liveTV = MidgarLog.Category("livetv")
 }
