@@ -17,6 +17,14 @@ final class WebShortPage: View {
         var avatar: ArtworkSource?
         var canFollow = false
         var isFollowed = false
+        /// The line under the facts that opens the comments ("2.3K comments"), nil before the count is known.
+        var commentsLink: String?
+    }
+
+    /// The parts of the page a click opens something from: the channel's picture and name, and the title, facts and
+    /// comments line, which open the description and comments.
+    enum Region {
+        case channel, details
     }
 
     let index: Int
@@ -47,6 +55,12 @@ final class WebShortPage: View {
     }
     /// Room kept clear down the page's trailing side, where the action rail lies over a narrow window's clip.
     var trailingInset: Float = 0 { didSet { if trailingInset != oldValue { setNeedsLayout() } } }
+    /// Whether a clip that has drawn no frame yet waits to draw its first: mpv's first frame of a file costs 15 to 30 ms
+    /// (more on a first player), which in the middle of a swipe drops frames, so it comes once the feed rests and the
+    /// thumbnail stands in until then.
+    var defersFirstFrame = false {
+        didSet { if !defersFirstFrame, oldValue { setNeedsDisplay() } }
+    }
     /// Whether the viewer paused this clip, which leaves a play mark over it.
     var isPaused = false {
         didSet {
@@ -164,6 +178,27 @@ final class WebShortPage: View {
         return TextLayout(content.title, font: Theme.current.type.cardTitle, maxWidth: textWidth, maxLines: 2, scale: scaleFactor)
     }
 
+    private func commentsLayout() -> TextLayout? {
+        guard let link = content.commentsLink, !link.isEmpty else { return nil }
+        var font = Theme.current.type.footnote
+        font.weight = .semibold
+        return TextLayout(link, font: font, maxWidth: textWidth, maxLines: 1, scale: scaleFactor)
+    }
+
+    /// What a click at `point` (in the page's points) opens, or nil for the clip itself.
+    func region(at point: Point) -> Region? {
+        let metrics = Theme.current.metrics
+        let row = channelRow
+        let nameWidth = channelLayout(maxWidth: row.width)?.size.width ?? 0
+        let channel = Rect(x: inset, y: row.y, width: row.x - inset + nameWidth, height: row.height).insetBy(-metrics.tv(8), -metrics.tv(8))
+        if content.channel != nil, channel.contains(point), !(followButton?.frame.contains(point) ?? false) { return .channel }
+        let details = Rect(x: inset, y: row.maxY + metrics.tv(6), width: textWidth, height: max(barRect.minY - metrics.tv(10) - row.maxY - metrics.tv(6), 0))
+        return details.contains(point) ? .details : nil
+    }
+
+    /// Lights the region under the pointer, so it reads as something to click.
+    var hoveredRegion: Region? { didSet { if hoveredRegion != oldValue { setNeedsDisplay() } } }
+
     private func factsLayout() -> TextLayout? {
         guard let facts = content.facts, !facts.isEmpty else { return nil }
         return TextLayout(facts, font: Theme.current.type.footnote, maxWidth: textWidth, maxLines: 1, scale: scaleFactor)
@@ -178,6 +213,7 @@ final class WebShortPage: View {
     private var channelRow: Rect {
         let metrics = Theme.current.metrics
         var y = barRect.minY - metrics.tv(22)
+        if let comments = commentsLayout() { y -= comments.size.height + metrics.tv(8) }
         if let facts = factsLayout() { y -= facts.size.height + metrics.tv(8) }
         if let title = titleLayout() { y -= title.size.height + metrics.tv(14) }
         let x = inset + avatarDiameter + metrics.tv(18)
@@ -192,7 +228,7 @@ final class WebShortPage: View {
 
     /// The clip over its thumbnail, fading in with its first frame; a wide clip lies across the dimmed thumbnail.
     private func drawPicture(_ context: inout DrawContext) {
-        guard let window, let slot, holdsClip, let rect = slot.pictureRect(in: bounds) else { return }
+        guard let window, let slot, holdsClip, !(defersFirstFrame && !slot.hasPicture), let rect = slot.pictureRect(in: bounds) else { return }
         let fills = rect == bounds
         if !fills, reveal.value > 0 { context.fill(bounds, radius: radius, color: Color.shade(0.78 * reveal.value)) }
         let drew = slot.draw(in: rect, radius: fills ? radius : 0, opacity: reveal.value, context: &context, window: window)
@@ -210,7 +246,20 @@ final class WebShortPage: View {
         context.gradient(bounds, vertical: true, stops: [(0, Color.shade(0)), (0.5, Color.shade(0)), (0.8, Color.shade(0.55)), (1, Color.shade(0.9))],
                          radius: radius)
         let bar = barRect
+        let row = channelRow
+        if hoveredRegion == .details {
+            let block = Rect(x: inset - metrics.tv(12), y: row.maxY + metrics.tv(6), width: textWidth + metrics.tv(24), height: bar.minY - metrics.tv(10) - row.maxY - metrics.tv(6))
+            context.fill(block, radius: metrics.radiusS, color: Color.white.withSRGBAlpha(0.1))
+        }
         var y = bar.minY - metrics.tv(22)
+        if let comments = commentsLayout() {
+            y -= comments.size.height
+            let glyph = comments.size.height * 0.9
+            context.text(comments, at: Point(x: inset, y: y), color: palette.accentText)
+            context.symbol("chevron.right", in: Rect(x: inset + comments.size.width + metrics.tv(4), y: y + (comments.size.height - glyph) / 2, width: glyph, height: glyph),
+                           color: palette.accentText)
+            y -= metrics.tv(8)
+        }
         if let facts = factsLayout() {
             y -= facts.size.height
             context.text(facts, at: Point(x: inset, y: y), color: palette.onArtSecondary)
@@ -220,7 +269,11 @@ final class WebShortPage: View {
             y -= title.size.height
             context.text(title, at: Point(x: inset, y: y), color: palette.onArt)
         }
-        let row = channelRow
+        if hoveredRegion == .channel {
+            let nameWidth = channelLayout(maxWidth: row.width)?.size.width ?? 0
+            let pill = Rect(x: inset - metrics.tv(8), y: row.y - metrics.tv(6), width: row.x - inset + nameWidth + metrics.tv(22), height: row.height + metrics.tv(12))
+            context.fill(pill, radius: pill.height / 2, color: Color.white.withSRGBAlpha(0.12))
+        }
         if content.avatar == nil, let channel = content.channel, !channel.isEmpty { drawMonogram(for: channel, in: avatar.frame, context: &context) }
         let followWidth = follow.isHidden ? 0 : follow.frame.width + metrics.tv(20)
         if let name = channelLayout(maxWidth: row.width - followWidth) {

@@ -50,6 +50,20 @@ extension WebShortsScreen {
         slot.assign(entries[target], at: target)
         slot.open(in: window, pane: panePixels)
         placePages()
+        prepareSpare()
+    }
+
+    /// Makes the third player while the feed rests, so the first swipe that needs it does not wait on mpv starting up.
+    private func prepareSpare() {
+        guard slots.count < 3 else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self, !self.closed, self.slots.count < 3, !self.offset.isAnimating, let window = self.window, let loop = window.loop,
+                      let spare = try? WebShortSlot(gpu: window.gpu, loop: loop) else { return }
+                self.wire(spare)
+                self.slots.append(spare)
+            }
+        }
     }
 
     /// A player with no clip to hold: an idle one, a new one while there are fewer than three, else the one holding the
@@ -71,10 +85,10 @@ extension WebShortsScreen {
         return spare
     }
 
-    private func wire(_ slot: WebShortSlot) {
+    func wire(_ slot: WebShortSlot) {
         slot.repeats = !WebSettings.shortsPlayNext
         slot.player.setVolume(WebSettings.shortsVolume)
-        slot.player.setMuted(WebSettings.shortsMuted)
+        slot.setMuted(WebSettings.shortsMuted)
         slot.onChange = { [weak self] slot in self?.changed(slot) }
         slot.onResolved = { [weak self] slot, video in self?.resolved(video, in: slot) }
         slot.onEnded = { [weak self] slot in self?.ended(slot) }
@@ -83,7 +97,8 @@ extension WebShortsScreen {
 
     /// Whether the clip `slot` holds has a page on screen, which then draws the waiting frame.
     private func takesFrame(of slot: WebShortSlot) -> Bool {
-        guard window != nil, let number = slot.index, let page = pages[number], page.frame.intersects(bounds) else { return false }
+        guard window != nil, let number = slot.index, let page = pages[number], page.frame.intersects(bounds),
+              !(feedMoves && !slot.hasPicture) else { return false }
         page.setNeedsDisplay()
         return true
     }
@@ -130,8 +145,8 @@ extension WebShortsScreen {
         if WebSettings.shortsPlayNext, index < entries.count - 1 {
             show(index + 1)
         } else {
-            slot.player.seek(to: 0)
-            slot.player.setPaused(isPaused)
+            slot.seek(to: 0)
+            slot.player.setPausedLater(isPaused)
         }
     }
 
@@ -169,10 +184,12 @@ extension WebShortsScreen {
         var facts: [String] = []
         if let likes = video?.likeCount, likes > 0 { facts.append(WebShortsCopy.likes(likes)) }
         if let known = WebFormatting.facts(entry) { facts.append(known) }
+        let commentCount = video?.commentCount ?? 0
         return WebShortPage.Content(title: entry.title, channel: entry.channel, facts: facts.joined(separator: " · "),
                                     poster: WebArtwork.url(entry.shortThumbnailCandidates(sharp: true)).map(ArtworkSource.url),
                                     avatar: entry.channelID.flatMap { avatars[$0] }.flatMap(WebArtwork.source), canFollow: entry.channelID != nil,
-                                    isFollowed: entry.channelID.map(WebService.shared.library.isSubscribed) ?? false)
+                                    isFollowed: entry.channelID.map(WebService.shared.library.isSubscribed) ?? false,
+                                    commentsLink: commentCount > 0 ? WebShortsCopy.commentsLink(commentCount) : nil)
     }
 
     /// Brings the pages, the rail and the header up to date with the playing clip and the viewer's library.
@@ -198,6 +215,10 @@ extension WebShortsScreen {
 
     func wireRail() {
         rail.later.onPress = { [weak self] in self?.toggleLater() }
+        rail.comments.onHover = { [weak self] in
+            guard let self, let entry = self.current else { return }
+            self.requestComments(for: entry)
+        }
         rail.comments.onPress = { [weak self] in self?.setDetails(shown: self?.detailsShown.target == 0, focusing: self?.window?.isFocusVisible ?? false) }
         rail.link.onPress = { [weak self] in self?.copyLink() }
         rail.channel.onPress = { [weak self] in self?.openChannel() }
@@ -237,13 +258,13 @@ extension WebShortsScreen {
         var target = state.position + seconds
         if target < 0 { target = seconds < -1 && state.position < 1 ? max(state.duration + target, 0) : 0 }
         if target >= state.duration { target = target - state.duration }
-        slot.player.seek(to: target)
+        slot.seek(to: target)
         if !quietly { currentPage?.flash(seconds < 0 ? "gobackward" : "forward.fill") }
     }
 
     func toggleMute() {
         WebSettings.shortsMuted.toggle()
-        for slot in slots { slot.player.setMuted(WebSettings.shortsMuted) }
+        for slot in slots { slot.setMuted(WebSettings.shortsMuted) }
         refreshChrome()
         toast.show(WebSettings.shortsMuted ? WebShortsCopy.muted : WebShortsCopy.volume(Int(WebSettings.shortsVolume)),
                    symbol: WebSettings.shortsMuted ? "speaker.slash" : "speaker.wave.2")
@@ -254,7 +275,7 @@ extension WebShortsScreen {
         WebSettings.shortsVolume = volume
         WebSettings.shortsMuted = false
         for slot in slots {
-            slot.player.setMuted(false)
+            slot.setMuted(false)
             slot.player.setVolume(volume)
         }
         refreshChrome()
@@ -316,34 +337,45 @@ extension WebShortsScreen {
     // MARK: Description and comments
 
     /// Slides the details sheet in beside the clip or away; `focusing` puts the keyboard on it.
-    func setDetails(shown: Bool, focusing: Bool = false) {
+    /// `remembering` keeps the choice for the next time the Shorts player opens, where the window has room for the sheet.
+    func setDetails(shown: Bool, focusing: Bool = false, remembering: Bool = true) {
         guard shown != (detailsShown.target == 1) else { return }
+        if remembering { WebSettings.shortsShowsDetails = shown }
         detailsShown.set(shown ? 1 : 0, animation: .spring(response: 0.42, dampingFraction: 0.9))
         startAnimating()
         if shown {
             details.isHidden = false
-            showDetailsContent(rewinding: true)
+            showDetailsContent(rewinding: true, waiting: false)
             if focusing { window?.focus.focus(details, animated: true) }
-        } else {
-            commentsTask?.cancel()
-            if details.containsFocus { window?.focus.focus(self, animated: true) }
+        } else if details.containsFocus {
+            window?.focus.focus(self, animated: true)
         }
         refreshChrome()
     }
 
-    /// Fills the sheet for the playing clip, and reads its comments once the clip has stayed a moment.
-    func showDetailsContent(rewinding: Bool) {
+    /// Fills the sheet for the playing clip and its comments: at once when they were read already, else once the clip
+    /// has stayed a moment (`waiting`, as the feed moves with the sheet open), so skimming past clips reads none.
+    func showDetailsContent(rewinding: Bool, waiting: Bool = true) {
         guard let entry = current else { return }
         details.show(entry, video: videos[entry.id])
         if rewinding { details.rewind() }
-        commentsTask?.cancel()
         if let known = comments[entry.id], case .loaded = known {
             details.show(known)
             return
         }
         details.show(.loading)
+        requestComments(for: entry, after: waiting ? .milliseconds(600) : .zero)
+    }
+
+    /// Reads `entry`'s top comments unless they were read or are on their way, as the pointer reaches what opens them, so
+    /// the sheet opens on them already there.
+    func requestComments(for entry: WebEntry, after delay: Duration = .zero) {
+        if let known = comments[entry.id], case .loaded = known { return }
+        if commentsFor == entry.id, commentsTask != nil { return }
+        commentsTask?.cancel()
+        commentsFor = entry.id
         commentsTask = Task { [weak self] in
-            try? await Task.sleep(for: .milliseconds(600))
+            if delay > .zero { try? await Task.sleep(for: delay) }
             guard !Task.isCancelled else { return }
             let outcome: WebShortsDetailsPanel.Comments
             do {
@@ -353,7 +385,8 @@ extension WebShortsScreen {
             }
             guard let self, !Task.isCancelled, !self.closed else { return }
             self.comments[entry.id] = outcome
-            if self.current?.id == entry.id { self.details.show(outcome) }
+            self.commentsTask = nil
+            if self.current?.id == entry.id, self.detailsShown.target == 1 { self.details.show(outcome) }
         }
     }
 

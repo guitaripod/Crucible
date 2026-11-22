@@ -87,6 +87,29 @@ public final class VideoPlayer {
         command(["loadfile", location, "replace", "-1", perFile.joined(separator: ",")])
     }
 
+    /// `load(location:...)` without waiting for mpv, for a player that changes files while another plays (the Shorts
+    /// feed): a call that waits holds the thread that draws every picture for as long as mpv's core is busy.
+    public func loadLater(location: String, start: Double = 0, headers: [String: String] = [:], userAgent: String? = nil, paused: Bool,
+                          caches: Bool = true) {
+        let fields = headers.map { "\($0.key): \($0.value)".replacingOccurrences(of: ",", with: "\\,") }.joined(separator: ",")
+        setLater("http-header-fields", fields)
+        if let userAgent { setLater("user-agent", userAgent) }
+        typicalSeekTime = nil
+        seekSent = nil
+        pendingSeek = nil
+        var perFile = ["start=\(String(format: "%.3f", max(start, 0)))", "pause=\(paused ? "yes" : "no")"]
+        if !caches { perFile.append("cache=no") }
+        commandLater(["loadfile", location, "replace", "-1", perFile.joined(separator: ",")])
+    }
+
+    /// Plays or pauses without waiting for mpv.
+    public func setPausedLater(_ paused: Bool) { setLater("pause", paused ? "yes" : "no") }
+
+    /// Sets an mpv property without waiting for mpv to take it.
+    public func setLater(_ property: String, _ value: String) {
+        kiln_video_set_property_async(handle, property, value)
+    }
+
     /// An mpv property as text, or nil when mpv has none now.
     public func get(_ property: String) -> String? {
         var value = [CChar](repeating: 0, count: 512)
@@ -318,10 +341,6 @@ public final class VideoPlayer {
     public func set(_ property: String, _ value: String) -> Int32 {
         writeFiltersIfAhead()
         return kiln_video_set_property(handle, property, value)
-    }
-
-    private func setLater(_ property: String, _ value: String) {
-        kiln_video_set_property_async(handle, property, value)
     }
 
     /// Sends an mpv command without waiting for mpv to take it. A command that waits holds this thread for as long as

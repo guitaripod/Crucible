@@ -62,6 +62,8 @@ final class WebShortsScreen: View {
     var seenStates: [ObjectIdentifier: Seen] = [:]
     var landing: Task<Void, Never>?
     var commentsTask: Task<Void, Never>?
+    /// The clip whose comments `commentsTask` reads.
+    var commentsFor: String?
     var channelTask: Task<Void, Never>?
     var triggerScrub: Task<Void, Never>?
     var triggerPull: Float = 0
@@ -75,10 +77,16 @@ final class WebShortsScreen: View {
     }
 
     private var washes: [Wash] = []
+    /// The blur passes behind the washes, made once and taken in turn: making one is an allocation of a dozen GPU
+    /// textures, which in the middle of a swipe cost a frame.
+    private var washBlurs: [LiquidGlassRenderer] = []
+    private var washTurn = 0
     private var washTask: Task<Void, Never>?
     private var press: (start: Point, dragging: Bool, last: Point)?
     private var scrub: (page: WebShortPage, resumes: Bool)?
     private var lastClickToggled = false
+    private var holdTask: Task<Void, Never>?
+    private var isFast = false
     private var begun = false
 
     init(feed: WebShortsFeed) {
@@ -113,6 +121,9 @@ final class WebShortsScreen: View {
     override var preferredFocusView: View? { self }
     override var accessibilityLabel: String? { WebShortsCopy.title }
 
+    /// Whether the feed is moving: springing into place, or pulled by fingers or a drag.
+    var feedMoves: Bool { offset.isAnimating || abs(offset.value - Float(index)) > 0.001 }
+
     var current: WebEntry? { entries.indices.contains(index) ? entries[index] : nil }
     var currentSlot: WebShortSlot? { slots.first { $0.index == index } }
     var currentPage: WebShortPage? { pages[index] }
@@ -133,6 +144,9 @@ final class WebShortsScreen: View {
         land()
         refreshChrome()
         showWash()
+        if WebSettings.shortsShowsDetails, stage.panel.width >= Theme.current.metrics.tv(560), bounds.width >= Theme.current.metrics.tv(1500) {
+            setDetails(shown: true, remembering: false)
+        }
     }
 
     // MARK: Layout
@@ -212,6 +226,7 @@ final class WebShortsScreen: View {
             page.trailingInset = stage.railInside ? stage.rail.width : 0
             page.slot = slots.first { $0.index == number }
             page.isPaused = number == index && isPaused
+            page.defersFirstFrame = feedMoves
         }
         let fade = 1 - detailsShown.value
         previous.alpha = fade
@@ -267,11 +282,12 @@ final class WebShortsScreen: View {
             return
         }
         noteWatched()
+        setFast(false)
         let left = currentSlot
         index = target
         isPaused = false
         left?.plays = false
-        left?.player.seek(to: 0)
+        left?.seek(to: 0)
         settle()
         land()
         refreshChrome()
@@ -320,9 +336,24 @@ final class WebShortsScreen: View {
             guard let self, let window, !Task.isCancelled, !self.closed, self.current?.id == entry.id else { return }
             var opacity = Animated(0)
             opacity.set(1, animation: .timed(duration: 0.5, curve: .easeInOut))
-            self.washes.append(Wash(id: entry.id, texture: window.gpu.blurred(texture) ?? texture, opacity: opacity))
+            self.washes.append(Wash(id: entry.id, texture: self.blurred(texture, gpu: window.gpu) ?? texture, opacity: opacity))
             self.startAnimating()
         }
+    }
+
+    /// `texture` blurred by the next of three reusable blur passes, as many as washes can be fading at once.
+    private func blurred(_ texture: Texture, gpu: GPU) -> Texture? {
+        guard texture.width >= 16, texture.height >= 16 else { return nil }
+        let turn = washTurn % 3
+        washTurn += 1
+        if washBlurs.count <= turn {
+            guard let made = try? LiquidGlassRenderer(gpu: gpu, width: texture.width, height: texture.height) else { return nil }
+            washBlurs.append(made)
+        } else if washBlurs[turn].frost.width * 2 < texture.width - 1 || washBlurs[turn].frost.width * 2 > texture.width + 1 {
+            guard (try? washBlurs[turn].resize(width: texture.width, height: texture.height)) != nil else { return nil }
+        }
+        washBlurs[turn].blur(texture, spread: 1.6)
+        return washBlurs[turn].frost
     }
 
     // MARK: Keys
@@ -363,9 +394,11 @@ final class WebShortsScreen: View {
         case .return where mine, .keypadEnter where mine, .space where mine, .mediaPlay, .mediaPause:
             activate()
         case .home where plain:
-            currentSlot?.player.seek(to: 0)
+            currentSlot?.seek(to: 0)
         case .menu:
             presentMenu(at: nil)
+        case .gamepadWest:
+            setDetails(shown: detailsShown.target == 0, focusing: false)
         default:
             guard plain, let letter = event.typedText?.lowercased() else { return false }
             return handle(letter: letter)
@@ -436,16 +469,30 @@ final class WebShortsScreen: View {
 
     override func pointerMoved(to point: Point) {
         guard let page = currentPage, scrub == nil else { return }
-        page.emphasizesBar = barZone(of: page).contains(page.convert(point, from: self)) || isPaused
+        let local = page.convert(point, from: self)
+        page.emphasizesBar = barZone(of: page).contains(local) || isPaused
+        page.hoveredRegion = press == nil ? page.region(at: local) : nil
+        if page.hoveredRegion == .details, let entry = current { requestComments(for: entry) }
     }
 
     override func pointerExited() {
         if scrub == nil { currentPage?.emphasizesBar = isPaused }
+        currentPage?.hoveredRegion = nil
     }
 
     override func cursor(at point: Point) -> Cursor {
         guard let page = currentPage else { return .default }
-        return barZone(of: page).contains(page.convert(point, from: self)) ? .pointer : .default
+        let local = page.convert(point, from: self)
+        return barZone(of: page).contains(local) || page.region(at: local) != nil ? .pointer : .default
+    }
+
+    override func tooltip(at point: Point) -> String? {
+        guard let page = currentPage else { return nil }
+        switch page.region(at: page.convert(point, from: self)) {
+        case .channel: return "\(WebShortsCopy.goToChannel) (O)"
+        case .details: return "\(WebShortsCopy.details) (C)"
+        case nil: return nil
+        }
     }
 
     override func pointerPressed(_ button: MouseButton, at point: Point) -> Bool {
@@ -465,7 +512,22 @@ final class WebShortsScreen: View {
             return true
         }
         press = (point, false, point)
+        holdTask?.cancel()
+        holdTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(380))
+            guard let self, !Task.isCancelled, let held = self.press, !held.dragging, self.stage.pane.contains(held.start),
+                  self.currentPage.map({ $0.region(at: $0.convert(held.start, from: self)) == nil }) ?? false else { return }
+            self.setFast(true)
+        }
         return true
+    }
+
+    /// Plays the clip at twice its speed while the pointer is held on it, as phones do, and back at its own speed on letting go.
+    private func setFast(_ fast: Bool) {
+        guard fast != isFast else { return }
+        isFast = fast
+        currentSlot?.player.setLater("speed", fast ? "2" : "1")
+        if fast { toast.show(WebShortsCopy.doubleSpeed, symbol: "forward.fill") }
     }
 
     override func pointerDragged(to point: Point) {
@@ -474,7 +536,8 @@ final class WebShortsScreen: View {
             return
         }
         guard var held = press else { return }
-        if !held.dragging, abs(point.y - held.start.y) > Theme.current.metrics.tv(14) {
+        if !held.dragging, !isFast, abs(point.y - held.start.y) > Theme.current.metrics.tv(14) {
+            holdTask?.cancel()
             held.dragging = true
             held.last = held.start
             preparePager()
@@ -500,6 +563,11 @@ final class WebShortsScreen: View {
         }
         guard let held = press else { return }
         press = nil
+        holdTask?.cancel()
+        if isFast {
+            setFast(false)
+            return
+        }
         if held.dragging {
             let moved = pager.release(at: Window.now())
             if moved == 0 { settle() } else { show(index + moved) }
@@ -512,7 +580,12 @@ final class WebShortsScreen: View {
     /// above or below the clip moves through the feed, and one beside it puts the details sheet away.
     private func clicked(at point: Point) {
         let pane = stage.pane
-        if pane.contains(point) {
+        if pane.contains(point), let page = currentPage, let region = page.region(at: page.convert(point, from: self)) {
+            switch region {
+            case .channel: openChannel()
+            case .details: setDetails(shown: detailsShown.target == 0, focusing: false)
+            }
+        } else if pane.contains(point) {
             if window?.clickCount == 2 {
                 if lastClickToggled { togglePause(quietly: true) }
                 lastClickToggled = false
@@ -534,7 +607,7 @@ final class WebShortsScreen: View {
         let local = scrub.page.convert(point, from: self)
         let fraction = Double(min(max((local.x - bar.minX) / max(bar.width, 1), 0), 1))
         scrub.page.scrubbing = fraction
-        slot.player.seek(to: fraction * slot.player.state.duration, mode: exact ? .exact : .keyframe)
+        slot.seek(to: fraction * slot.player.state.duration, exact: exact)
     }
 
     private func preparePager() {

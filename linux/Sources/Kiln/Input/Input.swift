@@ -92,6 +92,9 @@ public struct Key: Hashable, Sendable {
     /// keysym range, so no keyboard sends them by itself.
     public static let tabPrevious = Key(0x2000_0001)
     public static let tabNext = Key(0x2000_0002)
+    /// A gamepad's west face button (X on an Xbox layout, Square on PlayStation, X on the Steam Deck), which the Apple TV
+    /// remote has no match for; a screen with a second action takes it (the Shorts player's comments).
+    public static let gamepadWest = Key(0x2000_0003)
 
     /// A letter or digit key by its lowercase character (`Key.character("f")`).
     public static func character(_ character: Character) -> Key {

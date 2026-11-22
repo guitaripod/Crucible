@@ -71,7 +71,7 @@ struct GamepadTests {
             driver.handle(.button(button, down: true), at: 0, in: window)
             driver.handle(.button(button, down: false), at: 0, in: window)
         }
-        #expect(log.keys.map(\.key) == [.return, .escape, .escape, .mediaPlay, .menu, .tabPrevious, .tabNext])
+        #expect(log.keys.map(\.key) == [.return, .escape, .escape, .mediaPlay, .menu, .tabPrevious, .tabNext, .gamepadWest])
         driver.handle(.rightStick(x: 0.5, y: -0.25), at: 0, in: window)
         #expect(log.tilts.count == 1)
     }

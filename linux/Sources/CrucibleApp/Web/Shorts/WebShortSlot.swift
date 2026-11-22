@@ -32,13 +32,13 @@ final class WebShortSlot {
         didSet {
             guard plays != oldValue else { return }
             player.progressInterval = plays ? 0 : 0.5
-            player.set("demuxer-readahead-secs", plays ? "30" : "6")
-            if phase == .open || phase == .opening { player.setPaused(!plays) }
+            player.setLater("demuxer-readahead-secs", plays ? "30" : "6")
+            if phase == .open || phase == .opening { player.setPausedLater(!plays) }
         }
     }
     /// Whether a clip that ends starts over, or says so and waits (`onEnded`).
     var repeats = true {
-        didSet { player.set("loop-file", repeats ? "inf" : "no") }
+        didSet { player.setLater("loop-file", repeats ? "inf" : "no") }
     }
     /// The phase, the playhead or the pause changed.
     var onChange: ((WebShortSlot) -> Void)?
@@ -63,9 +63,10 @@ final class WebShortSlot {
     init(gpu: GPU, loop: EventLoop) throws(RenderError) {
         player = try VideoPlayer(gpu: gpu, loop: loop)
         player.progressInterval = 0.5
-        player.set("loop-file", "inf")
-        player.set("demuxer-readahead-secs", "6")
-        player.set("sub-visibility", "no")
+        player.setLater("loop-file", "inf")
+        player.setLater("demuxer-readahead-secs", "6")
+        player.setLater("sub-visibility", "no")
+        player.audioFilters = Self.loudnessFilters
         player.onStateChange = { [weak self] _ in
             guard let self else { return }
             self.onChange?(self)
@@ -86,7 +87,7 @@ final class WebShortSlot {
         generation += 1
         task?.cancel()
         task = nil
-        if phase != .idle { player.stop() }
+        if phase != .idle { player.commandLater(["stop"]) }
         entry = nil
         index = nil
         video = nil
@@ -151,9 +152,7 @@ final class WebShortSlot {
     private func start(location: String, userAgent: String?, headers: [String: String], caches: Bool) {
         acceptsFrames = false
         hasPicture = false
-        if let userAgent { player.set("user-agent", userAgent) }
-        player.setPaused(!plays)
-        player.load(location: location, start: 0, headers: headers, caches: caches)
+        player.loadLater(location: location, headers: headers, userAgent: userAgent, paused: !plays, caches: caches)
         set(.opening)
     }
 
@@ -230,13 +229,14 @@ final class WebShortSlot {
         return Rect(x: (pane.midX - width / 2).rounded(), y: (pane.midY - height / 2).rounded(), width: width, height: height)
     }
 
-    /// Draws the newest frame into `rect`, rendering it first when one is waiting; returns whether a picture was drawn.
+    /// Draws the newest frame into `rect`, rendering it first when one is waiting; returns whether a picture was drawn. The
+    /// picture is rendered at the page's size at rest, so a page shrinking and growing as the feed moves scales the picture
+    /// it has instead of holding back mpv's frames until a new size has rested.
     @discardableResult
     func draw(in rect: Rect, radius: Float, opacity: Float, context: inout DrawContext, window: Window) -> Bool {
         guard acceptsFrames else { return false }
-        let pixels = context.transform.apply(rect)
-        let width = max(Int(pixels.width.rounded()), 1)
-        let height = max(Int(pixels.height.rounded()), 1)
+        let width = max(Int((rect.width * context.rasterScale).rounded()), 1)
+        let height = max(Int((rect.height * context.rasterScale).rounded()), 1)
         if texture?.width != width || texture?.height != height, texture == nil || sizeHeld(width, height, window: window) {
             texture = try? window.gpu.texture(width: width, height: height, format: .rgba16f, renderable: true)
             if let texture, player.render(into: texture) { hasPicture = true }
@@ -263,6 +263,26 @@ final class WebShortSlot {
         }
         return now - (wantedSize?.since ?? now) >= 0.25
     }
+
+    /// Moves the clip to `seconds` without waiting for mpv: on the keyframe nearest it while a drag is under way, else on
+    /// the exact frame.
+    func seek(to seconds: Double, exact: Bool = true) {
+        player.commandLater(["seek", String(format: "%.3f", max(seconds, 0)), exact ? "absolute+exact" : "absolute+keyframes"])
+    }
+
+    func setMuted(_ muted: Bool) {
+        player.setLater("mute", muted ? "yes" : "no")
+    }
+
+    /// Every clip brought to about one loudness, its peaks just under full scale: the normaliser lifts a quiet clip and lowers
+    /// a loud one over a window of about a second either side, aiming its peaks at 0.85, and the limiter after it, run at
+    /// four times the rate so it sees the peaks between samples too, holds them at 0.87. Measured on four NileRed Shorts
+    /// that spanned -16.2 to -23.6 LUFS with true peaks up to +2.4 dBTP: -15.1 to -17.3 LUFS, true peaks -1.2 to -1.4 dBTP,
+    /// for 0.6 s of CPU on a 71 s clip.
+    static let loudnessFilters = [
+        "@shortsloudness:lavfi=[dynaudnorm=f=150:g=15:p=0.85:m=12]",
+        "@shortslimiter:lavfi=[aresample=192000,alimiter=limit=0.87:attack=5:release=80:asc=1:level=0,aresample=48000]",
+    ]
 
     /// Stops the player for good.
     func shutDown() {

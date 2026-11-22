@@ -76,6 +76,12 @@ enum WebSettings {
         set { defaults.set(newValue, forKey: "web.shortsMuted") }
     }
 
+    /// Whether the Shorts player opens with its description and comments sheet beside the clip, as it was left.
+    static var shortsShowsDetails: Bool {
+        get { defaults.bool(forKey: "web.shortsShowsDetails") }
+        set { defaults.set(newValue, forKey: "web.shortsShowsDetails") }
+    }
+
     /// Whether the Shorts player moves on to the next clip when one ends, instead of repeating it.
     static var shortsPlayNext: Bool {
         get { defaults.bool(forKey: "web.shortsPlayNext") }

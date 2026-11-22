@@ -25,6 +25,8 @@ final class WebShortsRoundButton: View {
         }
     }
     var onPress: (() -> Void)?
+    /// The pointer reached the button.
+    var onHover: (() -> Void)?
     /// The wheel turned over the button, in notches toward the viewer (the sound button's volume).
     var onWheel: ((Float) -> Void)?
 
@@ -72,7 +74,10 @@ final class WebShortsRoundButton: View {
 
     override func focusDidChange(focused: Bool, animated: Bool) { updateLift() }
     override func focusVisibilityDidChange(_ visible: Bool) { if isFocused { updateLift() } }
-    override func pointerEntered() { updateLift() }
+    override func pointerEntered() {
+        updateLift()
+        onHover?()
+    }
 
     override func pointerExited() {
         pressedByPointer = false
@@ -209,6 +214,12 @@ enum WebShortsCopy {
     static let follow = String(localized: "Follow", comment: "Button that follows a channel")
     static let retry = String(localized: "Retry")
     static let seek = String(localized: "Back or Ahead Five Seconds", comment: "Shorts shortcut list: J and L move through the clip")
+
+    static let doubleSpeed = String(localized: "Playing at 2×", comment: "Shorts player message while the pointer is held on the clip, which plays it at twice its speed")
+
+    static func commentsLink(_ count: Int) -> String {
+        String(localized: "\(Formatters.compactCount(count)) comments", comment: "Shorts player: line under a clip's title that opens its comments, as in \"2.3K comments\"")
+    }
 
     static func volume(_ percent: Int) -> String {
         String(localized: "Volume \(percent)%", comment: "Shorts player message after changing the volume, as in \"Volume 80%\"")

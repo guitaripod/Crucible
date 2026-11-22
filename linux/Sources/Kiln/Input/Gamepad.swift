@@ -25,10 +25,11 @@ public enum GamepadEvent: Equatable, Sendable {
     case triggers(left: Float, right: Float)
 }
 
-/// What gamepad input means to a window, as the Apple TV reads its remote (docs/LINUX.md §5.4): the d-pad and the left stick
-/// move the focus with tvOS-like repeat acceleration, A selects, B and Back go back, Start plays and pauses, Y opens the
-/// context menu, the shoulders change tabs, the right stick tilts what has the focus as a pointer would, and the triggers
-/// scrub. It only reads events and the time and hands the window keys and gestures, so it is tested without a pad.
+/// What gamepad input means to a window, as the Apple TV reads its remote (docs/LINUX.md §5.4): the d-pad and the left
+/// stick move the focus with tvOS-like repeat acceleration, A selects, B and Back go back, Start plays and pauses, Y
+/// opens the context menu, the shoulders change tabs, the right stick tilts what has the focus as a pointer would, and
+/// the triggers scrub, and X is a second action of the screen's own (`Key.gamepadWest`). It only reads events and the
+/// time and hands the window keys and gestures, so it is tested without a pad.
 @MainActor
 public final class GamepadDriver {
     /// Repeat timing: a first repeat after `delay`, then every `interval`, shortened by `acceleration` down to `fastest`.
@@ -117,6 +118,7 @@ public final class GamepadDriver {
         case .east, .back: .escape
         case .start: .mediaPlay
         case .north: .menu
+        case .west: .gamepadWest
         case .leftShoulder: .tabPrevious
         case .rightShoulder: .tabNext
         default: nil
