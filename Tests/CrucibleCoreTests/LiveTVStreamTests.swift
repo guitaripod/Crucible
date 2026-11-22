@@ -168,7 +168,8 @@ struct PlexLiveTVTests {
        "Media":[{"beginsAt":1795300283,"endsAt":1795307210,"onAir":true,"premiere":false}]},
       {"guid":"plex://episode/2","type":"episode","title":"Pilot","grandparentTitle":"Show","index":"3","parentIndex":"2","thumb":"/library/metadata/2/thumb",
        "Media":[{"beginsAt":"1795307210","endsAt":"1795309010"}]},
-      {"type":"movie","title":"No Times","Media":[{"onAir":false}]}
+      {"type":"movie","title":"No Times","Media":[{"onAir":false}]},
+      {"type":"movie","title":"Twice","Media":[{"beginsAt":1795309010,"endsAt":1795312610},{"beginsAt":1795330000,"endsAt":1795333600}]}
     ]}}
     """
 
@@ -181,8 +182,10 @@ struct PlexLiveTVTests {
         #expect(channels[1].Media?.first?.drm == true)
         let airings = try JSONDecoder().decode(PlexLiveContainer<PlexLiveGridBody>.self, from: Data(Self.gridJSON.utf8)).MediaContainer.Metadata ?? []
         let base = URL(string: "https://epg.provider.plex.tv")
-        let programs = airings.compactMap { $0.program(channelID: "plex.c1", imageBase: base) }
-        #expect(programs.count == 2)
+        let programs = airings.flatMap { $0.programs(channelID: "plex.c1", imageBase: base) }
+        #expect(programs.count == 4)
+        #expect(programs.filter { $0.title == "Twice" }.map(\.start) == [Date(timeIntervalSince1970: 1795309010), Date(timeIntervalSince1970: 1795330000)])
+        #expect(Set(programs.map(\.id)).count == 4)
         let replay = programs[0]
         #expect(replay.title == "Brazil v Belgium")
         #expect(replay.episodeTitle == nil)

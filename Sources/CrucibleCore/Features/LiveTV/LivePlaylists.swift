@@ -309,6 +309,27 @@ package struct PlaylistChannelSource: LiveChannelSource {
     }
 }
 
+/// Reads a playlist the viewer is adding, to tell them at once whether it works and how many channels it has.
+package enum LivePlaylistCheck {
+    package enum Outcome: Sendable, Equatable {
+        case success(Int)
+        case failure(String)
+    }
+
+    package static func check(_ playlist: LivePlaylist) async -> Outcome {
+        do {
+            let parsed = try await PlaylistChannelSource(playlist: playlist).loadPlaylist(forceRefresh: true)
+            return .success(PlaylistChannelSource.channels(of: playlist, in: parsed).count)
+        } catch M3UPlaylist.ParseError.notAPlaylist {
+            return .failure(String(localized: "That address didn’t return a channel playlist (M3U).", comment: "Error when an added address is not an M3U playlist"))
+        } catch M3UPlaylist.ParseError.empty {
+            return .failure(String(localized: "The playlist has no channels.", comment: "Error when an added M3U playlist lists nothing"))
+        } catch {
+            return .failure((error as? LocalizedError)?.errorDescription ?? error.localizedDescription)
+        }
+    }
+}
+
 /// A short stable hash for ids that must not carry the text they come from.
 package enum LiveHash {
     package static func fnv1a(_ text: String) -> String {

@@ -25,6 +25,7 @@ package enum LiveTVCopy {
     package static let new = String(localized: "NEW", comment: "Badge on a TV airing that is a new episode; keep it short")
     package static let tryAgain = String(localized: "Try Again", comment: "Button that reloads live TV after a failure")
     package static let filter = String(localized: "Filter", comment: "Button that picks which live TV channels the guide shows")
+    package static let categories = String(localized: "Categories", comment: "Button that picks a category (group) of live TV channels")
     package static let jumpToNow = String(localized: "Now", comment: "Button that scrolls the TV guide back to the current time")
 
     package static let emptyTitle = String(localized: "No Channels Yet", comment: "Title shown in Live TV when no source has any channels")
@@ -46,17 +47,24 @@ package enum LiveTVCopy {
 
     package static let beta = String(localized: "BETA", comment: "Tag beside the Live TV title marking the feature as a beta; keep it short and uppercase where the script has case")
     package static let betaTitle = String(localized: "Live TV Is in Beta", comment: "Title of the note the Beta tag beside Live TV opens")
-    package static let betaBody = String(localized: """
-    Live TV is new in Crucible, and it’s still growing. Here’s what it does today:
+    package static let betaIntro = String(localized: "Live TV is new in Crucible and still growing. Here’s what it does today.",
+                                          comment: "First line of the note the Beta tag beside Live TV opens")
+    /// What Live TV covers, each with the symbol it is drawn beside.
+    package static let betaPoints: [(symbol: String, text: String)] = [
+        ("tv", String(localized: "Plex’s free channels and their guide, on every Plex account.", comment: "Live TV beta note: what Plex's free channels give")),
+        ("antenna.radiowaves.left.and.right", String(localized: "Channels from a tuner on your Plex server, with recordings (recording needs Plex Pass on the server).",
+                                                     comment: "Live TV beta note: tuner channels and recording")),
+        ("list.bullet", String(localized: "Channel playlists (M3U) with their XMLTV guide, from a TV provider you subscribe to.",
+                               comment: "Live TV beta note: the viewer's own playlists")),
+    ]
+    package static let betaFooter = String(localized: "Some streams take a moment to start, and channels whose provider publishes no guide show none. Crucible provides no channels of its own. Tell me what works and what doesn’t: your feedback decides what comes next.",
+                                           comment: "Last paragraph of the Live TV beta note; written in the developer's first person singular")
 
-    • Plex’s free channels, with their guide, on every Plex account.
-    • Channels from a tuner on your Plex server, with recordings (recording needs Plex Pass on the server).
-    • Your own channel playlists (M3U) with their XMLTV guide, from a TV provider you subscribe to.
+    /// The whole note as one text, for a screen reader or a platform that shows it as a plain message.
+    package static var betaBody: String {
+        ([betaIntro] + betaPoints.map { "• \($0.text)" } + [betaFooter]).joined(separator: "\n\n")
+    }
 
-    Some streams may take a moment to start, and the guide may be missing for channels whose provider doesn’t publish one. Crucible doesn’t provide any channels of its own.
-
-    Tell me what works and what doesn’t: your feedback decides what comes next.
-    """, comment: "Body of the note explaining that Live TV is a beta and what it covers; written in the developer's first person singular")
     package static let betaFeedback = String(localized: "Send Feedback", comment: "Button in the Live TV beta note that opens an email to the developer")
     package static let betaDismiss = String(localized: "Got It", comment: "Button that closes the Live TV beta note")
     package static let feedbackAddress = "marcus@midgarcorp.cc"
@@ -69,6 +77,12 @@ package enum LiveTVCopy {
         components.queryItems = [URLQueryItem(name: "subject", value: feedbackSubject)]
         return components.url
     }
+
+    // MARK: Settings
+
+    package static let settingsSummary = String(localized: "Plex’s free channels, a tuner on your server and your own channel playlists.", comment: "Settings: what the Live TV page holds")
+    package static let showDestination = String(localized: "Show Live TV", comment: "Setting that shows or hides the Live TV tab")
+    package static let showDestinationFooter = String(localized: "Live TV gets its own tab with the guide.", comment: "Footer under the setting that shows the Live TV tab")
 
     // MARK: Playlists
 

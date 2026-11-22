@@ -165,23 +165,30 @@ struct PlexLiveAiring: Decodable, Sendable {
         Media = try? container.decodeIfPresent([MediaEntry].self, forKey: .Media)
     }
 
-    /// The airing as the guide shows it on `channelID`: the show's name as the title and the episode's own name beside it
-    /// unless Plex marks it generic ("Episode 1"). `imageBase` makes relative artwork paths absolute.
-    func program(channelID: String, imageBase: URL?) -> LiveProgram? {
-        guard let media = Media?.first(where: { $0.beginsAt != nil && $0.endsAt != nil }), let begins = media.beginsAt, let ends = media.endsAt, ends > begins else { return nil }
+    /// The airings of this title as the guide shows them on `channelID`, one per `Media` entry (a film shown twice in a day
+    /// is one title with two): the show's name as the title and the episode's own name beside it unless Plex marks it
+    /// generic ("Episode 1"). `imageBase` makes relative artwork paths absolute.
+    func programs(channelID: String, imageBase: URL?) -> [LiveProgram] {
         let isEpisode = type == "episode"
-        let showTitle = isEpisode ? (grandparentTitle ?? title) : title
-        guard let showTitle, !showTitle.isEmpty else { return nil }
+        guard let showTitle = isEpisode ? (grandparentTitle ?? title) : title, !showTitle.isEmpty else { return [] }
         let episodeTitle = isEpisode && !hasGenericTitle && title != showTitle ? title : nil
         let picture = Image?.first { $0.type == "snapshot" || $0.type == "coverArt" }?.url ?? art ?? thumb ?? grandparentArt ?? grandparentThumb
-        return LiveProgram(id: "\(channelID)@\(begins)", channelID: channelID, title: showTitle, episodeTitle: episodeTitle, summary: summary,
-                           start: Date(timeIntervalSince1970: TimeInterval(begins)), end: Date(timeIntervalSince1970: TimeInterval(ends)),
-                           image: picture.flatMap { PlexLiveLenient.url($0, base: imageBase) },
-                           season: isEpisode && (parentIndex ?? 0) > 0 && !hasGenericTitle ? parentIndex : nil,
-                           episode: isEpisode && !hasGenericTitle ? index : nil,
-                           genres: Genre?.compactMap(\.tag) ?? [], contentRating: contentRating,
-                           isNew: false, isLive: media.onAir, isPremiere: media.premiere,
-                           record: guid.map { LiveRecordHint(guid: $0, isEpisode: isEpisode) })
+        let image = picture.flatMap { PlexLiveLenient.url($0, base: imageBase) }
+        return (Media ?? []).compactMap { media in
+            guard let begins = media.beginsAt, let ends = media.endsAt, ends > begins else { return nil }
+            return LiveProgram(id: "\(channelID)@\(begins)", channelID: channelID, title: showTitle, episodeTitle: episodeTitle, summary: summary,
+                               start: Date(timeIntervalSince1970: TimeInterval(begins)), end: Date(timeIntervalSince1970: TimeInterval(ends)),
+                               image: image, season: isEpisode && (parentIndex ?? 0) > 0 && !hasGenericTitle ? parentIndex : nil,
+                               episode: isEpisode && !hasGenericTitle ? index : nil,
+                               genres: Genre?.compactMap(\.tag) ?? [], contentRating: contentRating,
+                               isNew: false, isLive: media.onAir, isPremiere: media.premiere,
+                               record: guid.map { LiveRecordHint(guid: $0, isEpisode: isEpisode) })
+        }
+    }
+
+    /// The first airing, for a recording's details.
+    func program(channelID: String, imageBase: URL?) -> LiveProgram? {
+        programs(channelID: channelID, imageBase: imageBase).first
     }
 }
 

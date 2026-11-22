@@ -107,7 +107,7 @@ package struct PlexFreeChannelSource: LiveChannelSource {
         let token = plexTVToken
         return await PlexGridCache.shared.programs(for: channels.filter { $0.guideKey != nil }, in: window, cachePrefix: "plex") { channel, date in
             let body: PlexLiveContainer<PlexLiveGridBody> = try await APIClient.plexTVRequest(.liveTVGrid(channelGridKey: channel.guideKey ?? "", date: date), token: token)
-            return (body.MediaContainer.Metadata ?? []).compactMap { $0.program(channelID: channel.id, imageBase: PlexTVHost.liveTV) }
+            return (body.MediaContainer.Metadata ?? []).flatMap { $0.programs(channelID: channel.id, imageBase: PlexTVHost.liveTV) }
         }
     }
 
@@ -164,7 +164,7 @@ package struct PlexDVRSource: LiveChannelSource {
         let base = await api.baseURL
         return await PlexGridCache.shared.programs(for: channels.filter { $0.guideKey != nil }, in: window, cachePrefix: id.description) { channel, date in
             let body: PlexLiveContainer<PlexLiveGridBody> = try await api.request(.dvrGrid(provider: provider, channelGridKey: channel.guideKey ?? "", date: date))
-            return (body.MediaContainer.Metadata ?? []).compactMap { $0.program(channelID: channel.id, imageBase: base) }
+            return (body.MediaContainer.Metadata ?? []).flatMap { $0.programs(channelID: channel.id, imageBase: base) }
         }
     }
 }

@@ -33,6 +33,12 @@ package final class LiveTVGuide {
             self.machineIdentifier = machineIdentifier
             self.serverName = serverName
         }
+
+        /// The context of the server the app connected to: its client for a tuner, the plex.tv token for Plex's free channels.
+        package init(payload: LaunchPayload) {
+            self.init(api: payload.api, token: payload.connection.plexTVToken, machineIdentifier: payload.connection.machineIdentifier,
+                      serverName: payload.connection.serverName)
+        }
     }
 
     /// How far ahead the guide reads airings.
@@ -227,7 +233,7 @@ package final class LiveTVGuide {
                 let found = (try? await source.programs(for: group, in: window)) ?? [:]
                 guard let self, !Task.isCancelled else { return }
                 self.programTasks[key] = nil
-                for (id, list) in found { self.programs[id] = list }
+                for channel in group { self.programs[channel.id] = found[channel.id] ?? [] }
                 self.onPrograms?(Set(group.map(\.id)))
             }
         }
@@ -287,6 +293,7 @@ package enum LiveTVPreferences {
     private static let plexChannelsKey = "liveTVShowsPlexChannels"
     private static let filterKey = "liveTVFilter"
     private static let betaSeenKey = "liveTVBetaNoteSeen"
+    private static let destinationKey = "liveTVShowsDestination"
     private static let recentLimit = 20
 
     package static var favorites: [String] {
@@ -309,6 +316,15 @@ package enum LiveTVPreferences {
         set {
             UserDefaults.standard.set(newValue, forKey: plexChannelsKey)
             Task { @MainActor in NotificationCenter.default.post(name: .liveSourcesChanged, object: nil) }
+        }
+    }
+
+    /// Whether Live TV has its own tab (or sidebar entry).
+    package static var showsDestination: Bool {
+        get { UserDefaults.standard.object(forKey: destinationKey) as? Bool ?? true }
+        set {
+            UserDefaults.standard.set(newValue, forKey: destinationKey)
+            Task { @MainActor in NotificationCenter.default.post(name: .liveDestinationChanged, object: nil) }
         }
     }
 
@@ -354,4 +370,9 @@ package enum LiveTVPreferences {
         for key in [favoritesKey, recentKey, filterKey] { UserDefaults.standard.removeObject(forKey: key) }
         PlaylistCache.forgetAll()
     }
+}
+
+extension Notification.Name {
+    /// Posted on the main thread when Live TV's tab was turned on or off.
+    package static let liveDestinationChanged = Notification.Name("crucible.liveDestinationChanged")
 }

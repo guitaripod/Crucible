@@ -15,6 +15,7 @@ package enum SettingsDestination: String, Hashable, Sendable {
     case crucibleServer
     case trakt
     case seerr
+    case liveTV
     case manageStorage
     case notificationPermission
     case diagnostics
@@ -253,6 +254,7 @@ package enum SettingsCatalog {
             Spec(item: .preference(.notifyDownloads), category: .notifications, section: news, platforms: phone),
             Spec(item: .destination(.trakt), category: .integrations, section: nil, platforms: all),
             Spec(item: .destination(.seerr), category: .integrations, section: nil, platforms: all),
+            Spec(item: .destination(.liveTV), category: .home, section: nil, platforms: all),
             Spec(item: .preference(.translateAutomatically), category: .translation, section: nil, platforms: both),
             Spec(item: .preference(.translationLanguage), category: .translation, section: nil, platforms: both),
             Spec(item: .preference(.appearance), category: .appearance, section: nil, platforms: phone),
@@ -386,6 +388,7 @@ package enum SettingsCatalog {
         case .crucibleServer: return CompanionCopy.title
         case .trakt: return TraktCopy.name
         case .seerr: return SeerrCopy.name
+        case .liveTV: return LiveTVCopy.title
         case .manageStorage: return String(localized: "Manage Storage")
         case .notificationPermission: return String(localized: "Allow Notifications", comment: "Settings row showing whether iOS lets Crucible notify")
         case .diagnostics: return String(localized: "Diagnostics")
@@ -402,6 +405,7 @@ package enum SettingsCatalog {
         case .crucibleServer: return "sparkles.tv"
         case .trakt: return "checkmark.rectangle.stack"
         case .seerr: return "tray.and.arrow.down"
+        case .liveTV: return "antenna.radiowaves.left.and.right"
         case .manageStorage: return "internaldrive"
         case .notificationPermission: return "bell"
         case .diagnostics: return "doc.text.magnifyingglass"
@@ -418,6 +422,7 @@ package enum SettingsCatalog {
         case .crucibleServer: return CompanionCopy.pitch
         case .trakt: return TraktCopy.tagline
         case .seerr: return SeerrCopy.tagline
+        case .liveTV: return LiveTVCopy.settingsSummary
         case .manageStorage: return String(localized: "What is downloaded and how much space it takes.")
         case .notificationPermission: return String(localized: "Crucible can only notify you when iOS allows it.")
         case .diagnostics: return String(localized: "The app's log and what the Top Shelf extension last saw.")
@@ -505,6 +510,7 @@ package enum SettingsCatalog {
             case .crucibleServer: return String(localized: "companion, previously on, recap, pair, model, AI", comment: "Search keywords for Crucible Server, comma separated")
             case .trakt: return String(localized: "trakt, scrobble, sync, history, ratings, check in, integration, plugin", comment: "Search keywords for Trakt, comma separated")
             case .seerr: return String(localized: "seerr, overseerr, jellyseerr, request, requests, missing, sonarr, radarr, integration, plugin", comment: "Search keywords for Seerr, comma separated")
+            case .liveTV: return String(localized: "live, tv, iptv, m3u, playlist, channels, guide, epg, xmltv, dvr, tuner, antenna, record, recording", comment: "Search keywords for Live TV, comma separated")
             case .manageStorage: return String(localized: "storage, space, delete, offline", comment: "Search keywords for Manage Storage, comma separated")
             case .notificationPermission: return String(localized: "permission, allow, notifications", comment: "Search keywords for the notification permission row, comma separated")
             case .diagnostics, .about, .sourceCode: return String(localized: "logs, version, help, support, GitHub, license", comment: "Search keywords for help and about rows, comma separated")
