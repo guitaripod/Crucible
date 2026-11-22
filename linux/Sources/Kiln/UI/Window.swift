@@ -209,9 +209,32 @@ public final class Window {
         }
         guard color != displayColor else { return }
         displayColor = color
-        gpu.setOutput(gain: surface.outputGain, sdr: surface.prefersSDROutput)
+        applyOutput()
         setNeedsDisplay()
         onDisplayColorChange?(color)
+    }
+
+    /// Whether HDR content (a video in HDR10, HLG or Dolby Vision) is showing in the window. On a compositor that switches
+    /// the screen into HDR only for a surface that asks (`PlatformWindow.switchesHDRWithContent`, gamescope), the window
+    /// hands over SDR buffers otherwise, so its interface is as bright as the rest of the system's.
+    public var showsHDRContent = false {
+        didSet {
+            guard showsHDRContent != oldValue else { return }
+            applyOutput()
+            setNeedsDisplay()
+        }
+    }
+
+    /// Whether the swapchain carries SDR now: the compositor asks for it, or nothing HDR is showing where that matters.
+    public var drawsSDR: Bool {
+        guard let surface else { return false }
+        return surface.prefersSDROutput || (surface.switchesHDRWithContent && !showsHDRContent)
+    }
+
+    private func applyOutput() {
+        guard let surface else { return }
+        let sdr = drawsSDR
+        gpu.setOutput(gain: sdr ? 1 : surface.outputGain, sdr: sdr)
     }
 
     /// Attaches an image store that views load artwork through.

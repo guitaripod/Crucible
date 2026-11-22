@@ -13,6 +13,7 @@ public final class X11Window: PlatformWindow {
     private var isClosed = false
     private var gain: Float = 1
     private var sdr = false
+    private var inGamescope = false
     private var refresh: UInt32?
 
     public init?(displayName: String? = nil) {
@@ -43,6 +44,7 @@ public final class X11Window: PlatformWindow {
     public override var displayColorSerial: UInt32 { kiln_x11_color_serial(connection) }
     public override var outputGain: Float { gain }
     public override var prefersSDROutput: Bool { sdr }
+    public override var switchesHDRWithContent: Bool { inGamescope }
 
     /// gamescope's composition as Steam set it. On an HDR output, gamescope shows SDR content (Steam's own interface) at
     /// `sdr_on_hdr_nits` times the SDR gain and multiplies HDR content by the HDR gain, so Kiln's 203 cd/m² reference white is
@@ -59,8 +61,10 @@ public final class X11Window: PlatformWindow {
         guard kiln_x11_gamescope_color(connection, &raw) else {
             gain = 1
             sdr = false
+            inGamescope = false
             return nil
         }
+        inGamescope = true
         let reference = 203.0
         guard raw.hdr else {
             gain = 1

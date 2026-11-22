@@ -467,11 +467,19 @@ extension PlayerScreen {
     /// title in this sitting changed.
     func engageMatchContent(_ stream: ResolvedStream) {
         guard let window else { return }
+        showHDR(MatchContent.isHDR(DynamicRange(file: stream.media?.Part?.first?.Stream), stream: stream))
         if matchesContent {
             MatchContent.engage(stream, in: window)
         } else {
             MatchContent.release()
         }
+    }
+
+    /// Tells the window whether HDR is showing, and maps the picture again for the output that follows from it.
+    func showHDR(_ hdr: Bool) {
+        guard let window, window.showsHDRContent != hdr else { return }
+        window.showsHDRContent = hdr
+        applyDisplay()
     }
 
     func setMatchContent(_ on: Bool) {

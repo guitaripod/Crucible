@@ -74,6 +74,11 @@ public class PlatformWindow {
     /// buffers; both as of the last `readDisplayColor`.
     public var outputGain: Float { 1 }
     public var prefersSDROutput: Bool { false }
+    /// Whether the window should hand the compositor SDR buffers while nothing HDR is showing (`Window.showsHDRContent`):
+    /// gamescope drives the Steam Deck's panel in HDR only while a surface asks for it, and shows SDR content in HDR mode at
+    /// Steam's SDR content brightness (203 cd/m²), well below where the brightness slider puts Steam's own menus in SDR mode,
+    /// so a window that asked for HDR all the time made its menus look dim beside Steam's.
+    public var switchesHDRWithContent: Bool { false }
     /// The screen's refresh period when the window knows it before any frame is shown (X11 reads it from RandR; Wayland
     /// learns it from presentation feedback).
     public var refreshNanoseconds: UInt32? { nil }

@@ -130,7 +130,7 @@ enum MatchContent {
 
     /// The picture that reaches the screen is HDR: the file's when it plays as it is, the conversion's when the server
     /// converts it.
-    private static func isHDR(_ range: DynamicRange, stream: ResolvedStream) -> Bool {
+    static func isHDR(_ range: DynamicRange, stream: ResolvedStream) -> Bool {
         guard !stream.isDirectPlay, let decision = stream.decision, decision.videoDecision == "transcode" else { return range.isHDR }
         return ["smpte2084", "arib-std-b67"].contains(decision.videoTransfer?.lowercased() ?? "")
     }
