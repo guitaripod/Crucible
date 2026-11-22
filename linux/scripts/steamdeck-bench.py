@@ -11,7 +11,7 @@ one (its settings, account, Home snapshot and statistics), with an empty image c
 server back as it was. Plex tokens are cut out of everything the runs write.
 
     steamdeck-bench.py ui --label NAME [--signed-in] [--keys KEYS] [--runs 2] [--env 'KEY=VALUE ...'] [--out DIR]
-    steamdeck-bench.py play (FILE | --item RATINGKEY) --label NAME [--seconds 30] [--env ...] [--out DIR]
+    steamdeck-bench.py play (FILE | --item RATINGKEY) --label NAME [--seconds 30] [--keys KEYS] [--env ...] [--out DIR]
     steamdeck-bench.py compare BEFORE.json AFTER.json
 
 Steam must run in Game Mode with Crucible in its library (steam-library.py beside this script adds it).
@@ -387,9 +387,12 @@ def play(options):
         name = f"{options.label}-play-{os.path.splitext(os.path.basename(options.file))[0]}"
         extra = f"CRUCIBLE_PLAY_FILE={os.path.abspath(options.file)} {options.env}"
     seconds = options.seconds
+    keys = f" --capture '{options.settle + 4}:{options.keys}:{out}/{name}-keys.png'" if options.keys else ""
+    if options.keys:
+        extra += " CRUCIBLE_VIRTUAL_PAD=1"
     try:
         sampler, frames, shown, launched = run_once(steam_library, steam, found[0], profile, out, name,
-                                                    f"--steam-deck --capture '{seconds + 4}::{out}/{name}.png'", f"KILN_MPV_LOG=1 {extra}",
+                                                    f"--steam-deck{keys} --capture '{seconds + 4}::{out}/{name}.png'", f"KILN_MPV_LOG=1 {extra}",
                                                     seconds + 30)
     finally:
         restored = watch.restore(options.item, before) if watch else None
@@ -473,6 +476,7 @@ def main():
     play_parser.add_argument("--label", required=True)
     play_parser.add_argument("--seconds", type=float, default=30)
     play_parser.add_argument("--settle", type=float, default=5)
+    play_parser.add_argument("--keys", default=None, help="capture keys pressed once playback has settled (see main.swift), e.g. '~R(2000)~f'")
     play_parser.add_argument("--env", default="")
     play_parser.add_argument("--out", default=os.path.expanduser("~/crucible-bench"))
     compare_parser = sub.add_parser("compare")

@@ -147,7 +147,8 @@ enum CapturePad {
 }
 
 /// Presses the virtual pad's button for a `~` capture letter: a lowercase one taps it, an uppercase direction holds it a
-/// second and a quarter; `t` tilts the right stick and `f` and `F` pull the right and left trigger for a second.
+/// second and a quarter; `t` tilts the right stick and `f` and `F` pull the right and left trigger for a second (a virtual
+/// trigger rests at -1, the bottom of SDL's axis range, which a gamepad reads as not pulled).
 @MainActor
 func pressCapturePad(_ letter: Character) {
     guard let pad = CapturePad.pad else { return }
@@ -163,7 +164,7 @@ func pressCapturePad(_ letter: Character) {
     case "f", "F":
         let axis = letter == "f" ? 5 : 4
         pad.moveVirtual(axis: axis, to: 1)
-        release(after: 1) { pad.moveVirtual(axis: axis, to: 0) }
+        release(after: 1) { pad.moveVirtual(axis: axis, to: -1) }
     default:
         let held = letter.isUppercase
         guard let button = buttons[Character(letter.lowercased())] else { return }

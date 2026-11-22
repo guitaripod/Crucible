@@ -495,6 +495,22 @@ final class TransportView: View {
         return true
     }
 
+    /// Shows the playhead, the time and the preview still at `fraction` while a scan from the d-pad, the triggers or the
+    /// wheel moves it, as a drag of the knob shows them; nil ends the scan and gives the bar back to the player.
+    func showScan(at fraction: Float?) {
+        guard let fraction else {
+            guard scrubbing else { return }
+            scrubbing = false
+            hoverFraction = nil
+            setNeedsDisplay()
+            return
+        }
+        scrubbing = true
+        scrubFraction = min(max(fraction, 0), 1)
+        hoverFraction = scrubFraction
+        setNeedsDisplay()
+    }
+
     private func beginScrub(at point: Point) {
         scrubbing = true
         scrubFraction = fraction(at: point)

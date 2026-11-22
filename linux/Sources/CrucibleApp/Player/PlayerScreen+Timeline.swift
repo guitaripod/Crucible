@@ -58,6 +58,8 @@ extension PlayerScreen {
     func close() {
         guard !closed else { return }
         closed = true
+        scan?.task?.cancel()
+        scan = nil
         window?.showsHDRContent = false
         settingsObservers.forEach { NotificationCenter.default.removeObserver($0) }
         settingsObservers = []

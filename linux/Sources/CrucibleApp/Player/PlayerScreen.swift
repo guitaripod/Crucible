@@ -164,8 +164,9 @@ final class PlayerScreen: View {
     }
 
     /// How far the gamepad's triggers are pulled, the right one less the left, while they scrub.
-    private var triggerPull: Float = 0
-    private var triggerScrub: Task<Void, Never>?
+    var triggerPull: Float = 0
+    /// The scan a held d-pad, the triggers or the wheel is making (`PlayerScreen+Scan`).
+    var scan: PlayerScan?
     var holdHandled = false
     /// Where the last seek went and when, so presses that come before the player has got there add up.
     var seekTarget: (position: Double, at: ContinuousClock.Instant)?
@@ -448,8 +449,9 @@ final class PlayerScreen: View {
         controls?.update(playing: !playerState.isPaused, title: transport.title, show: showTitle, artURL: artworkFile, duration: duration,
                          position: position, canGoNext: upNext?.canOfferNext ?? (web?.playback.queue.isEmpty == false))
         let reportState = playerState.isPaused ? "paused" : "playing"
-        if scrubOrigin == nil { notePause(playerState.isPaused) }
-        if reportState != lastReportedState, scrubOrigin == nil {
+        let held = scrubOrigin != nil || scan != nil
+        if !held { notePause(playerState.isPaused) }
+        if reportState != lastReportedState, !held {
             report(reportState)
             let change: PlaybackChange = playerState.isPaused ? .paused(position: position) : .playing(position: position)
             watchers.forEach { $0.playback(change) }
@@ -729,6 +731,7 @@ final class PlayerScreen: View {
     private func press(forward: Bool, isRepeat: Bool) {
         let step = Double(forward ? Preferences.skipForwardSeconds : -Preferences.skipBackSeconds)
         guard isRepeat else {
+            if scan != nil { endScan() }
             holdOrigin = playhead
             holdHandled = false
             seek(to: playhead + step)
@@ -737,7 +740,7 @@ final class PlayerScreen: View {
         let action = forward ? Preferences.holdRightAction : Preferences.holdLeftAction
         switch action {
         case .scan:
-            seek(to: playhead + (forward ? 2 : -2))
+            beginScan(.hold(forward: forward), from: playhead)?.lastInput = Window.now()
         case .edge:
             guard !holdHandled else { return }
             holdHandled = true
@@ -823,27 +826,13 @@ final class PlayerScreen: View {
         showChrome(autoHide: true)
     }
 
-    /// The gamepad's triggers scrub: the right one forward and the left one back, faster the further they are pulled, up to
-    /// a minute and a half of the title each second, with a seek a few times a second while either is held.
+    /// The gamepad's triggers scan (`PlayerScan`): the right one forward and the left one back, faster the further they are
+    /// pulled, up to a minute and a half of the title each second, until both are let go.
     override func gamepadTriggered(left: Float, right: Float) -> Bool {
         guard player != nil else { return false }
         let pull = right - left
         triggerPull = abs(pull) > 0.12 ? pull : 0
-        guard triggerPull != 0, triggerScrub == nil else { return true }
-        viewerActed()
-        showChrome(autoHide: true)
-        triggerScrub = Task { [weak self] in
-            var last = Window.now()
-            while !Task.isCancelled, let self, self.triggerPull != 0 {
-                try? await Task.sleep(for: .milliseconds(150))
-                let now = Window.now()
-                let pull = Double(self.triggerPull)
-                self.seek(to: max(0, self.playhead + pull * abs(pull) * 90 * (now - last)))
-                self.showChrome(autoHide: true)
-                last = now
-            }
-            self?.triggerScrub = nil
-        }
+        if triggerPull != 0 { beginScan(.triggers, from: playhead) }
         return true
     }
 
@@ -930,8 +919,12 @@ final class PlayerScreen: View {
         guard let notch = wheel.seconds ?? (isMini ? 5 : nil) else { return true }
         let step: Double = event.isDiscrete ? Double(-event.notchesY + event.notchesX) * notch : Double(-event.dy + event.dx) * 0.02 * notch
         guard step != 0 else { return true }
-        viewerActed()
-        seek(to: playhead - step)
+        if isMini {
+            viewerActed()
+            seek(to: playhead - step)
+        } else {
+            scanWheel(by: -step)
+        }
         return true
     }
 
