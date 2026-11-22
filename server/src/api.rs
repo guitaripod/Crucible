@@ -23,6 +23,7 @@ use crate::pairing::{new_device_token, Pairings, Refused};
 use crate::plex::{sanitize_key, Plex, PlexError};
 use crate::recap::Writer;
 use crate::segments;
+use crate::sharpen;
 use crate::sports::runner::Sports;
 use crate::store::{hash_token, Device, Store};
 
@@ -333,7 +334,21 @@ async fn segments_for(State(state): State<Shared>, headers: HeaderMap, Path(rati
     let key = sanitize_key(&rating_key).ok_or_else(|| ApiError::new(StatusCode::NOT_FOUND, "not_found", "Plex has no such item."))?;
     let item = state.plex.item(key, &caller.plex_token).await?;
     let found = segments::make(&item.plex_markers(), &item.plex_chapters(), item.duration.unwrap_or(0));
+    let found = match media_input(&state, &item, &caller.plex_token) {
+        Some(input) => sharpen::sharpen(found, key, &input).await,
+        None => found,
+    };
     Ok(Json(json!({"ratingKey": key, "segments": found})))
+}
+
+/// Where ffmpeg reads the item's file: on this machine when the path resolves here, else through Plex.
+fn media_input(state: &AppState, item: &crate::plex::Item, token: &str) -> Option<String> {
+    let part = item.part()?;
+    if let Some(local) = part.file.as_deref().map(|file| state.config.local_path(file)).filter(|path| path.exists()) {
+        return Some(local.to_string_lossy().into_owned());
+    }
+    let key = part.key.as_deref().filter(|key| key.starts_with("/library/parts/"))?;
+    Some(format!("{}{}?X-Plex-Token={}", state.plex.base(), key, token))
 }
 
 fn writer(state: &AppState) -> Result<Arc<Writer>, ApiError> {

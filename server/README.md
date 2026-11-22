@@ -4,7 +4,9 @@ The optional companion that runs on the machine with your Plex Media Server. Cru
 TV pairs with it once and then gets:
 
 - **Skips from the file itself**: intro, recap, preview, ending and credits from Plex's markers and the file's
-  named chapters (`GET /crucible/v1/segments/{ratingKey}`).
+  named chapters (`GET /crucible/v1/segments/{ratingKey}`), with Plex's intro moved onto the picture's own cut into
+  the titles and the black after them (ffmpeg reads a few seconds around each end), so a skip neither cuts off the
+  cold open nor lands on the title card.
 - **Previously On**: a short recap of the last episodes you finished, written by a model you choose from Plex's
   synopsis and the episodes' own subtitles, and checked before you see it.
 - **Ask**: pause and ask about what you're watching; the answer uses only what you've already seen.
