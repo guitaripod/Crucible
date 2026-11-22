@@ -57,9 +57,10 @@ package struct SearchLoader: Sendable {
     package func recentlyAdded() async -> [PlexMetadata] {
         guard let container = try? await fetch(.recentlyAdded(start: 0, size: 30)) else { return [] }
         var seen = Set<String>()
-        return LibraryVisibility.shown(container.Metadata ?? [], excluding: excludedLibraries()).filter {
+        let items = LibraryVisibility.shown(container.Metadata ?? [], excluding: excludedLibraries()).filter {
             ["movie", "show", "season", "episode"].contains($0.mediaType) && seen.insert($0.id).inserted
         }
+        return Preferences.mergesDuplicateTitles ? LibraryDuplicates.folded(items) : items
     }
 
     /// Every title tagged with the genre across all of its library sections, de-duplicated and sorted by title.
@@ -73,8 +74,8 @@ package struct SearchLoader: Sendable {
             return collected
         }
         var seen = Set<String>()
-        return batches.flatMap { $0 }
-            .filter { seen.insert($0.id).inserted }
+        let unique = batches.flatMap { $0 }.filter { seen.insert($0.id).inserted }
+        return (Preferences.mergesDuplicateTitles ? LibraryDuplicates.folded(unique) : unique)
             .sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
     }
 

@@ -18,7 +18,7 @@ struct AuthTopShelfTests {
     private func movie(_ key: String, offset: Int? = nil, section: Int = 1) -> PlexMetadata {
         let offsetJSON = offset.map { #""viewOffset": \#($0),"# } ?? ""
         return AuthFixtures.metadata("""
-        {"ratingKey": "\(key)", "type": "movie", "title": "Salt and Rope", \(offsetJSON) "duration": 7200000,
+        {"ratingKey": "\(key)", "type": "movie", "title": "Salt and Rope \(key)", \(offsetJSON) "duration": 7200000,
          "summary": "A heist gone wrong.", "thumb": "/library/metadata/\(key)/thumb/1", "art": "/library/metadata/\(key)/art/1", "librarySectionID": \(section)}
         """)
     }

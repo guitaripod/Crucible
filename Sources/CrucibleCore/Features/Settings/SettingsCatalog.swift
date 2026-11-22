@@ -238,6 +238,7 @@ package enum SettingsCatalog {
             Spec(item: .preference(.holdRight), category: .controls, section: nil, platforms: [.tv, .linux]),
             Spec(item: .destination(.homeRows), category: .home, section: nil, platforms: all),
             Spec(item: .destination(.libraries), category: .home, section: nil, platforms: all),
+            Spec(item: .preference(.mergeDuplicateTitles), category: .home, section: nil, platforms: all),
             Spec(item: .preference(.downloadQuality), category: .downloads, section: nil, platforms: phone),
             Spec(item: .preference(.downloadOverCellular), category: .downloads, section: nil, platforms: phone),
             Spec(item: .preference(.deleteWatchedDownloads), category: .downloads, section: nil, platforms: phone),
@@ -493,6 +494,8 @@ package enum SettingsCatalog {
                 return String(localized: "dark mode, light mode, theme", comment: "Search keywords for the appearance setting, comma separated")
             case .libraryGrid:
                 return String(localized: "posters, grid, columns, bigger", comment: "Search keywords for the poster size setting, comma separated")
+            case .mergeDuplicateTitles:
+                return String(localized: "duplicates, copies, versions, twice, double, same", comment: "Search keywords for the Merge Duplicates setting, comma separated")
             case .notifyRatingReminders, .ratingReminderTiming:
                 return String(localized: "rate, stars, reminder, push, alert", comment: "Search keywords for rating reminders, comma separated")
             case .notifyNewEpisodes, .notifyWatchlistArrivals, .notifyWeeklyRecap, .notifyYearInReview, .notifyDownloads, .quietHours, .notifyWhileClosed:

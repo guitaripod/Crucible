@@ -295,8 +295,8 @@ package final class LibraryGridModel {
             scrollTo(index)
         case .loadThenScroll(let size):
             MidgarLog.info("\(kind.logName) A–Z jump letter=\(letter) offset=\(offset) loading \(size)", category: .ui)
-            fetchPage(offset: pager.serverOffset, size: size) {
-                scrollTo(offset)
+            fetchPage(offset: pager.serverOffset, size: size) { [weak self] in
+                scrollTo(self?.pager.index(ofOffset: offset) ?? offset)
             }
         }
     }

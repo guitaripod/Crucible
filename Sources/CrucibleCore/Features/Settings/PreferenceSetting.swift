@@ -44,6 +44,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
     case deleteWatchedDownloads
     case appearance
     case libraryGrid
+    case mergeDuplicateTitles
     case notifyRatingReminders
     case ratingReminderTiming
     case notifyNewEpisodes
@@ -76,6 +77,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         case .upNextCountdown: return String(localized: "Up Next Countdown", comment: "Setting: how long the Up Next card counts down")
         case .stillWatching: return String(localized: "Ask If Still Watching")
         case .postPlaySuggestions: return String(localized: "Suggest What to Watch Next", comment: "Setting: show titles like the one that just ended")
+        case .mergeDuplicateTitles: return String(localized: "Merge Duplicates", comment: "Setting: show copies of one title the server lists separately as one")
         case .rewindAfterBreak: return String(localized: "Rewind After a Break")
         case .instantStart: return String(localized: "Instant Start", comment: "Setting: get a title ready before Play is pressed")
         case .skipIntro: return String(localized: "Skip Intro")
@@ -121,6 +123,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         case .instantStart: return String(localized: "Gets a title ready while you look at it, so it plays the moment you press Play. Nothing is loaded ahead on mobile data or in Low Power Mode.")
         case .stillWatching: return String(localized: "Asks before the next episode once this many have played in a row without the remote.")
         case .postPlaySuggestions: return String(localized: "When a movie or the last episode of a show ends, titles like it wait on the screen instead of the player closing.")
+        case .mergeDuplicateTitles: return String(localized: "Shows a title once when your server lists it twice, such as the same video in two formats or folders, and plays the best copy.", comment: "Footer of the Merge Duplicates setting")
         case .subtitleSize: return String(localized: "Applies to subtitles the server draws into the picture and to the ones the player draws.")
         case .audioPassthrough:
             return String(localized: "Sends Dolby TrueHD and Atmos, DTS-HD and Dolby Digital to your receiver or TV untouched. Automatic sends what your sound output is set to accept.")
@@ -159,6 +162,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         case .upNextCountdown: return "timer"
         case .stillWatching: return "moon.zzz"
         case .postPlaySuggestions: return "sparkles.tv"
+        case .mergeDuplicateTitles: return "square.on.square"
         case .rewindAfterBreak: return "gobackward"
         case .instantStart: return "bolt.fill"
         case .skipIntro: return "forward.end"
@@ -216,6 +220,8 @@ package enum PreferenceSetting: CaseIterable, Sendable {
             return .toggle(isOn: Preferences.autoplayNextEpisode)
         case .postPlaySuggestions:
             return .toggle(isOn: Preferences.postPlaySuggestions)
+        case .mergeDuplicateTitles:
+            return .toggle(isOn: Preferences.mergesDuplicateTitles)
         case .upNextCountdown:
             return .choice(Preferences.upNextCountdownChoices.map {
                 SettingChoice(id: $0, title: String(localized: "\($0) Seconds", comment: "Up Next countdown option, e.g. 10 Seconds"), isSelected: $0 == Preferences.upNextCountdown)
@@ -373,6 +379,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         switch self {
         case .autoplayNextEpisode: Preferences.autoplayNextEpisode = isOn
         case .postPlaySuggestions: Preferences.postPlaySuggestions = isOn
+        case .mergeDuplicateTitles: Preferences.mergesDuplicateTitles = isOn
         case .rewindAfterBreak: Preferences.rewindAfterBreak = isOn
         case .instantStart: Preferences.instantStart = isOn
         case .downloadOverCellular: Preferences.downloadOverCellular = isOn
@@ -422,6 +429,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         }),
         .stillWatching: .choice(StillWatchingRule.choices.map { SettingChoice(id: $0, title: StillWatchingRule.label(for: $0), isSelected: $0 == StillWatchingRule.defaultLimit) }),
         .postPlaySuggestions: .toggle(isOn: true),
+        .mergeDuplicateTitles: .toggle(isOn: true),
         .rewindAfterBreak: .toggle(isOn: true),
         .instantStart: .toggle(isOn: true),
         .skipIntro: .choice(choices(Preferences.SkipIntroMode.allCases, current: .button, rawValue: \.rawValue, title: \.title)),

@@ -129,6 +129,12 @@ package enum Preferences {
         set { UserDefaults.standard.set(newValue, forKey: autoplayNextKey) }
     }
 
+    /// Whether copies of one title a server lists separately show as one (`LibraryDuplicates`).
+    package static var mergesDuplicateTitles: Bool {
+        get { UserDefaults.standard.object(forKey: "mergesDuplicateTitles") as? Bool ?? true }
+        set { UserDefaults.standard.set(newValue, forKey: "mergesDuplicateTitles") }
+    }
+
     package static var postPlaySuggestions: Bool {
         get { UserDefaults.standard.object(forKey: postPlayKey) as? Bool ?? true }
         set { UserDefaults.standard.set(newValue, forKey: postPlayKey) }

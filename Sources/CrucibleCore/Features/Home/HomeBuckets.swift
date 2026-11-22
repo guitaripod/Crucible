@@ -84,7 +84,8 @@ package struct HomeBuckets: Sendable {
 
     package static func deduped(_ items: [PlexMetadata]) -> [PlexMetadata] {
         var seen = Set<String>()
-        return items.filter { seen.insert($0.id).inserted }
+        let unique = items.filter { seen.insert($0.id).inserted }
+        return Preferences.mergesDuplicateTitles ? LibraryDuplicates.folded(unique) : unique
     }
 
     private enum SnapshotCode {
