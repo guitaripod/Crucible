@@ -134,7 +134,9 @@ public final class VideoPlayer {
     }
 
     /// Seeks to `seconds`. One seek is on its way at a time: one asked for meanwhile waits, and only the newest waiting one
-    /// goes once mpv has landed (or after `seekPatience`, should it never say), so a drag never queues stale positions.
+    /// goes once mpv has landed (or after `seekPatience`, should it never say), so a drag never queues stale positions. The
+    /// seek is sent without waiting for mpv, whose core can be busy for a few hundred milliseconds with the file it is
+    /// reading: a seek that waited held the thread that draws every frame, 623 ms at the end of a scan on a Steam Deck.
     public func seek(to seconds: Double, mode: SeekMode = .exact) {
         let target = (seconds: max(seconds, 0), mode: mode)
         if let sent = seekSent, sent.duration(to: .now) < Self.seekPatience {
@@ -154,7 +156,8 @@ public final class VideoPlayer {
         pendingSeek = nil
         let sent = ContinuousClock.now
         seekSent = sent
-        command(["seek", String(format: "%.3f", target.seconds), target.mode == .exact ? "absolute+exact" : "absolute+keyframes"])
+        writeFiltersIfAhead()
+        commandLater(["seek", String(format: "%.3f", target.seconds), target.mode == .exact ? "absolute+exact" : "absolute+keyframes"])
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
             MainActor.assumeIsolated {
                 guard let self, self.seekSent == sent else { return }
