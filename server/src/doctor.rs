@@ -103,7 +103,7 @@ pub async fn run(paths: &Paths) -> Vec<Check> {
         Ok(output) if output.status.success() => {
             checks.push(check("ffmpeg", true, String::from_utf8_lossy(&output.stdout).lines().next().unwrap_or("").to_string()))
         }
-        _ => checks.push(check("ffmpeg", false, "not found: install ffmpeg so recaps can read subtitles")),
+        _ => checks.push(check("ffmpeg", false, "not found: install ffmpeg so skips land exactly and recaps can read subtitles")),
     }
     checks.push(model_check(paths, &config).await);
     match tls::load_or_create(paths, &config.name) {

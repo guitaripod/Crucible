@@ -13,7 +13,7 @@ use crate::plex::Plex;
 use crate::plextv::{owned_server, PlexTv};
 use crate::store::Store;
 use crate::terminal::{ask, confirm, qr};
-use crate::{service, tls};
+use crate::{service, tls, tools};
 
 /// What `setup` may be told instead of asking.
 #[derive(Clone, Debug, Default)]
@@ -454,7 +454,8 @@ fn restart_for_the_change() -> Result<(), String> {
 
 pub async fn run(paths: &Paths, options: Options) -> Result<(), String> {
     paths.ensure().map_err(|error| format!("Could not create {}: {error}", paths.root.display()))?;
-    println!("Crucible Server {}\n", env!("CARGO_PKG_VERSION"));
+    println!("Crucible Server {}", env!("CARGO_PKG_VERSION"));
+    step(1, "Plex on this computer");
     let client = client_id(paths).map_err(|error| error.to_string())?;
     let mut config = Config::load(&paths.config()).unwrap_or_else(|_| Config::new(&machine_name()));
     if let Some(url) = options.plex_url.clone() {
@@ -469,7 +470,9 @@ pub async fn run(paths: &Paths, options: Options) -> Result<(), String> {
 Turn it off in Plex: Settings, Network, \"List of IP addresses and networks that are allowed without auth\", then run setup again."
             .into());
     }
+    println!("Plex Media Server {version} answers here and asks everyone to sign in.");
 
+    step(2, "Your Plex account");
     let token = match &options.token_file {
         Some(file) => std::fs::read_to_string(file).map_err(|error| format!("Could not read {}: {error}", file.display()))?.trim().to_string(),
         None => sign_in(&client).await?,
@@ -487,6 +490,7 @@ Turn it off in Plex: Settings, Network, \"List of IP addresses and networks that
     config.name = if server.name.is_empty() { config.name } else { server.name.clone() };
     println!("Signed in as {}. Found \"{}\" (Plex Media Server {version}) on this computer.", account.username, config.name);
 
+    step(3, "Who may use it");
     config.policy = match options.policy {
         Some(policy) => policy,
         None if options.assume_yes => config.policy,
@@ -497,6 +501,8 @@ Turn it off in Plex: Settings, Network, \"List of IP addresses and networks that
         },
     };
 
+    step(4, "Skips and recaps");
+    settle_ffmpeg(options.assume_yes);
     let model_options = ModelOptions { assume_yes: options.assume_yes || options.model.assume_yes, ..options.model.clone() };
     match settle_model(paths, config.model.as_ref(), config.model_agreed.as_deref(), &model_options).await {
         Ok(model) => config.use_model(model),
@@ -508,6 +514,7 @@ Turn it off in Plex: Settings, Network, \"List of IP addresses and networks that
     }
 
     config.save(&paths.config()).map_err(|error| error.to_string())?;
+    step(5, "Running and pairing");
     let identity = tls::load_or_create(paths, &config.name).map_err(|error| error.to_string())?;
 
     if !options.no_service && (options.assume_yes || confirm("Keep Crucible Server running after you log out?", true)) {
@@ -521,10 +528,41 @@ Turn it off in Plex: Settings, Network, \"List of IP addresses and networks that
     show_pairing(&config, &identity.fingerprint, &store)
 }
 
+/// A heading for one of setup's five steps.
+fn step(number: u8, title: &str) {
+    println!("\n[{number}/5] {title}");
+}
+
+/// Makes sure ffmpeg is here, offering to install it with the system's package manager: without it skips keep Plex's
+/// rougher marks and recaps cannot read subtitles.
+fn settle_ffmpeg(assume_yes: bool) {
+    if tools::has_ffmpeg() {
+        println!("ffmpeg is installed, so skips land on the picture's own cuts.");
+        return;
+    }
+    println!("ffmpeg is missing. With it, skips land exactly where an intro starts and ends, and recaps can read subtitles.");
+    let Some(command) = tools::ffmpeg_install_command() else {
+        println!("Install ffmpeg with your package manager, then run crucible-server doctor to check.");
+        return;
+    };
+    let shown = command.join(" ");
+    if assume_yes || confirm(&format!("Install it now ({shown})?"), true) {
+        if tools::run_in_terminal(&command) && tools::has_ffmpeg() {
+            println!("ffmpeg is installed.");
+        } else {
+            println!("ffmpeg did not install. Run {shown} yourself, then crucible-server doctor.");
+        }
+    } else {
+        println!("Later: {shown}");
+    }
+}
+
 async fn sign_in(client: &str) -> Result<String, String> {
     let plextv = PlexTv::new(client);
     let pin = plextv.create_pin().await.map_err(|error| error.to_string())?;
-    println!("Sign in to Plex: open plex.tv/link and enter {}", pin.code);
+    println!("Sign in to Plex: open https://plex.tv/link and enter the code\n\n    {}\n", pin.code);
+    tools::open_in_browser("https://plex.tv/link");
+    println!("Waiting for the code to be entered...");
     for _ in 0..300 {
         tokio::time::sleep(Duration::from_secs(2)).await;
         if let Ok(checked) = plextv.check_pin(pin.id).await {
