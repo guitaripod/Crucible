@@ -302,9 +302,10 @@ extension PlaybackSession {
         MidgarLog.notice("Transcode restart ratingKey=\(request.ratingKey) at=\(Int(start)) fresh=\(freshSession) plays=\(resumesPlayback) queued=\(isRestarting) reason=\(reason)", category: .playback)
         if clockShownBeforeRebuild == nil { clockShownBeforeRebuild = bestKnownPosition - streamOffset }
         tracker.beginRebuild(at: start)
+        restartTarget = target
         guard !isRestarting else {
             pendingRestart = PendingRestart(
-                target: start,
+                target: target,
                 resumesPlayback: resumesPlayback,
                 freshSession: freshSession || (pendingRestart?.freshSession ?? false),
                 reason: reason
@@ -404,10 +405,24 @@ extension PlaybackSession {
                 selectionCarry = nil
                 Task { await carry.apply(to: item) }
             }
-            if restartResumesPlayback, pendingRestart == nil {
+            if pendingRestart == nil, let target = restartTarget, let landed = absolutePosition,
+               let exact = StreamPosition.landingCorrection(target: target, landed: landed), let player {
+                let plays = restartResumesPlayback
+                MidgarLog.notice("Transcode rebuild ratingKey=\(request.ratingKey) opened at \(landed), seeking on to \(exact)", category: .playback)
+                tracker.moved(to: exact)
+                lastPlayhead = exact - streamOffset
+                expectPicture(at: exact - streamOffset)
+                player.seek(to: CMTime(seconds: exact - streamOffset, preferredTimescale: 600), toleranceBefore: .zero, toleranceAfter: .zero) { @Sendable [weak self] _ in
+                    Task { @MainActor in
+                        guard plays, let self, !self.isStopped, self.pendingRestart == nil else { return }
+                        self.player?.play()
+                    }
+                }
+            } else if restartResumesPlayback, pendingRestart == nil {
                 expectPicture()
                 player?.play()
             }
+            restartTarget = nil
         }
         isRestarting = false
         pausedSince = player?.rate == 0 ? now() : nil

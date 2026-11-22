@@ -123,6 +123,14 @@ struct PlaybackRulesTests {
         #expect(PlaybackRequest(item: item, resumePosition: 0).transcodeStartSecs == nil)
     }
 
+    @Test func aRebuildThatOpensBeforeTheSkipTargetSeeksOnToIt() {
+        #expect(StreamPosition.landingCorrection(target: 91.6, landed: 90) == 91.6)
+        #expect(StreamPosition.landingCorrection(target: 91.6, landed: 91.58) == nil)
+        #expect(StreamPosition.landingCorrection(target: 91.6, landed: 92) == nil)
+        #expect(StreamPosition.landingCorrection(target: 91.6, landed: 40) == nil)
+        #expect(StreamPosition.landingCorrection(target: .nan, landed: 90) == nil)
+    }
+
     @Test func aRetryKeepsTheRequestButResumesWherePlaybackStopped() {
         let request = PlaybackRequest(
             ratingKey: "5", mediaType: "episode", showRatingKey: "1", seasonRatingKey: "2",

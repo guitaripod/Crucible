@@ -93,6 +93,16 @@ package enum StreamPosition {
         guard target.isFinite, target > 0 else { return 0 }
         return target.rounded(.down)
     }
+
+    /// Where a rebuilt transcode must still seek after it opens at `landed` when `target` was asked for: the server starts on
+    /// a whole second and the keyframe at or before it, so a skip past an intro would otherwise land a second or two inside
+    /// it. Nil when the stream already shows the target, or when the gap is too wide to be that rounding.
+    package static func landingCorrection(target: Double, landed: Double) -> Double? {
+        guard target.isFinite, landed.isFinite else { return nil }
+        let gap = target - landed
+        guard gap > 0.05, gap <= 10 else { return nil }
+        return target
+    }
 }
 
 /// A jump of the playhead on a transcode that is large enough to need a new transcoder offset.

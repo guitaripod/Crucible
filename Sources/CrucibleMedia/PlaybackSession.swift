@@ -76,6 +76,8 @@ package final class PlaybackSession {
     var isRestarting = false
     var pendingRestart: PendingRestart?
     var restartResumesPlayback = true
+    /// The exact place on the item's timeline the latest rebuild was asked for, which it opens a little before.
+    var restartTarget: Double?
     var awayDetector = AwayDetector()
     var awaySince: ContinuousClock.Instant?
     var positionAtLastBeat: Double?
