@@ -202,11 +202,17 @@ final class StreamWarmUp {
 
 extension PlayerScreen {
     /// Takes over what Instant Start made ready for the title this screen plays, and returns the mpv that already has its
-    /// file open, when there is one. Not for a start that follows a failure, which wants a fresh look at everything.
+    /// file open, when there is one. Not for a start that follows a failure, which wants a fresh look at everything. Anything
+    /// it made ready for another title is let go: on a Steam Deck whose Wi-Fi had slowed to a crawl, the first episode a
+    /// show's page made ready went on loading for 19 s beside the one the viewer played, which took 10 s to show.
     func takeWarmPlayer() -> VideoPlayer? {
-        guard case .plex(let api, let item, let resumePosition) = source, !convertsAfterFailure else { return nil }
+        guard case .plex(let api, let item, let resumePosition) = source, !convertsAfterFailure else {
+            StreamWarmUp.shared.cool()
+            return nil
+        }
         let plan = FirstStreamPlan(item: item, resume: resumePosition, tracks: chosenTracks, carried: run.trackLanguages)
         warm = StreamWarmUp.shared.take(plan, api: api)
+        if warm == nil { StreamWarmUp.shared.cool() }
         startedFrom = warm == nil ? .none : warm?.player == nil ? .resolved : .loaded
         return warm?.player
     }
