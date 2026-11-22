@@ -22,9 +22,18 @@ final class LiveTVDeviceTests: XCTestCase {
         XCTAssertTrue(you.waitForExistence(timeout: 60), "the tab bar never appeared")
         you.tap()
         let row = IOSTest.element(app, "you.liveTV")
-        XCTAssertTrue(row.waitForExistence(timeout: 20), "You offers Live TV")
+        for _ in 0..<6 where !row.waitForExistence(timeout: 3) || !row.isHittable {
+            app.swipeUp()
+        }
+        XCTAssertTrue(row.waitForExistence(timeout: 10), "You offers Live TV")
         row.tap()
         XCTAssertTrue(IOSTest.element(app, "livetv.guide").waitForExistence(timeout: 30), "the guide opens")
+    }
+
+    /// Allows local network access when the system asks, as it does for a fresh build reading a playlist on the LAN.
+    private func allowLocalNetwork() {
+        let allow = XCUIApplication(bundleIdentifier: "com.apple.springboard").alerts.buttons["Allow"]
+        if allow.waitForExistence(timeout: 6) { allow.tap() }
     }
 
     private func choose(_ app: XCUIApplication, source text: String) {
@@ -50,7 +59,7 @@ final class LiveTVDeviceTests: XCTestCase {
     func testAPlexFreeChannelPlaysAndChangesChannel() throws {
         let app = try launch()
         openLiveTV(app)
-        choose(app, source: "Plex Channels")
+        choose(app, source: ProcessInfo.processInfo.environment["CRUCIBLE_DEVICE_SOURCE"] ?? "Plex Channels")
         XCTAssertTrue(IOSTest.wait(for: programs(app).firstMatch, "exists == true", timeout: 60), "airings load into the guide")
         IOSTest.settle(3)
         IOSTest.capture("d01-free-guide", in: self)
@@ -83,6 +92,7 @@ final class LiveTVDeviceTests: XCTestCase {
         field.tap()
         field.typeText(address)
         app.alerts.buttons["Add"].tap()
+        allowLocalNetwork()
         let added = app.alerts.matching(NSPredicate(format: "label CONTAINS 'channels'")).firstMatch
         XCTAssertTrue(added.waitForExistence(timeout: 60), "the playlist is read and its channels counted")
         IOSTest.capture("d04-playlist-added", in: self)
@@ -106,13 +116,15 @@ final class LiveTVDeviceTests: XCTestCase {
         XCTAssertTrue(actions.waitForExistence(timeout: 20))
         actions.tap()
         app.buttons["Channel Playlists"].tap()
-        let playlist = app.cells.matching(NSPredicate(format: "label CONTAINS %@", host)).firstMatch
-        XCTAssertTrue(playlist.waitForExistence(timeout: 10))
-        playlist.tap()
-        let remove = app.cells.matching(NSPredicate(format: "label CONTAINS 'Remove Playlist'")).firstMatch
-        XCTAssertTrue(remove.waitForExistence(timeout: 10))
-        remove.tap()
-        app.alerts.buttons["Remove Playlist"].tap()
-        XCTAssertTrue(IOSTest.wait(for: playlist, "exists == false", timeout: 10), "the playlist is removed")
+        let playlists = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", host))
+        XCTAssertTrue(playlists.firstMatch.waitForExistence(timeout: 10), "the added playlist is listed")
+        while playlists.firstMatch.waitForExistence(timeout: 3) {
+            playlists.firstMatch.tap()
+            let remove = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS 'Remove Playlist'")).firstMatch
+            XCTAssertTrue(remove.waitForExistence(timeout: 10))
+            remove.tap()
+            app.alerts.buttons["Remove Playlist"].tap()
+            IOSTest.settle(1.5)
+        }
     }
 }
