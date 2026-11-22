@@ -52002,6 +52002,101 @@
         }
       }
     },
+    "Copied. Paste it into a terminal on the computer with Plex." : {
+      "comment" : "Shown after the Crucible Server install command was copied",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopieret. Indsæt den i en terminal på computeren med Plex."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopiert. Füge ihn in ein Terminal auf dem Computer mit Plex ein."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copiado. Pégalo en una terminal del ordenador con Plex."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopioitu. Liitä se Plex-tietokoneen päätteeseen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copié. Collez-la dans un terminal sur l’ordinateur où se trouve Plex."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afritað. Límdu það inn í skipanalínu á tölvunni með Plex."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copiato. Incollalo in un terminale sul computer con Plex."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コピーしました。Plex のあるコンピュータのターミナルに貼り付けてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "복사했습니다. Plex가 있는 컴퓨터의 터미널에 붙여 넣으세요."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopiert. Lim den inn i en terminal på datamaskinen med Plex."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skopiowano. Wklej je w terminalu na komputerze z Plex."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copiado. Cole em um terminal no computador com o Plex."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopierat. Klistra in det i en terminal på datorn med Plex."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已复制。请粘贴到装有 Plex 的电脑的终端中。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已拷貝。請貼到裝有 Plex 的電腦的終端機中。"
+          }
+        }
+      }
+    },
     "Copy" : {
       "comment" : "Copies selected text (a title, a synopsis) or a command in the Seerr guide",
       "localizations" : {
@@ -52380,6 +52475,101 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "複製影像"
+          }
+        }
+      }
+    },
+    "Copy Install Command" : {
+      "comment" : "Copies the one-line command that installs Crucible Server",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopiér installationskommando"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installationsbefehl kopieren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copiar comando de instalación"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopioi asennuskomento"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copier la commande d’installation"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afrita uppsetningarskipun"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copia comando di installazione"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "インストールコマンドをコピー"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "설치 명령 복사"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopier installeringskommando"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopiuj polecenie instalacji"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copiar comando de instalação"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopiera installationskommando"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复制安装命令"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "拷貝安裝指令"
           }
         }
       }
@@ -86672,97 +86862,97 @@
         }
       }
     },
-    "Free and optional. It runs on the computer with Plex and writes a Previously On before you press play, from your own episodes, on your own hardware." : {
+    "Free and optional. It runs on the computer with Plex: skips land exactly where each intro starts and ends, and a Previously On is written before you press play, from your own episodes, on your own hardware." : {
       "comment" : "What Crucible Server does, shown before it is set up",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gratis og valgfrit. Det kører på computeren med Plex og skriver en »Tidligere i serien«, før du trykker på afspil, ud fra dine egne afsnit, på din egen hardware."
+            "value" : "Gratis og valgfri. Den kører på computeren med Plex: spring rammer præcist, hvor hver intro starter og slutter, og et Tidligere i serien skrives, før du trykker afspil, ud fra dine egne afsnit på din egen hardware."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kostenlos und optional. Es läuft auf dem Computer mit Plex und schreibt vor dem Abspielen ein „Was bisher geschah“ aus deinen eigenen Folgen, auf deiner eigenen Hardware."
+            "value" : "Kostenlos und optional. Er läuft auf dem Computer mit Plex: Übersprungen wird genau dort, wo jedes Intro beginnt und endet, und ein „Was bisher geschah“ entsteht, bevor du auf Wiedergabe drückst, aus deinen eigenen Folgen auf deiner eigenen Hardware."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gratis y opcional. Se ejecuta en el ordenador con Plex y escribe un «Anteriormente» antes de que pulses Reproducir, a partir de tus propios episodios y en tu propio equipo."
+            "value" : "Gratis y opcional. Funciona en el ordenador con Plex: los saltos caen justo donde empieza y termina cada introducción, y se escribe un «Anteriormente» antes de que pulses reproducir, a partir de tus propios episodios y en tu propio equipo."
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ilmainen ja valinnainen. Se toimii samalla tietokoneella Plexin kanssa ja luo Aiemmin-yhteenvedon omista jaksoistasi omalla laitteistollasi ennen kuin painat toistoa."
+            "value" : "Ilmainen ja valinnainen. Se toimii Plex-tietokoneella: ohitukset osuvat tarkalleen intron alkuun ja loppuun, ja Aiemmin tapahtunutta kirjoitetaan ennen kuin painat toistoa, omista jaksoistasi omalla laitteistollasi."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gratuit et facultatif. Il tourne sur l’ordinateur avec Plex et rédige un résumé « Précédemment » avant que vous ne lanciez la lecture, à partir de vos propres épisodes, sur votre propre matériel."
+            "value" : "Gratuit et facultatif. Il tourne sur l’ordinateur où se trouve Plex : les sauts tombent exactement au début et à la fin de chaque intro, et un « Précédemment » est rédigé avant que vous lanciez la lecture, à partir de vos propres épisodes, sur votre propre matériel."
           }
         },
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ókeypis og valfrjálst. Það keyrir á tölvunni með Plex og skrifar „Áður í þáttunum“ áður en þú ýtir á spilun, úr þínum eigin þáttum, á þínum eigin vélbúnaði."
+            "value" : "Ókeypis og valfrjálst. Það keyrir á tölvunni með Plex: stökk lenda nákvæmlega þar sem hver inngangur byrjar og endar, og „Áður í þáttunum“ er skrifað áður en þú ýtir á spilun, úr þínum eigin þáttum á þínum eigin vélbúnaði."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gratuito e facoltativo. Gira sul computer con Plex e scrive un riassunto «Nelle puntate precedenti» prima che tu prema play, dai tuoi episodi, sul tuo hardware."
+            "value" : "Gratuito e facoltativo. Gira sul computer con Plex: i salti cadono esattamente dove ogni intro inizia e finisce, e un «Nelle puntate precedenti» viene scritto prima che premi play, dai tuoi episodi e sul tuo hardware."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "無料・任意。Plex のあるコンピューターで動作し、再生前に手元のエピソードから「前回までのあらすじ」を、お使いのハードウェア上で作成します。"
+            "value" : "無料で任意です。Plex のあるコンピュータで動き、各イントロの始まりと終わりにぴったり合わせてスキップし、再生する前に「前回までのあらすじ」をあなた自身のエピソードから、あなたのハードウェアで書き上げます。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "무료이며 선택 사항이에요. Plex가 있는 컴퓨터에서 실행되며, 재생하기 전에 내 에피소드로 '지난 이야기'를 만들어요. 모든 처리는 내 하드웨어에서 이뤄져요."
+            "value" : "무료이며 선택 사항입니다. Plex가 있는 컴퓨터에서 실행되며, 인트로가 시작하고 끝나는 정확한 지점으로 건너뛰고, 재생을 누르기 전에 내 에피소드로 내 하드웨어에서 '지난 이야기'를 작성합니다."
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gratis og valgfritt. Den kjører på datamaskinen med Plex og skriver en «Tidligere i serien» før du trykker på Spill av, fra dine egne episoder, på din egen maskinvare."
+            "value" : "Gratis og valgfritt. Det kjører på datamaskinen med Plex: hopp treffer nøyaktig der hver intro starter og slutter, og en Tidligere i serien skrives før du trykker spill av, fra dine egne episoder på din egen maskinvare."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bezpłatny i opcjonalny. Działa na komputerze z Plexem i przygotowuje „W poprzednich odcinkach” przed odtworzeniem, z Twoich własnych odcinków, na Twoim własnym sprzęcie."
+            "value" : "Bezpłatny i opcjonalny. Działa na komputerze z Plex: pomijanie trafia dokładnie tam, gdzie czołówka się zaczyna i kończy, a „Poprzednio” powstaje, zanim naciśniesz odtwarzanie, z twoich własnych odcinków na twoim własnym sprzęcie."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gratuito e opcional. Roda no computador com Plex e escreve um resumo «Anteriormente» antes de você apertar play, com os seus próprios episódios, no seu próprio hardware."
+            "value" : "Gratuito e opcional. Roda no computador com o Plex: os pulos caem exatamente onde cada abertura começa e termina, e um “Anteriormente” é escrito antes de você apertar play, a partir dos seus próprios episódios, no seu próprio hardware."
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gratis och valfritt. Den körs på datorn med Plex och skriver en Tidigare i serien innan du startar uppspelningen, från dina egna avsnitt, på din egen hårdvara."
+            "value" : "Gratis och valfritt. Det körs på datorn med Plex: hopp landar exakt där varje intro börjar och slutar, och ett Tidigare i serien skrivs innan du trycker på spela, utifrån dina egna avsnitt på din egen hårdvara."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "免费且可选。它运行在装有 Plex 的电脑上，在你点击播放前，根据你自己的剧集在你自己的硬件上生成「前情提要」。"
+            "value" : "免费且可选。它运行在装有 Plex 的电脑上：跳过会准确落在每段片头的开始和结束处，并在你按下播放前，用你自己的剧集、在你自己的硬件上写好“前情提要”。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "免費且選用。它在裝有 Plex 的電腦上執行，會在你按下播放前，根據你自己的集數，在你自己的硬體上撰寫「前情提要」。"
+            "value" : "免費且可選。它執行於裝有 Plex 的電腦上：跳過會準確落在每段片頭的開始與結束處，並在你按下播放前，用你自己的劇集、在你自己的硬體上寫好「前情提要」。"
           }
         }
       }
@@ -150127,6 +150317,101 @@
         }
       }
     },
+    "Plex's intro marks often start during the last scene and end on the title card. Crucible Server, free on the computer with Plex, finds each intro's real cuts so a skip lands exactly. Setup takes a couple of minutes." : {
+      "comment" : "Why to set up Crucible Server, shown beside the skip settings",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex' intromarkeringer starter ofte under den sidste scene og slutter på titelkortet. Crucible Server, gratis på computeren med Plex, finder introens rigtige klip, så et spring rammer præcist. Opsætningen tager et par minutter."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex’ Intro-Markierungen beginnen oft noch in der letzten Szene und enden auf der Titelkarte. Crucible Server, kostenlos auf dem Computer mit Plex, findet die echten Schnitte jedes Intros, damit das Überspringen genau trifft. Die Einrichtung dauert ein paar Minuten."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las marcas de introducción de Plex suelen empezar durante la última escena y terminar en el rótulo del título. Crucible Server, gratis en el ordenador con Plex, encuentra los cortes reales de cada introducción para que el salto sea exacto. Configurarlo lleva un par de minutos."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plexin intromerkinnät alkavat usein vielä viimeisen kohtauksen aikana ja päättyvät nimiruutuun. Crucible Server, ilmainen Plex-tietokoneella, löytää jokaisen intron todelliset leikkaukset, joten ohitus osuu tarkasti. Käyttöönotto vie pari minuuttia."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les repères d’intro de Plex commencent souvent pendant la dernière scène et se terminent sur le carton titre. Crucible Server, gratuit sur l’ordinateur où tourne Plex, trouve les vraies coupes de chaque intro pour un saut précis. La configuration prend quelques minutes."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inngangsmerki Plex byrja oft á meðan síðasta atriðið er enn í gangi og enda á titilskiltinu. Crucible Server, ókeypis á tölvunni með Plex, finnur raunveruleg klipp hvers inngangs svo stökkið lendir nákvæmlega. Uppsetningin tekur nokkrar mínútur."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I segni dell’intro di Plex spesso iniziano durante l’ultima scena e finiscono sul cartello del titolo. Crucible Server, gratuito sul computer con Plex, trova i veri stacchi di ogni intro così il salto è preciso. La configurazione richiede un paio di minuti."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex のイントロ位置は、前のシーンの途中から始まりタイトルカードで終わることがよくあります。Plex のあるコンピュータで無料で動く Crucible Server が各イントロの本当のカットを見つけ、ぴったりの位置でスキップします。設定は数分で終わります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex의 인트로 표시는 마지막 장면 도중에 시작해 타이틀 카드에서 끝나는 경우가 많습니다. Plex가 있는 컴퓨터에서 무료로 실행되는 Crucible Server가 인트로의 실제 컷을 찾아 정확한 위치로 건너뜁니다. 설정은 몇 분이면 됩니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex’ intromarkeringer starter ofte mens den siste scenen pågår og slutter på tittelkortet. Crucible Server, gratis på datamaskinen med Plex, finner introens ekte klipp, så hoppet treffer nøyaktig. Oppsettet tar et par minutter."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Znaczniki czołówki w Plex często zaczynają się jeszcze w ostatniej scenie i kończą na planszy tytułowej. Crucible Server, bezpłatny na komputerze z Plex, znajduje prawdziwe cięcia każdej czołówki, więc pomijanie trafia dokładnie. Konfiguracja zajmuje kilka minut."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "As marcações de abertura do Plex costumam começar durante a última cena e terminar no letreiro do título. O Crucible Server, gratuito no computador com o Plex, encontra os cortes reais de cada abertura para o pulo cair no lugar exato. A configuração leva poucos minutos."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex intromarkeringar börjar ofta medan den sista scenen pågår och slutar på titelkortet. Crucible Server, gratis på datorn med Plex, hittar introts riktiga klipp så att hoppet landar exakt. Konfigurationen tar ett par minuter."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex 的片头标记常常在上一场戏还没结束时就开始，并停在片名卡上。Crucible Server 免费运行在装有 Plex 的电脑上，找出每段片头真正的剪辑点，让跳过落在准确位置。设置只需几分钟。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex 的片頭標記常常在上一場戲還沒結束時就開始，並停在片名卡上。Crucible Server 免費執行於裝有 Plex 的電腦，找出每段片頭真正的剪輯點，讓跳過落在準確位置。設定只需幾分鐘。"
+          }
+        }
+      }
+    },
     "Plex’s Free Channels" : {
       "comment" : "Setting that shows or hides Plex's free live channels in the guide",
       "localizations" : {
@@ -192029,6 +192314,101 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "再次跳過這一集"
+          }
+        }
+      }
+    },
+    "Skip at the Exact Moment" : {
+      "comment" : "Settings row beside the skip settings that offers Crucible Server",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spring over på det præcise øjeblik"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Genau im richtigen Moment überspringen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saltar en el momento exacto"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ohita juuri oikealla hetkellä"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passer au moment exact"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sleppa á nákvæmlega réttu augnabliki"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salta nel momento esatto"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ぴったりのタイミングでスキップ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "정확한 순간에 건너뛰기"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hopp over på nøyaktig riktig sted"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pomijaj dokładnie we właściwym momencie"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pular no momento exato"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hoppa över på exakt rätt ställe"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在准确时刻跳过"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在準確時刻跳過"
           }
         }
       }
@@ -254867,6 +255247,101 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "部影集"
+          }
+        }
+      }
+    },
+    "skip intro, exact, early, late, title card, cold open, Crucible Server" : {
+      "comment" : "Search keywords for the row offering Crucible Server's exact skips, comma separated",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "spring intro over, præcis, tidligt, sent, titelkort, Crucible Server"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Intro überspringen, genau, zu früh, zu spät, Titelkarte, Crucible Server"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "saltar intro, exacto, pronto, tarde, título, Crucible Server"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ohita intro, tarkka, liian aikaisin, myöhään, nimiruutu, Crucible Server"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "passer l’intro, exact, trop tôt, trop tard, carton titre, Crucible Server"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "sleppa inngangi, nákvæmt, snemma, seint, titilskilti, Crucible Server"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "salta intro, esatto, presto, tardi, titolo, Crucible Server"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "イントロをスキップ, 正確, 早い, 遅い, タイトル, Crucible Server"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "인트로 건너뛰기, 정확, 이른, 늦은, 타이틀, Crucible Server"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "hopp over intro, nøyaktig, tidlig, sent, tittelkort, Crucible Server"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "pomiń czołówkę, dokładnie, za wcześnie, za późno, plansza, Crucible Server"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "pular abertura, exato, cedo, tarde, título, Crucible Server"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "hoppa över intro, exakt, tidigt, sent, titelkort, Crucible Server"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "跳过片头, 准确, 太早, 太晚, 片名, Crucible Server"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "跳過片頭, 準確, 太早, 太晚, 片名, Crucible Server"
           }
         }
       }

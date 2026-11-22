@@ -31,6 +31,7 @@ final class CrucibleServerScreen: SettingsScaffold {
         static let enterCode = "server.enterCode"
         static let showCode = "server.showCode"
         static let install = "server.install"
+        static let copyCommand = "server.copyCommand"
         static let sports = "server.sports"
         static let unpair = "server.unpair"
     }
@@ -69,6 +70,7 @@ final class CrucibleServerScreen: SettingsScaffold {
             setRows([
                 RowItem(id: RowID.enterCode, title: CompanionCopy.enterCode, symbol: "key", accessory: .chevron),
                 RowItem(id: RowID.showCode, title: CompanionCopy.showCode, symbol: "qrcode", accessory: .chevron),
+                RowItem(id: RowID.copyCommand, title: CompanionCopy.copyInstallCommand, subtitle: CompanionCopy.installCommand, symbol: "doc.on.doc"),
                 RowItem(id: RowID.install, title: CompanionCopy.howToInstall, symbol: "arrow.up.right.square", accessory: .chevron),
             ])
         }
@@ -109,6 +111,9 @@ final class CrucibleServerScreen: SettingsScaffold {
             navigation?.push(screen)
         case RowID.install:
             Browser.open(CompanionCopy.installURL)
+        case RowID.copyCommand:
+            window.copy(CompanionCopy.installCommand)
+            AlertView.notice(title: CompanionCopy.installCommandCopied, message: nil, in: window)
         case RowID.sports:
             guard let client = PreviouslyOnRequest.client() else { return }
             navigation?.push(SportsResearchScreen(source: client))

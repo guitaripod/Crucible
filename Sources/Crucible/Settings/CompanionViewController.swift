@@ -9,6 +9,7 @@ final class CompanionViewController: UICollectionViewController {
         case status
         case sports
         case enterCode
+        case copyCommand
         case howToInstall
         case unpair
     }
@@ -85,6 +86,8 @@ final class CompanionViewController: UICollectionViewController {
                 content = IconRowContentConfiguration(symbol: "sparkles.tv", title: CompanionStore.current().map { CompanionCopy.paired($0.name) } ?? CompanionCopy.notSetUp, subtitle: status)
             case .enterCode:
                 content = IconRowContentConfiguration(symbol: "keyboard", title: CompanionCopy.enterCode)
+            case .copyCommand:
+                content = IconRowContentConfiguration(symbol: "terminal", title: CompanionCopy.copyInstallCommand, subtitle: CompanionCopy.installCommand)
             case .howToInstall:
                 content = IconRowContentConfiguration(symbol: "safari", title: CompanionCopy.howToInstall)
             case .sports:
@@ -93,7 +96,7 @@ final class CompanionViewController: UICollectionViewController {
                 content = IconRowContentConfiguration(symbol: "xmark.circle", title: CompanionCopy.unpair)
             }
             cell.contentConfiguration = content
-            cell.accessories = row == .enterCode || row == .howToInstall || row == .sports ? [.disclosureIndicator()] : []
+            cell.accessories = row == .enterCode || row == .howToInstall || row == .sports ? [.disclosureIndicator()] : row == .copyCommand ? [.customView(configuration: .init(customView: UIImageView(image: UIImage(systemName: "doc.on.doc")), placement: .trailing()))] : []
             cell.applyThemedBackground()
             cell.accessibilityIdentifier = "settings.crucibleServer.\(row)"
         }
@@ -125,7 +128,7 @@ final class CompanionViewController: UICollectionViewController {
     private func applySnapshot() {
         var snapshot = NSDiffableDataSourceSnapshot<Int, Row>()
         snapshot.appendSections([0])
-        let rows: [Row] = CompanionStore.current() == nil ? [.enterCode, .howToInstall] : [.status, .sports, .unpair]
+        let rows: [Row] = CompanionStore.current() == nil ? [.enterCode, .copyCommand, .howToInstall] : [.status, .sports, .unpair]
         snapshot.appendItems(rows)
         snapshot.reconfigureItems(rows)
         snapshot.reloadSections([0])
@@ -141,11 +144,21 @@ final class CompanionViewController: UICollectionViewController {
         collectionView.deselectItem(at: indexPath, animated: true)
         switch dataSource.itemIdentifier(for: indexPath) {
         case .enterCode: askForCode()
+        case .copyCommand: copyInstallCommand()
         case .howToInstall: UIApplication.shared.open(CompanionCopy.installURL)
         case .unpair: confirmUnpair()
         case .sports: openSports()
         default: break
         }
+    }
+
+    /// Puts the install command on the clipboard, which Universal Clipboard carries to a Mac nearby.
+    private func copyInstallCommand() {
+        UIPasteboard.general.string = CompanionCopy.installCommand
+        Haptics.light()
+        let alert = UIAlertController(title: nil, message: CompanionCopy.installCommandCopied, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: String(localized: "OK"), style: .default))
+        present(alert, animated: true)
     }
 
     private func openSports() {

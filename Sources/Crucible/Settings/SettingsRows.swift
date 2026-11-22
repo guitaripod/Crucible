@@ -109,7 +109,7 @@ final class SettingsNavigator {
             host.navigationController?.pushViewController(LibrariesViewController(api: api), animated: true)
         case .serverConnection:
             host.navigationController?.pushViewController(ServerDetailViewController(api: api), animated: true)
-        case .crucibleServer:
+        case .crucibleServer, .exactSkips:
             host.navigationController?.pushViewController(CompanionViewController(), animated: true)
         case .trakt:
             host.navigationController?.pushViewController(TraktSettingsViewController(api: api), animated: true)

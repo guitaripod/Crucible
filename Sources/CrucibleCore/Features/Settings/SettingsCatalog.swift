@@ -13,6 +13,8 @@ package enum SettingsDestination: String, Hashable, Sendable {
     case libraries
     case serverConnection
     case crucibleServer
+    /// Crucible Server offered beside the skip settings, until one is paired.
+    case exactSkips
     case trakt
     case seerr
     case liveTV
@@ -229,6 +231,7 @@ package enum SettingsCatalog {
             Spec(item: .preference(.rewindAfterBreak), category: .playback, section: upNext, platforms: all),
             Spec(item: .preference(.skipIntro), category: .playback, section: skipping, platforms: all),
             Spec(item: .preference(.skipOutro), category: .playback, section: skipping, platforms: all),
+            Spec(item: .destination(.exactSkips), category: .playback, section: skipping, platforms: all),
             Spec(item: .preference(.subtitleSize), category: .playback, section: subtitles, platforms: all),
             Spec(item: .preference(.matchContent), category: .playback, section: video, platforms: [.linux]),
             Spec(item: .preference(.audioPassthrough), category: .playback, section: audio, platforms: [.linux]),
@@ -277,6 +280,7 @@ package enum SettingsCatalog {
 
     private static func includes(_ spec: Spec, on platform: SettingsPlatform) -> Bool {
         if spec.category == .translation, !TranslationLanguages.isAvailable { return false }
+        if spec.item == .destination(.exactSkips), CompanionStore.current() != nil { return false }
         return switch platform {
         case .phone: spec.platforms.contains(.phone)
         case .tv: spec.platforms.contains(.tv)
@@ -387,6 +391,7 @@ package enum SettingsCatalog {
         case .libraries: return String(localized: "Libraries")
         case .serverConnection: return String(localized: "Server & Connection")
         case .crucibleServer: return CompanionCopy.title
+        case .exactSkips: return CompanionCopy.exactSkipsTitle
         case .trakt: return TraktCopy.name
         case .seerr: return SeerrCopy.name
         case .liveTV: return LiveTVCopy.title
@@ -404,6 +409,7 @@ package enum SettingsCatalog {
         case .libraries: return "rectangle.stack"
         case .serverConnection: return "server.rack"
         case .crucibleServer: return "sparkles.tv"
+        case .exactSkips: return "sparkles.tv"
         case .trakt: return "checkmark.rectangle.stack"
         case .seerr: return "tray.and.arrow.down"
         case .liveTV: return "antenna.radiowaves.left.and.right"
@@ -421,6 +427,7 @@ package enum SettingsCatalog {
         case .libraries: return LibrariesSettings.homeFooterText
         case .serverConnection: return String(localized: "Which server Crucible uses, every route to it and how fast each one answers.")
         case .crucibleServer: return CompanionCopy.pitch
+        case .exactSkips: return CompanionCopy.exactSkipsPitch
         case .trakt: return TraktCopy.tagline
         case .seerr: return SeerrCopy.tagline
         case .liveTV: return LiveTVCopy.settingsSummary
@@ -511,6 +518,7 @@ package enum SettingsCatalog {
             case .libraries: return String(localized: "libraries, movies, shows, hide, statistics", comment: "Search keywords for Libraries, comma separated")
             case .serverConnection: return String(localized: "server, switch, address, IP, Tailscale, relay", comment: "Search keywords for Server & Connection, comma separated")
             case .crucibleServer: return String(localized: "companion, previously on, recap, pair, model, AI", comment: "Search keywords for Crucible Server, comma separated")
+            case .exactSkips: return String(localized: "skip intro, exact, early, late, title card, cold open, Crucible Server", comment: "Search keywords for the row offering Crucible Server's exact skips, comma separated")
             case .trakt: return String(localized: "trakt, scrobble, sync, history, ratings, check in, integration, plugin", comment: "Search keywords for Trakt, comma separated")
             case .seerr: return String(localized: "seerr, overseerr, jellyseerr, request, requests, missing, sonarr, radarr, integration, plugin", comment: "Search keywords for Seerr, comma separated")
             case .liveTV: return String(localized: "live, tv, iptv, m3u, playlist, channels, guide, epg, xmltv, dvr, tuner, antenna, record, recording", comment: "Search keywords for Live TV, comma separated")

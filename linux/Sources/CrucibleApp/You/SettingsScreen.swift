@@ -542,6 +542,7 @@ final class SettingsCategoryScreen: ScreenView {
         case .serverConnection: ServerConnectionScreen()
         case .about: AboutScreen()
         case .diagnostics: DiagnosticsScreen()
+        case .exactSkips: CrucibleServerScreen()
         default: nil
         }
     }
@@ -549,7 +550,7 @@ final class SettingsCategoryScreen: ScreenView {
     /// Whether the Linux client has a screen for `destination`; the others show as plain text.
     private static func opens(_ destination: SettingsDestination) -> Bool {
         switch destination {
-        case .homeRows, .libraries, .trakt, .seerr, .liveTV, .serverConnection, .about, .diagnostics: true
+        case .homeRows, .libraries, .trakt, .seerr, .liveTV, .serverConnection, .about, .diagnostics, .exactSkips: true
         default: false
         }
     }

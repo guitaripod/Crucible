@@ -4,8 +4,13 @@ import Foundation
 package enum CompanionCopy {
     package static let title = String(localized: "Crucible Server", comment: "Name of the optional companion that runs on the computer with Plex")
     package static let pitch = String(
-        localized: "Free and optional. It runs on the computer with Plex and writes a Previously On before you press play, from your own episodes, on your own hardware.",
+        localized: "Free and optional. It runs on the computer with Plex: skips land exactly where each intro starts and ends, and a Previously On is written before you press play, from your own episodes, on your own hardware.",
         comment: "What Crucible Server does, shown before it is set up"
+    )
+    package static let exactSkipsTitle = String(localized: "Skip at the Exact Moment", comment: "Settings row beside the skip settings that offers Crucible Server")
+    package static let exactSkipsPitch = String(
+        localized: "Plex's intro marks often start during the last scene and end on the title card. Crucible Server, free on the computer with Plex, finds each intro's real cuts so a skip lands exactly. Setup takes a couple of minutes.",
+        comment: "Why to set up Crucible Server, shown beside the skip settings"
     )
     package static let steps = String(
         localized: "On the computer with Plex, install Crucible Server and run crucible-server setup. Then scan the code it shows with the Camera, or enter the code here.",
@@ -20,6 +25,10 @@ package enum CompanionCopy {
     package static let unpair = String(localized: "Unpair This Device", comment: "Button that forgets the pairing with Crucible Server")
     package static let unpairMessage = String(localized: "Previously On stops until you pair again.", comment: "Confirmation message for unpairing Crucible Server")
     package static let howToInstall = String(localized: "How to Install", comment: "Opens Crucible Server's install instructions")
+    /// The one line that installs Crucible Server on Linux or macOS and walks through its setup.
+    package static let installCommand = "curl -fsSL https://raw.githubusercontent.com/guitaripod/Crucible/master/server/packaging/install.sh | sh"
+    package static let copyInstallCommand = String(localized: "Copy Install Command", comment: "Copies the one-line command that installs Crucible Server")
+    package static let installCommandCopied = String(localized: "Copied. Paste it into a terminal on the computer with Plex.", comment: "Shown after the Crucible Server install command was copied")
     package static let installURL = URL(string: "https://github.com/guitaripod/Crucible/tree/master/server#readme")!
     package static let checking = String(localized: "Checking…", comment: "Crucible Server status while the app asks it")
     package static let previouslyOn = String(localized: "Previously On", comment: "Menu item and button that shows a recap of the episodes watched so far")
