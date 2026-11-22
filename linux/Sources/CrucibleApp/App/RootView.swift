@@ -594,9 +594,8 @@ final class RootView: View, WindowRestoration.Restorable {
         shorts?.close(animated: false)
     }
 
-    /// Pushes a screen on the current tab's stack; the Shorts player gives way to it.
+    /// Pushes a screen on the current tab's stack.
     func push(_ screen: ScreenView) {
-        shorts?.close(animated: false)
         current?.push(screen)
     }
 

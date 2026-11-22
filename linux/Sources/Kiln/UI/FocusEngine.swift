@@ -55,8 +55,10 @@ public final class FocusEngine {
     }
 
     /// The view focus lands on when asked to focus `view`: itself when focusable, otherwise its remembered or preferred
-    /// child, otherwise its first focusable descendant in reading order.
+    /// child, otherwise its first focusable descendant in reading order. Nothing under a hidden view, such as the tab a
+    /// full-window player covers, so a screen restored or pushed there leaves the focus where it is.
     func resolve(_ view: View) -> View? {
+        guard !view.isUnderHiddenView else { return nil }
         if view.canBecomeFocused && view.isVisible { return view }
         if view.remembersFocus, let remembered = view.rememberedFocus, remembered.isDescendant(of: view), let resolved = resolve(remembered) {
             return resolved
