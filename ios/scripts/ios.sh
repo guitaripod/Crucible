@@ -30,7 +30,8 @@ Build, run and screenshot the Crucible iPhone app (the Xcode project in ios/) on
                                  CRUCIBLE_* variable reach the app as SIMCTL_CHILD_VAR
   ios.sh shot <name>             screenshot the simulator to ios/out/<name>.png
   ios.sh test [-only Class[/test]]   generate, then run the CrucibleIOSUITests XCUITest bundle on the NAME simulator; every exported
-                                 CRUCIBLE_* variable reaches the app as TEST_RUNNER_CRUCIBLE_*, and screenshot attachments land in ios/out/ui
+                                 CRUCIBLE_* variable reaches the app as TEST_RUNNER_CRUCIBLE_*, and screenshot attachments land in ios/out/ui;
+                                 IOS_DEVICE=<udid> runs it on that connected device instead, signed automatically
   ios.sh archive-check           generate, then xcodebuild archive unsigned and verify the .app, the widget and the privacy manifest
   ios.sh sim-down [--delete]     shut the simulator down, optionally delete it
 
@@ -68,7 +69,7 @@ sync_tree() {
     --exclude .build --exclude '.build-*' --exclude .git --exclude .claude --exclude '.dd*' \
     --exclude xtool --exclude marketing --exclude screenshots.png --exclude .bsp --exclude '*.xcodeproj' \
     --exclude .tvlogs --exclude /tv/out --exclude /tv/Generated --exclude /tv/.gen-hash \
-    --exclude .ioslogs --exclude /ios/out --exclude /ios/Generated --exclude /ios/.gen-hash \
+    --exclude .ioslogs --exclude .iosdevice.keychain-db --exclude /ios/out --exclude /ios/Generated --exclude /ios/.gen-hash \
     "$ROOT/" "$MAC:$REMOTE/"
 }
 
@@ -187,15 +188,24 @@ uitest() {
     esac
   done
   timed generate generate
-  udid=$(sim_up)
+  local destination
+  if [[ -n ${IOS_DEVICE:-} ]]; then
+    destination="platform=iOS,id=$IOS_DEVICE"
+  else
+    udid=$(sim_up)
+    destination="platform=iOS Simulator,id=$udid"
+  fi
   for var in $(compgen -e | grep '^CRUCIBLE_'); do
     test_env+=$(printf ' TEST_RUNNER_%s=%q' "$var" "${!var}")
   done
   local extra="-resultBundlePath .ioslogs/uitest.xcresult -configuration ${IOS_CONFIGURATION:-Debug}"
   [[ -z $only ]] || extra+=" -only-testing:CrucibleIOSUITests/$only"
+  [[ -z ${IOS_DEVICE:-} ]] || extra+=" -allowProvisioningUpdates DEVELOPMENT_TEAM=${IOS_TEAM:-P4DQK6SRKR} OTHER_CODE_SIGN_FLAGS=--keychain=\$PWD/.iosdevice.keychain-db"
   remote "rm -rf .ioslogs/uitest.xcresult .ioslogs/attachments"
   local rc=0
-  timed uitest-run xcodebuild_remote uitest.log "$DERIVED" "platform=iOS Simulator,id=$udid" test "$extra ARCHS=arm64 ONLY_ACTIVE_ARCH=YES" "$test_env" || rc=$?
+  [[ -z ${IOS_DEVICE:-} ]] || test_env="ios/scripts/device-keychain.sh enter && $test_env"
+  timed uitest-run xcodebuild_remote uitest.log "$DERIVED" "$destination" test "$extra ARCHS=arm64 ONLY_ACTIVE_ARCH=YES" "$test_env" || rc=$?
+  [[ -z ${IOS_DEVICE:-} ]] || remote "ios/scripts/device-keychain.sh leave" || rc=$?
   export_attachments || rc=$?
   return $rc
 }
