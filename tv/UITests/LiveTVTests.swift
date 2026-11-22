@@ -87,4 +87,23 @@ final class LiveTVTests: TVTestCase {
         TVTest.capture("08-scheduled", in: self)
         TVTest.remote.press(.select)
     }
+
+    func testSearchFindsAChannel() {
+        let app = openLiveTV()
+        TVTest.remote.press(.up)
+        TVTest.settle(0.8)
+        for _ in 0..<8 {
+            TVTest.remote.press(.left)
+            TVTest.settle(0.3)
+        }
+        XCTAssertEqual(AppNavigation.focusedIdentifier(app), "tv.chip.search", "Search is the first filter")
+        TVTest.remote.press(.select)
+        let field = app.searchFields.firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 15), "the search screen opens")
+        field.typeText("marren")
+        let hit = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS 'Marren Public'")).firstMatch
+        XCTAssertTrue(hit.waitForExistence(timeout: 30), "the channel is found by its name")
+        TVTest.settle(1)
+        TVTest.capture("09-search", in: self)
+    }
 }

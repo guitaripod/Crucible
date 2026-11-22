@@ -15,6 +15,7 @@ final class TVLiveTVViewController: TVScreenViewController {
     private var dataSource: UICollectionViewDiffableDataSource<String, String>!
     private let header = UIStackView()
     private let titleLabel = UILabel()
+    private weak var searchResults: LiveSearchResultsController?
     private lazy var betaTag = BetaTag.button(title: LiveTVCopy.beta, action: UIAction { [weak self] _ in self?.presentBetaNote() })
     private let chips = TVChipRow()
     private let info = TVLiveProgramPanel()
@@ -49,7 +50,10 @@ final class TVLiveTVViewController: TVScreenViewController {
         configureDataSource()
         chips.onSelect = { [weak self] item in self?.choose(item.id) }
         guide.onChange = { [weak self] in self?.render() }
-        guide.onPrograms = { [weak self] _ in self?.applySnapshot() }
+        guide.onPrograms = { [weak self] _ in
+            self?.applySnapshot()
+            self?.searchResults?.refresh()
+        }
         recordingsObserver = NotificationCenter.default.addObserver(forName: .liveRecordingsChanged, object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor in self?.loadScheduled() }
         }
@@ -154,6 +158,7 @@ final class TVLiveTVViewController: TVScreenViewController {
         }
         if guide.canRecord { items.append(TVChipItem(id: "recordings", title: LiveTVCopy.recordings, symbol: "record.circle", isSelected: false)) }
         items.append(TVChipItem(id: "playlists", title: LiveTVCopy.playlists, symbol: "list.bullet", isSelected: false))
+        items.insert(TVChipItem(id: "search", title: String(localized: "Search"), symbol: "magnifyingglass", isSelected: false), at: 0)
         chips.setItems(items)
     }
 
@@ -183,9 +188,29 @@ final class TVLiveTVViewController: TVScreenViewController {
         case "playlists": _ = TVNavigation.push(TVLivePlaylistsViewController(showsDestinationSwitch: false), from: self)
         case "categories": presentCategories()
         case "sources": presentSources()
+        case "search": presentSearch()
         default:
             if let filter = guide.filters().first(where: { Self.chipID($0) == id }) { guide.filter = filter }
         }
+    }
+
+    /// Live TV search on the system's search screen: the keyboard above, the results below; choosing one closes it to
+    /// play the channel or offer the airing's actions.
+    private func presentSearch() {
+        let results = LiveSearchResultsController(guide: guide)
+        results.onPlay = { [weak self] channel in
+            self?.dismiss(animated: TVMotion.animationsEnabled) { self?.play(channel) }
+        }
+        results.onAiring = { [weak self] channel, program, _ in
+            self?.dismiss(animated: TVMotion.animationsEnabled) { self?.presentActions(for: channel, program: program) }
+        }
+        let search = UISearchController(searchResultsController: results)
+        search.searchResultsUpdater = results
+        search.searchBar.placeholder = LiveTVCopy.searchPlaceholder
+        searchResults = results
+        let container = UISearchContainerViewController(searchController: search)
+        container.view.backgroundColor = Theme.Color.canvas
+        present(container, animated: TVMotion.animationsEnabled)
     }
 
     private func presentSources() {
@@ -222,7 +247,8 @@ final class TVLiveTVViewController: TVScreenViewController {
         }
         let channel = UICollectionView.SupplementaryRegistration<LiveChannelHeaderView>(elementKind: LiveGuideLayout.channelKind) { [weak self] view, _, indexPath in
             guard let self, let id = self.dataSource.sectionIdentifier(for: indexPath.section), let channel = self.guide.channel(id: id) else { return }
-            view.configure(number: channel.number, title: channel.title, logoURL: channel.logo, isFavorite: self.guide.isFavorite(id))
+            let label = LiveChannelLabel(channel)
+            view.configure(number: label.number, title: label.name, logoURL: channel.logo, isFavorite: self.guide.isFavorite(id), tags: label.tags)
         }
         let time = UICollectionView.SupplementaryRegistration<LiveTimeHeaderView>(elementKind: LiveGuideLayout.timeKind) { [weak self] view, _, indexPath in
             guard let self else { return }

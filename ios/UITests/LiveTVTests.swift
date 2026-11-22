@@ -142,4 +142,23 @@ final class LiveTVTests: XCTestCase {
         IOSTest.capture("09-transport-stream-playing", in: self)
         XCTAssertFalse(app.alerts.firstMatch.exists, "the transport stream plays through the relay without an error")
     }
+
+    func testSearchFindsAChannelAndPlaysIt() throws {
+        let (app, _) = try launch()
+        openLiveTV(app)
+        var field = app.searchFields.firstMatch
+        if !field.waitForExistence(timeout: 3) {
+            app.navigationBars.buttons.matching(NSPredicate(format: "label == 'Search' OR identifier == 'livetv.search'")).firstMatch.tap()
+            field = app.searchFields.firstMatch
+        }
+        XCTAssertTrue(field.waitForExistence(timeout: 10), "Live TV offers search")
+        field.tap()
+        field.typeText("marren")
+        let hit = IOSTest.element(app, "livetv.search.results").descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS 'Marren Public'")).firstMatch
+        XCTAssertTrue(hit.waitForExistence(timeout: 30), "the channel is found by its name")
+        IOSTest.settle(1)
+        IOSTest.capture("10-search", in: self)
+        hit.tap()
+        XCTAssertTrue(IOSTest.element(app, "livetv.player").waitForExistence(timeout: 30), "a found channel plays")
+    }
 }

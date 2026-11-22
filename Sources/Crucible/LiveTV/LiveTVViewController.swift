@@ -22,6 +22,7 @@ final class LiveTVViewController: UIViewController, UICollectionViewDelegate {
     private var observers: [NSObjectProtocol] = []
     private var selectedItem: String?
     private var hasScrolledToNow = false
+    private lazy var searchResults = LiveSearchResultsController(guide: guide)
     private lazy var betaTag = BetaTag.button(title: LiveTVCopy.beta, action: UIAction { [weak self] _ in self?.presentBetaNote() })
 
     init(context: LiveTVGuide.Context, api: APIClient) {
@@ -51,6 +52,7 @@ final class LiveTVViewController: UIViewController, UICollectionViewDelegate {
         ]
         navigationItem.rightBarButtonItems?.first?.accessibilityIdentifier = "livetv.actions"
         navigationItem.rightBarButtonItems?.last?.accessibilityIdentifier = "livetv.filter"
+        installSearch()
 
         collectionView.backgroundColor = Theme.Color.canvas
         collectionView.delegate = self
@@ -99,6 +101,32 @@ final class LiveTVViewController: UIViewController, UICollectionViewDelegate {
         super.viewDidDisappear(animated)
         clock?.cancel()
         clock = nil
+    }
+
+    // MARK: Search
+
+    /// Search in the navigation bar, a button that opens a field on iOS 26 and later, with the results over the guide.
+    private func installSearch() {
+        searchResults.onPlay = { [weak self] channel in self?.play(channel) }
+        searchResults.onAiring = { [weak self] channel, program, source in self?.presentActions(for: channel, program: program, from: source) }
+        let search = UISearchController(searchResultsController: searchResults)
+        search.searchResultsUpdater = searchResults
+        search.searchBar.placeholder = LiveTVCopy.searchPlaceholder
+        search.searchBar.accessibilityIdentifier = "livetv.search"
+        navigationItem.searchController = search
+        if #available(iOS 26.0, *) {
+            navigationItem.preferredSearchBarPlacement = .integratedButton
+        } else {
+            navigationItem.hidesSearchBarWhenScrolling = true
+        }
+        definesPresentationContext = true
+    }
+
+    /// The controller to present from: the search, while its results are up, else this one.
+    private var presenter: UIViewController {
+        var top: UIViewController = self
+        while let next = top.presentedViewController, !next.isBeingDismissed { top = next }
+        return top
     }
 
     // MARK: Header
@@ -199,7 +227,8 @@ final class LiveTVViewController: UIViewController, UICollectionViewDelegate {
         }
         let channel = UICollectionView.SupplementaryRegistration<LiveChannelHeaderView>(elementKind: LiveGuideLayout.channelKind) { [weak self] view, _, indexPath in
             guard let self, let id = self.dataSource.sectionIdentifier(for: indexPath.section), let channel = self.guide.channel(id: id) else { return }
-            view.configure(number: channel.number, title: channel.title, logoURL: channel.logo, isFavorite: self.guide.isFavorite(id))
+            let label = LiveChannelLabel(channel)
+            view.configure(number: label.number, title: label.name, logoURL: channel.logo, isFavorite: self.guide.isFavorite(id), tags: label.tags)
         }
         let time = UICollectionView.SupplementaryRegistration<LiveTimeHeaderView>(elementKind: LiveGuideLayout.timeKind) { [weak self] view, _, indexPath in
             guard let self else { return }
@@ -304,6 +333,7 @@ final class LiveTVViewController: UIViewController, UICollectionViewDelegate {
     }
 
     private func programsArrived(_ ids: Set<String>) {
+        if navigationItem.searchController?.isActive == true { searchResults.refresh() }
         applySnapshot()
     }
 
@@ -415,13 +445,14 @@ final class LiveTVViewController: UIViewController, UICollectionViewDelegate {
             sheet.addAction(UIAlertAction(title: action.title, style: .default) { _ in action.performWithSender(nil, target: nil) })
         }
         sheet.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel))
-        sheet.popoverPresentationController?.sourceView = cell ?? view
-        sheet.popoverPresentationController?.sourceRect = cell?.bounds ?? view.bounds
-        present(sheet, animated: true)
+        let presenter = presenter
+        sheet.popoverPresentationController?.sourceView = cell ?? presenter.view
+        sheet.popoverPresentationController?.sourceRect = cell?.bounds ?? presenter.view.bounds
+        presenter.present(sheet, animated: true)
     }
 
     func play(_ channel: LiveChannel) {
-        LiveTVPlayerPresenter.present(channel: channel, guide: guide, from: self)
+        LiveTVPlayerPresenter.present(channel: channel, guide: guide, from: presenter)
     }
 
     // MARK: Recording

@@ -170,6 +170,8 @@ package final class LiveChannelHeaderView: UICollectionReusableView {
         name.font = Theme.Font.footnoteSemibold
         name.textColor = Theme.Color.label
         name.numberOfLines = 2
+        name.adjustsFontSizeToFitWidth = true
+        name.minimumScaleFactor = 0.85
         star.tintColor = Theme.Color.accent
         star.preferredSymbolConfiguration = UIImage.SymbolConfiguration(font: Theme.Font.caption2)
         star.setContentHuggingPriority(.required, for: .horizontal)
@@ -205,16 +207,24 @@ package final class LiveChannelHeaderView: UICollectionReusableView {
         logoURL = nil
     }
 
-    package func configure(number: String?, title: String, logoURL: URL?, isFavorite: Bool) {
-        self.number.text = number
-        self.number.isHidden = number == nil
+    /// Shows the channel: `number` with its region and quality `tags` on the first line and `title` on up to two lines below.
+    /// On a phone, whose column has room for the logo and one line, a channel with a logo and a number shows just those.
+    package func configure(number: String?, title: String, logoURL: URL?, isFavorite: Bool, tags: [String] = []) {
+        var line = AttributedString(number ?? "")
+        line.foregroundColor = Theme.Color.accentText
+        if !tags.isEmpty {
+            var tagText = AttributedString((number == nil ? "" : "  ") + tags.joined(separator: " · "))
+            tagText.foregroundColor = Theme.Color.labelSecondary
+            line += tagText
+        }
+        self.number.attributedText = NSAttributedString(line)
+        self.number.isHidden = number == nil && tags.isEmpty
         name.text = title
-        name.numberOfLines = number == nil ? 2 : 1
         #if os(iOS)
         name.isHidden = logoURL != nil && number != nil
         #endif
         star.isHidden = !isFavorite
-        accessibilityLabel = [number, title].compactMap { $0 }.joined(separator: " ")
+        accessibilityLabel = ([number, title] + tags.map { Optional($0) }).compactMap { $0 }.joined(separator: " ")
         guard logoURL != self.logoURL else { return }
         self.logoURL = logoURL
         logo.image = nil
