@@ -165,6 +165,21 @@ final class IPadStoreShots: XCTestCase {
         captureWhatToWatch(app)
     }
 
+    /// Only Live TV's guide from its tab in the sidebar, for adding its screen to a set without the whole tour.
+    func testCapturesLiveTV() {
+        let app = IPadDemo.enter(extraEnvironment: ["CRUCIBLE_PRO": "lifetime"])
+        XCUIDevice.shared.orientation = .landscapeLeft
+        IOSTest.settle(4)
+        guard let live = IPadDemo.libraryEntry(app, ["Live TV"]) else {
+            XCTFail("the sidebar has no Live TV")
+            return
+        }
+        live.tap()
+        XCTAssertTrue(IOSTest.element(app, "livetv.guide").waitForExistence(timeout: 30), "Live TV did not open")
+        IOSTest.settle(8)
+        IOSTest.capture("11-livetv", in: self)
+    }
+
     /// Only What to Watch, for adding its screen to a set without the whole tour.
     func testCapturesWhatToWatch() {
         let app = IPadDemo.enter(extraEnvironment: ["CRUCIBLE_PRO": "lifetime"])

@@ -26,11 +26,11 @@
   "ipad": [
     {"screen": "01-home", "headline": "Made for iPad", "subhead": "A sidebar for every library and a Home built for the big screen"},
     {"screen": "09-what-to-watch", "headline": "Ask what to watch", "subhead": "Say what you feel like, get picks from your own library"},
+    {"screen": "11-livetv", "headline": "Live TV with a real guide", "subhead": "Plex's free channels, your tuner and your own playlists"},
     {"screen": "04c-essentials", "headline": "Skip the filler", "subhead": "Essentials hides the anime-only episodes of long shows"},
     {"screen": "02-library", "headline": "Your whole library at a glance", "subhead": "Poster grids that grow with your window"},
     {"screen": "03-detail", "headline": "Everything about a title", "subhead": "Trakt and IMDb scores, audio and subtitles, cast and crew"},
     {"screen": "10-community", "headline": "See what people say", "subhead": "Reviews, replies and reactions from Trakt on every title"},
-    {"screen": "04-show", "headline": "Seasons at a glance", "subhead": "Watched state and downloads on every episode"},
     {"screen": "05-player", "headline": "Skip the intro", "subhead": "The system player, Picture in Picture and keyboard shortcuts"},
     {"screen": "06b-search-request", "headline": "Find anything, even what's missing", "subhead": "Not on your server? Request it through Seerr"},
     {"screen": "07-stats", "headline": "Know your viewing", "subhead": "Streaks, heatmaps and binges from Plex and Trakt"}
