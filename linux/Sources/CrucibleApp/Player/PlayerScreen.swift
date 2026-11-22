@@ -368,8 +368,8 @@ final class PlayerScreen: View {
         }
     }
 
-    /// Moves the intro's marker onto the picture's own edges once ffmpeg has read them (`MarkerSharpener`), while the same
-    /// stream still plays.
+    /// Moves the intro's marker onto the picture's own edges, as a paired Crucible Server measured them or else as ffmpeg
+    /// here reads them (`MarkerSharpener`), while the same stream still plays.
     private func sharpenIntro(of resolved: ResolvedStream, ratingKey: String, api: APIClient) {
         let segments = resolved.segments
         guard segments.contains(where: { $0.kind == .intro && !$0.fromChapter }) else { return }
@@ -383,7 +383,13 @@ final class PlayerScreen: View {
             } else {
                 partURL = nil
             }
-            guard let partURL, let sharpened = await MarkerSharpener.sharpen(segments, ratingKey: ratingKey, partURL: partURL),
+            let fromServer = await IntroSharpening.fromServer(segments, ratingKey: ratingKey)
+            let local: [SkipMarker]? = if fromServer == nil, let partURL {
+                await MarkerSharpener.sharpen(segments, ratingKey: ratingKey, partURL: partURL)
+            } else {
+                nil
+            }
+            guard let sharpened = fromServer ?? local,
                   let self, self.stream?.sessionId == resolved.sessionId, self.stream?.url == resolved.url, self.segments == segments else { return }
             self.segments = sharpened
         }

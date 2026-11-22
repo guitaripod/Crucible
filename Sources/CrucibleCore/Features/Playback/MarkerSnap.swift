@@ -4,7 +4,7 @@ import Foundation
 /// the last shot of the cold open and stops a little before the title card fades out, so its marker starts seconds early
 /// (an automatic skip cuts off the cold open's last line) and ends early (a skip lands on the intro's tail). Measured on
 /// The Office: starts 0.7 to 3.2 seconds before the cut into the titles, ends 0.4 to 2.6 seconds before the black after
-/// them. The start moves to the first cut or black after it, unless it already sits on one; the end moves to where the
+/// them. Behind a cold open, the start moves to the first cut or black after it, unless it already sits on one; the end moves to where the
 /// black after the titles ends, else to a cut just after it. Nothing moves further than these windows, so a marker on a
 /// title with no clear edge stays as the server made it.
 package enum MarkerSnap {
@@ -23,6 +23,10 @@ package enum MarkerSnap {
     package static let startWindow = (before: 1.0, after: 4.5)
     package static let endWindow = (before: 1.5, after: 4.0)
 
+    /// How far into a title an intro must start before its start may move: one that opens the episode has no cold open to
+    /// wait out, only cuts inside its own titles.
+    package static let coldOpenMinimum = 10.0
+
     package static func refined(_ marker: SkipMarker, start: Edges, end: Edges) -> SkipMarker {
         guard marker.kind == .intro, !marker.fromChapter else { return marker }
         let newStart = refinedStart(marker.startSecs, edges: start)
@@ -32,7 +36,7 @@ package enum MarkerSnap {
     }
 
     static func refinedStart(_ start: Double, edges: Edges) -> Double {
-        guard start > 0.5 else { return start }
+        guard start > coldOpenMinimum else { return start }
         let all = (edges.cuts + edges.blackEnds).sorted()
         if all.contains(where: { abs($0 - start) <= 0.5 }) { return start }
         return all.first { $0 > start && $0 <= start + 4 } ?? start

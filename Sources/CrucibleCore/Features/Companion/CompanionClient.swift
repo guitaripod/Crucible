@@ -266,6 +266,18 @@ private extension Connection {
     }
 }
 
+/// One skippable stretch the server reports, in milliseconds.
+package struct CompanionSegment: Decodable, Sendable, Equatable {
+    package let kind: String
+    package let startMs: Int
+    package let endMs: Int
+    package let source: String
+}
+
+struct CompanionSegments: Decodable, Sendable {
+    let segments: [CompanionSegment]
+}
+
 /// What `/hello` says about the server.
 package struct CompanionHello: Decodable, Sendable {
     package let protocolVersion: Int
@@ -586,6 +598,14 @@ package struct CompanionClient: Sendable {
 
     private struct Withdrawn: Decodable {
         let withdrawn: Bool
+    }
+
+    /// The item's skippable stretches as the server sees them, its intro moved onto the picture's own edges.
+    package func segments(ratingKey: String) async throws(CompanionError) -> [CompanionSegment] {
+        let answer: CompanionSegments = try await onFirstHost(timeout: 20) { connection throws(CompanionError) in
+            try await connection.send("GET", "segments/\(ratingKey)", body: Nothing?.none, headers: headers)
+        }
+        return answer.segments
     }
 
     package func hello() async throws(CompanionError) -> CompanionHello {

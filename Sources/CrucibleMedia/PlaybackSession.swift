@@ -396,6 +396,7 @@ package final class PlaybackSession {
         }
 
         markerTracker = MarkerTracker(segments: stream.segments)
+        sharpenIntro(of: stream)
         upNext = UpNextResolver(
             ratingKey: request.ratingKey,
             isEpisode: request.isEpisode,
@@ -620,6 +621,22 @@ package final class PlaybackSession {
             try await api.requestVoid(.stopTranscode(session: stream.sessionId))
         } catch {
             MidgarLog.error("Stop transcode failed: \(error.localizedDescription)", category: .playback)
+        }
+    }
+}
+
+extension PlaybackSession {
+    /// Takes the intro a paired Crucible Server moved onto the picture's edges, while the same stream plays and the
+    /// playhead has not reached the intro yet.
+    func sharpenIntro(of stream: ResolvedStream) {
+        let segments = stream.segments
+        guard !request.isExtra, request.offline == nil, segments.contains(where: { $0.kind == .intro && !$0.fromChapter }) else { return }
+        let ratingKey = request.ratingKey
+        Task { [weak self] in
+            guard let sharpened = await IntroSharpening.fromServer(segments, ratingKey: ratingKey),
+                  let self, !self.isStopped, self.stream?.sessionId == stream.sessionId,
+                  let intro = sharpened.first(where: { $0.kind == .intro }), self.bestKnownPosition < intro.startSecs else { return }
+            self.markerTracker = MarkerTracker(segments: sharpened)
         }
     }
 }
