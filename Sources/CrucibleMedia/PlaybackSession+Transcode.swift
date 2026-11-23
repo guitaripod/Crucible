@@ -21,6 +21,7 @@ extension PlaybackSession {
             guard let self, let current = player?.currentItem, ObjectIdentifier(current) == watched else { return }
             handle(event)
         }
+        watchPicture(of: item)
         syncSubtitles(on: item)
     }
 

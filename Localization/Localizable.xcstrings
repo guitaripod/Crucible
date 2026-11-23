@@ -63450,6 +63450,106 @@
         }
       }
     },
+    "Crucible is playing a stream your Plex server converted, and the conversion has no picture in it: every frame arrives as one flat colour, usually green." : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible afspiller et stream, som din Plex-server har konverteret, og konverteringen har intet billede: hver billedramme kommer som én ensfarvet farve, som regel grøn."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible spielt einen Stream ab, den dein Plex-Server umgewandelt hat, und die Umwandlung enthält kein Bild: Jedes Einzelbild kommt als eine einzige flache Farbe an, meistens Grün."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible is playing a stream your Plex server converted, and the conversion has no picture in it: every frame arrives as one flat colour, usually green."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible está reproduciendo una secuencia que tu servidor Plex ha convertido, y la conversión no tiene imagen: cada fotograma llega como un solo color plano, normalmente verde."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible toistaa striimiä, jonka Plex-palvelimesi on muuntanut, eikä muunnoksessa ole kuvaa: jokainen ruutu saapuu yhtenä tasaisena värinä, yleensä vihreänä."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible lit un flux converti par votre serveur Plex, et cette conversion ne contient aucune image : chaque image arrive en une seule couleur unie, généralement du vert."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible er að spila straumi sem Plex-þjónninn þinn breytti, og breytingin inniheldur enga mynd: hver rammi kemur sem einn flatur litur, oftast grænn."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible sta riproducendo un flusso convertito dal tuo server Plex, e la conversione non contiene immagine: ogni fotogramma arriva come un unico colore piatto, di solito verde."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible は Plex サーバーが変換したストリームを再生していますが、変換後の映像に画像がありません。各フレームが単色（多くは緑）で届いています。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible이 Plex 서버에서 변환한 스트림을 재생하고 있지만 변환된 영상에 화면이 없습니다. 모든 프레임이 대개 녹색인 단색으로 전달됩니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible spiller av en strøm som Plex-serveren din har konvertert, og konverteringen har ikke noe bilde: hver ramme kommer som én flat farge, som oftest grønn."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible odtwarza strumień przekonwertowany przez Twój serwer Plex, a konwersja nie zawiera obrazu: każda klatka przychodzi jako jeden płaski kolor, zwykle zielony."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Crucible está reproduzindo um fluxo convertido pelo seu servidor Plex, e a conversão não tem imagem: cada quadro chega como uma única cor chapada, geralmente verde."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible spelar en ström som din Plex-server har konverterat, och konverteringen innehåller ingen bild: varje bildruta kommer som en enda platt färg, oftast grön."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible 正在播放由你的 Plex 服务器转码的串流，而转码结果里没有画面：每一帧都是单一的平涂颜色，通常是绿色。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible 正在播放由你的 Plex 伺服器轉碼的串流，而轉碼結果裡沒有畫面：每一幀都是單一的平塗顏色，通常是綠色。"
+          }
+        }
+      }
+    },
     "Crucible looked for %@ on your tailnet." : {
       "localizations" : {
         "da" : {
@@ -96945,6 +97045,106 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在套件中心新增 SynoCommunity 來源，然後安裝 Seerr。"
+          }
+        }
+      }
+    },
+    "In Plex, open Settings, Transcoder and turn off “Use hardware acceleration when available”, then play it again. Converting the file to H.264 also fixes it for good." : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Åbn Indstillinger og Transkodning i Plex, slå »Brug hardwareacceleration, når den er tilgængelig« fra, og afspil den igen. Hvis du konverterer filen til H.264, er problemet også løst for altid."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öffne in Plex Einstellungen und Transkodierung, schalte „Hardwarebeschleunigung verwenden, wenn verfügbar“ aus und spiele es erneut ab. Wird die Datei nach H.264 umgewandelt, ist das Problem ebenfalls dauerhaft gelöst."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In Plex, open Settings, Transcoder and turn off “Use hardware acceleration when available”, then play it again. Converting the file to H.264 also fixes it for good."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En Plex, abre Ajustes, Transcoder y desactiva «Usar aceleración por hardware cuando esté disponible», y vuelve a reproducirlo. Convertir el archivo a H.264 también lo soluciona para siempre."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avaa Plexissä Asetukset ja Transkodaus, poista ”Käytä laitteistakiihdytystä, kun saatavilla” käytöstä ja toista tiedosto uudelleen. Myös tiedoston muuntaminen H.264-muotoon korjaa ongelman pysyvästi."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dans Plex, ouvrez Réglages puis Transcodeur, désactivez « Utiliser l’accélération matérielle lorsqu’elle est disponible », puis relancez la lecture. Convertir le fichier en H.264 règle aussi le problème définitivement."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Í Plex skaltu opna Stillingar og Umkóðun, slökkva á „Nota vélbúnaðarhröðun þegar hún er í boði“ og spila aftur. Að breyta skránni í H.264 leysir vandann líka til frambúðar."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In Plex, apri Impostazioni, Transcodifica e disattiva «Usa accelerazione hardware quando disponibile», poi riproducilo. Anche convertire il file in H.264 risolve il problema in modo definitivo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex の「設定」→「トランスコーダー」で「ハードウェア アクセラレーションを可能なときに使用する」をオフにしてから、もう一度再生してください。ファイルを H.264 に変換すれば恒久的に解決します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plex에서 설정, 트랜스코더 순으로 열고 “사용 가능한 경우 하드웨어 가속 사용”을 끈 다음 다시 재생하세요. 파일을 H.264로 변환해도 완전히 해결됩니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I Plex, åpne Innstillinger, Transkoderen og slå av «Bruk maskinvareakselerasjon når tilgjengelig», og spill av igjen. Å konvertere filen til H.264 løser også problemet for godt."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "W Plexie otwórz Ustawienia, Transkoder i wyłącz „Używaj akceleracji sprzętowej, gdy jest dostępna”, a następnie włącz odtwarzanie ponownie. Konwersja pliku do H.264 również rozwiązuje problem na stałe."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Plex, abra Configurações, Transcodificador e desative “Usar aceleração de hardware quando disponível”, depois reproduza de novo. Converter o arquivo para H.264 também resolve de vez."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öppna Inställningar, Transkodning i Plex och stäng av ”Använd hårdvaruacceleration när det är möjligt”, och spela upp igen. Att konvertera filen till H.264 löser också problemet för gott."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 Plex 中打开“设置”→“转码器”，关闭“可用时使用硬件加速”，然后重新播放。将文件转换为 H.264 也能彻底解决。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 Plex 中打開「設定」→「轉碼器」，關閉「可用時使用硬體加速」，然後重新播放。將檔案轉換為 H.264 也能徹底解決。"
           }
         }
       }
@@ -215645,6 +215845,106 @@
         }
       }
     },
+    "This file is %@, which recent graphics cards no longer decode in hardware." : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Denne fil er %@, som nyere grafikkort ikke længere afkoder i hardware."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Datei ist %@, das aktuelle Grafikkarten nicht mehr in Hardware dekodieren."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This file is %@, which recent graphics cards no longer decode in hardware."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este archivo es %@, que las tarjetas gráficas recientes ya no decodifican por hardware."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tämä tiedosto on %@, jota uudet näytönohjaimet eivät enää dekoodaa laitteistolla."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce fichier est en %@, que les cartes graphiques récentes ne décodent plus en matériel."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Þessi skrá er %@, sem nýrri skjákort afkóða ekki lengur í vélbúnaði."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo file è in %@, che le schede grafiche recenti non decodificano più via hardware."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このファイルは %@ で、最近のグラフィックスカードはこれをハードウェアでデコードできません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 파일은 %@이며, 최신 그래픽 카드는 이를 하드웨어로 디코딩하지 않습니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Denne filen er %@, som nyere skjermkort ikke lenger dekoder i maskinvare."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ten plik to %@, którego nowsze karty graficzne nie dekodują już sprzętowo."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este arquivo é %@, que as placas de vídeo recentes não decodificam mais por hardware."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Den här filen är %@, som nyare grafikkort inte längre avkodar i hårdvara."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此文件是 %@，较新的显卡已不再支持硬件解码。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此檔案是 %@，較新的顯示卡已不再支援硬體解碼。"
+          }
+        }
+      }
+    },
     "This is how your recap begins. Crucible Pro opens the rest of it, and writes one for every series you watch." : {
       "comment" : "Under the opening of a recap whose rest is sealed until Crucible Pro is on",
       "localizations" : {
@@ -247749,6 +248049,106 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "無法讀取已儲存的 Midgar ID。請更新 App 後再試一次。"
+          }
+        }
+      }
+    },
+    "Your server can’t show this picture" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Din server kan ikke vise dette billede"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Server kann dieses Bild nicht anzeigen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your server can’t show this picture"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu servidor no puede mostrar esta imagen"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Palvelimesi ei pysty näyttämään tätä kuvaa"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre serveur ne peut pas afficher cette image"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Þjónninn þinn getur ekki sýnt þessa mynd"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo server non riesce a mostrare questa immagine"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サーバーがこの映像を表示できません"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "서버가 이 영상을 표시할 수 없습니다"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serveren din kan ikke vise dette bildet"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Twój serwer nie może wyświetlić tego obrazu"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seu servidor não consegue exibir esta imagem"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Din server kan inte visa den här bilden"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的服务器无法显示此画面"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的伺服器無法顯示此畫面"
           }
         }
       }

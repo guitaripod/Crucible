@@ -303,6 +303,8 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
             presentUpNext(offer)
         case .failed(let message):
             showPlaybackError(message)
+        case .pictureTrouble(let trouble):
+            showPictureTrouble(trouble)
         case .finished(let finish):
             guard !isInPiP else { return }
             guard !isDocked else {
@@ -424,6 +426,16 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
 
     private func showPlaybackError(_ message: String) {
         let alert = UIAlertController(title: String(localized: "Playback Error"), message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: String(localized: "OK"), style: .default))
+        let host = isDocked ? dock?.presentationHost : (playerVC ?? presentingVC)
+        host?.present(alert, animated: true)
+    }
+
+    /// The server's conversion has no picture in it, only a flat colour (`PictureTrouble`). Playback is left as it is: what
+    /// fixes it is an action on the server, so the viewer is told that, once, instead of being shown a green screen in silence.
+    private func showPictureTrouble(_ trouble: PictureTrouble) {
+        guard !isInPiP else { return }
+        let alert = UIAlertController(title: trouble.title, message: trouble.explanation, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: String(localized: "OK"), style: .default))
         let host = isDocked ? dock?.presentationHost : (playerVC ?? presentingVC)
         host?.present(alert, animated: true)

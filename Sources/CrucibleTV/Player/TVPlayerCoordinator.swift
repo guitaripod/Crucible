@@ -366,6 +366,8 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
             handle(offer)
         case .failed(let message):
             presentFailure(message, retry: { [weak self] in self?.retryFromPlayhead() })
+        case .pictureTrouble(let trouble):
+            presentPictureTrouble(trouble)
         case .finished:
             finishedAnItem = finishedAnItem || !request.isExtra
             offerWhatsNext()
@@ -428,6 +430,18 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
         alert.addAction(UIAlertAction(title: String(localized: "Close", comment: "Alert button that dismisses the error"), style: .cancel) { [weak self] _ in
             self?.isShowingAlert = false
             Task { await self?.finish(animated: true) }
+        })
+        topmost(from: rootPresenter ?? playerVC).present(alert, animated: true)
+    }
+
+    /// Alerts what the server's conversion did to the picture and what fixes it. There is no retry: the stream cannot show
+    /// a picture until the server is changed, so the alert only says so, once, and playback carries on as it was.
+    private func presentPictureTrouble(_ trouble: PictureTrouble) {
+        guard !isShowingAlert, !isFinishing else { return }
+        isShowingAlert = true
+        let alert = UIAlertController(title: trouble.title, message: trouble.explanation, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: String(localized: "OK"), style: .default) { [weak self] _ in
+            self?.isShowingAlert = false
         })
         topmost(from: rootPresenter ?? playerVC).present(alert, animated: true)
     }

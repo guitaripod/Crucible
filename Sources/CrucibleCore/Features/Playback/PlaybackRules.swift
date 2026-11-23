@@ -137,6 +137,9 @@ package enum PlaybackTiming {
     /// How long after the picture starts the log says what is being decoded: by then the item has its tracks and an Apple TV
     /// has finished matching its output to them.
     package static let pictureLogDelay: Duration = .seconds(4)
+    /// How often a converted stream's frames are sampled for a dead picture (`PictureWatchdog`): often enough to catch it
+    /// within the first couple of seconds, rarely enough that its cost is invisible next to decoding.
+    package static let pictureSampleInterval: Duration = .milliseconds(400)
     package static let autoSkipUndoWindow: Duration = .seconds(4)
     /// How much of a stream has to be loaded ahead of the playhead for a start to be told to play it (`expectPicture`).
     package static let startBuffer = 2.0

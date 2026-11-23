@@ -120,6 +120,7 @@ package enum DetailFormat {
         case "hevc", "h265": return "HEVC"
         case "av1": return "AV1"
         case "vp9": return "VP9"
+        case "vc1", "wmv3": return "VC-1"
         case "mpeg2video": return "MPEG-2"
         default: return codec.uppercased()
         }

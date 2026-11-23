@@ -25,4 +25,7 @@ package enum PlaybackEvent: Sendable {
     /// A transcode's clock turned out to map onto the item differently than assumed (`TranscodeClock`): whatever the
     /// surface placed on the player's clock, such as chapters and an Up Next proposal, is placed again.
     case clockRemapped
+    /// The converted stream plays with no picture in it, only a flat colour (`PictureWatchdog`), which the server's decoder
+    /// caused: the viewer is told what to fix, once per playback.
+    case pictureTrouble(PictureTrouble)
 }

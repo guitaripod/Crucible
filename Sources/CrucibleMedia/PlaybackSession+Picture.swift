@@ -23,6 +23,33 @@ extension PlaybackSession {
             )
         }
     }
+
+    /// Watches the picture of a converted stream. The server's decoder can hand over frames with no image in them, every
+    /// frame the same flat colour, and nothing reports it: the player is content, the sound plays, and the viewer is left
+    /// with a green screen. Each item the player is given is watched, so a rebuilt transcode is judged on its own frames.
+    func watchPicture(of item: AVPlayerItem) {
+        pictureWatcher?.invalidate()
+        pictureWatcher = nil
+        guard let player, stream?.isDirectPlay == false, !hasReportedPictureTrouble, !isStopped,
+              PictureTrouble.canBreak(stream?.media?.videoCodec) else { return }
+        let watcher = PictureWatcher(item: item)
+        pictureWatcher = watcher
+        watcher.start(player: player, interval: PlaybackTiming.pictureSampleInterval) { [weak self] in
+            self?.reportDeadPicture()
+        }
+    }
+
+    /// The picture has been one impossible colour long enough to be certain (`PictureWatchdog`): say what the server did
+    /// and what fixes it, once per playback.
+    private func reportDeadPicture() {
+        guard let stream, !hasReportedPictureTrouble, !isStopped else { return }
+        hasReportedPictureTrouble = true
+        pictureWatcher?.invalidate()
+        pictureWatcher = nil
+        let trouble = PictureTrouble(videoCodec: stream.media?.videoCodec, container: stream.media?.container)
+        MidgarLog.error("Playback \(trouble.logLine) ratingKey=\(request.ratingKey)", category: .playback)
+        emit(.pictureTrouble(trouble))
+    }
 }
 
 /// What a player item's video track says of the picture being decoded.

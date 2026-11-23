@@ -55,6 +55,11 @@ package final class PlaybackSession {
     var watchers: [PlaybackWatching] = []
     var remoteCommands: PlaybackRemoteCommands?
     var itemWatcher: PlayerItemWatcher?
+    /// Watches what a converted stream shows, so a picture the server's decoder painted a flat colour is reported
+    /// (`PictureWatcher`) instead of played on in silence.
+    var pictureWatcher: PictureWatcher?
+    /// Whether the viewer was already told this playback has no picture, so the one alert is never repeated by a rebuild.
+    var hasReportedPictureTrouble = false
     var playheadObserver: Any?
     var interruptionObserver: (any NSObjectProtocol)?
     var restartItemObserver: NSKeyValueObservation?
@@ -587,6 +592,8 @@ package final class PlaybackSession {
         upNextTask = nil
         fallbackTask = nil
         heartbeatTask = nil
+        pictureWatcher?.invalidate()
+        pictureWatcher = nil
     }
 
     private func invalidateCaches() async {
