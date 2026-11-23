@@ -16,11 +16,15 @@ final class PictureWatcher {
     private let output: AVPlayerItemVideoOutput
     private var watchdog = PictureWatchdog()
     private var task: Task<Void, Never>?
+    /// The item the output was added to, so watching the same item again after a launch takes the old output off it first
+    /// instead of stacking a second tap on the same frames.
+    private weak var item: AVPlayerItem?
 
     init(item: AVPlayerItem) {
         output = AVPlayerItemVideoOutput(pixelBufferAttributes: [
             kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange,
         ])
+        self.item = item
         item.add(output)
     }
 
@@ -42,6 +46,8 @@ final class PictureWatcher {
     func invalidate() {
         task?.cancel()
         task = nil
+        item?.remove(output)
+        item = nil
     }
 
     /// The frame the player shows now, measured; nil when it has not drawn a new one since the last look.

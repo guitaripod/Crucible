@@ -40,7 +40,7 @@ extension PlaybackSession {
     }
 
     /// The picture has been one impossible colour long enough to be certain (`PictureWatchdog`): say what the server did
-    /// and what fixes it, once per playback.
+    /// and what fixes it, once per launch of the item.
     private func reportDeadPicture() {
         guard let stream, !hasReportedPictureTrouble, !isStopped else { return }
         hasReportedPictureTrouble = true
@@ -49,6 +49,15 @@ extension PlaybackSession {
         let trouble = PictureTrouble(videoCodec: stream.media?.videoCodec, container: stream.media?.container)
         MidgarLog.error("Playback \(trouble.logLine) ratingKey=\(request.ratingKey)", category: .playback)
         emit(.pictureTrouble(trouble))
+    }
+
+    /// Watches the picture again for a viewer who launched the item afresh: a playback reopened from the dock, or after the
+    /// player was closed, reuses this session (`PlayerCoordinator.present`), and what was launched again deserves the warning
+    /// again even though the same dead picture was called out during the last launch. The frames are still the server's.
+    package func expectPictureAgain() {
+        guard hasReportedPictureTrouble, !isStopped, let item = player?.currentItem else { return }
+        hasReportedPictureTrouble = false
+        watchPicture(of: item)
     }
 }
 

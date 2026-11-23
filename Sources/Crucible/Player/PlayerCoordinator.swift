@@ -131,6 +131,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     func present(from viewController: UIViewController) {
         guard !isPresenting else { return }
         if let docked = Self.docked(playing: request, near: viewController) {
+            docked.session.expectPictureAgain()
             docked.expand()
             return
         }
