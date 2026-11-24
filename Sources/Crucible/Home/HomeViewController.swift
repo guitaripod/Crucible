@@ -566,23 +566,37 @@ final class HomeViewController: UICollectionViewController {
 
     // MARK: - Loading
 
+    /// Reads Home from the server, trying again while the server cannot be reached: Home that comes back from the background
+    /// before its network does keeps the positions from before otherwise, and those are what the viewer then watches from.
+    /// Content already on screen stays through a failed refresh, and only an empty Home shows the failure.
     private func loadData() {
         loadTask?.cancel()
         loadTask = Task { [weak self] in
             guard let self else { return }
-            do {
-                try await feed.refresh()
-                WatchlistReleases.shared.noteOnServer(feed.fetchedItems)
-                missingNext = UpNextGaps.shared.entries(nextUp: feed.nextUpItems)
-                presentLoadedContent(animated: !isShowingSkeleton && dataSource.snapshot().numberOfItems > 0)
-                loadMissingNext(force: forceGaps)
-                forceGaps = false
-            } catch {
+            for (index, wait) in RefreshRetry.waits.enumerated() {
+                if index > 0 { try? await Task.sleep(for: wait) }
                 guard !Task.isCancelled else { return }
-                MidgarLog.error("Home load failed: \(error.localizedDescription)", category: .networking)
-                endRefreshing()
-                showLoadError(error)
+                do {
+                    try await feed.refresh()
+                    WatchlistReleases.shared.noteOnServer(feed.fetchedItems)
+                    missingNext = UpNextGaps.shared.entries(nextUp: feed.nextUpItems)
+                    presentLoadedContent(animated: !isShowingSkeleton && dataSource.snapshot().numberOfItems > 0)
+                    loadMissingNext(force: forceGaps)
+                    forceGaps = false
+                    return
+                } catch {
+                    guard !Task.isCancelled else { return }
+                    MidgarLog.error("Home load failed: \(error.localizedDescription)", category: .networking)
+                    guard feed.isEmpty || !RefreshRetry.isTransport(error) else {
+                        MidgarLog.notice("Home tries again in \(wait)", category: .networking)
+                        continue
+                    }
+                    endRefreshing()
+                    showLoadError(error)
+                    return
+                }
             }
+            endRefreshing()
         }
     }
 

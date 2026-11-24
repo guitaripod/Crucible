@@ -477,22 +477,31 @@ final class TVHomeViewController: TVScreenViewController {
         cell.infoView.configure(info, animated: animated)
     }
 
+    /// Reads Home from the server, trying again while the server cannot be reached: a Home that comes back from sleep before
+    /// its network does keeps the positions from before the sleep otherwise, and those are what the viewer then watches from.
+    /// A refresh that keeps failing leaves the content already on screen, and only an empty Home shows the failure.
     private func reload() {
         loadSlot.run { [weak self] in
-            guard let self else { return }
-            do {
-                try await feed.refresh()
-                WatchlistReleases.shared.noteOnServer(feed.fetchedItems)
-                missingNext = UpNextGaps.shared.entries(nextUp: feed.nextUpItems)
-                render(animated: true)
-                loadMissingNext()
-            } catch {
-                guard !Task.isCancelled else { return }
-                MidgarLog.error("Home load failed: \(error.localizedDescription)", category: .networking)
-                if feed.isEmpty {
-                    showLoadError(error)
-                } else if collectionView.isHidden {
-                    render(animated: false)
+            for (index, wait) in RefreshRetry.waits.enumerated() {
+                if index > 0 { try? await Task.sleep(for: wait) }
+                guard let self, !Task.isCancelled else { return }
+                do {
+                    try await feed.refresh()
+                    WatchlistReleases.shared.noteOnServer(feed.fetchedItems)
+                    missingNext = UpNextGaps.shared.entries(nextUp: feed.nextUpItems)
+                    render(animated: true)
+                    loadMissingNext()
+                    return
+                } catch {
+                    guard !Task.isCancelled else { return }
+                    MidgarLog.error("Home load failed: \(error.localizedDescription)", category: .networking)
+                    guard !feed.isEmpty else {
+                        showLoadError(error)
+                        return
+                    }
+                    if collectionView.isHidden { render(animated: false) }
+                    guard RefreshRetry.isTransport(error) else { return }
+                    MidgarLog.notice("Home tries again in \(wait) after \(error.localizedDescription)", category: .networking)
                 }
             }
         }

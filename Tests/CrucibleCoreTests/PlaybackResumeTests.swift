@@ -271,7 +271,7 @@ struct PlaybackResumeTests {
         #expect(store.point(server: "srv", ratingKey: "0") == nil)
     }
 
-    @Test func aSavedPositionReplacesTheServersOffsetUnlessSomeoneWatchedFurtherSince() {
+    @Test func aSavedPositionReplacesTheServersOffsetOnlyWhenItIsFurtherAlong() {
         let saved = Date()
         let point = ResumePoint(server: "srv", ratingKey: "7", positionSecs: 1_312, durationSecs: 2_400, savedAt: saved)
         #expect(ResumeFlushRule.shouldSend(point: point, serverOffsetSecs: 1_300, serverViewedAt: saved.addingTimeInterval(-30)))
@@ -279,6 +279,25 @@ struct PlaybackResumeTests {
         #expect(!ResumeFlushRule.shouldSend(point: point, serverOffsetSecs: 1_311, serverViewedAt: nil))
         #expect(!ResumeFlushRule.shouldSend(point: point, serverOffsetSecs: 2_000, serverViewedAt: saved.addingTimeInterval(3_600)))
         #expect(ResumeFlushRule.shouldSend(point: point, serverOffsetSecs: 0, serverViewedAt: saved.addingTimeInterval(30)))
+    }
+
+    /// Another client carrying on without this device hearing of it is exactly how a position gets lost: a device that was
+    /// away must never put the server back behind what another device has already watched, whatever the two clocks say.
+    @Test func aDeviceThatWasAwayNeverPutsTheServerBackBehindAnotherClient() {
+        let saved = Date()
+        let point = ResumePoint(server: "srv", ratingKey: "7", positionSecs: 1_312, durationSecs: 2_400, savedAt: saved)
+        #expect(!ResumeFlushRule.shouldSend(point: point, serverOffsetSecs: 1_900, serverViewedAt: saved.addingTimeInterval(30)))
+        #expect(!ResumeFlushRule.shouldSend(point: point, serverOffsetSecs: 1_900, serverViewedAt: saved.addingTimeInterval(-30)))
+        #expect(!ResumeFlushRule.shouldSend(point: point, serverOffsetSecs: 1_900, serverViewedAt: nil))
+        let nearTheEnd = ResumePoint(server: "srv", ratingKey: "7", positionSecs: 2_390, durationSecs: 2_400, savedAt: saved)
+        #expect(!ResumeFlushRule.shouldSend(point: nearTheEnd, serverOffsetSecs: 2_390, serverViewedAt: nil), "an item the server says is finished is not told where it ended")
+    }
+
+    @Test func aFinishedRunIsAlwaysWorthSending() {
+        let saved = Date()
+        let point = ResumePoint(server: "srv", ratingKey: "7", positionSecs: 2_200, durationSecs: 2_400, savedAt: saved, finished: true)
+        #expect(ResumeFlushRule.shouldSend(point: point, serverOffsetSecs: 100, serverViewedAt: saved.addingTimeInterval(600)))
+        #expect(!ResumeFlushRule.shouldSend(point: point, serverOffsetSecs: 2_400, serverViewedAt: nil))
     }
 
     @Test func theNextLaunchTellsTheServerWhereTheTerminatedRunLeftTheViewer() async {
@@ -315,9 +334,21 @@ struct PlaybackResumeTests {
         let store = PlaybackResumeStore(defaults: defaults())
         store.save(server: "srv", ratingKey: "7", positionSecs: 1_312.6, durationSecs: 2_400)
 
-        await PlaybackResumeSync.flush(api: server.client, server: "srv", store: store)
+        let landed = await PlaybackResumeSync.flush(api: server.client, server: "srv", store: store)
 
+        #expect(!landed, "a report the server never took is not claimed as sent")
         #expect(store.pendingReports(server: "srv").map(\.positionSecs) == [1_312.6])
+    }
+
+    @Test func aPositionTheServerTakesEveryTimeLandsWithOneFlush() async {
+        let server = DetailStubServer()
+        server.reply(path: "/library/metadata/7", items: [DetailFixtures.item(["ratingKey": "7", "duration": 2_400_000, "viewOffset": 12_000])])
+        server.reply(path: "/:/timeline")
+        let store = PlaybackResumeStore(defaults: defaults())
+        store.save(server: "srv", ratingKey: "7", positionSecs: 1_312.6, durationSecs: 2_400)
+
+        #expect(await PlaybackResumeSync.flush(api: server.client, server: "srv", store: store))
+        #expect(store.pendingReports(server: "srv").isEmpty)
     }
 
     @Test func aPositionOfAnotherServerIsNeverSent() async {

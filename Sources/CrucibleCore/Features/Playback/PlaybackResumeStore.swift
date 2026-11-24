@@ -179,9 +179,11 @@ package enum ResumeFlushRule {
     /// to have watched it since; the allowance covers the two clocks not agreeing.
     package static let clockSkewAllowance: TimeInterval = 120
 
-    /// Only a position that differs from the server's offset, unless another client has watched the item
-    /// since the device saved it: that one must not be rewound. An item the server already counts as
-    /// watched is never written to, and a finished run is always worth sending: it is what ends the item.
+    /// Only a position further along than the server's, so a device that was away never puts the server back where it was
+    /// before another client carried on; the server is what every client resumes from, and a position it holds past the
+    /// device's is the truth even when this device never got to say where it stopped. A position is also not worth sending
+    /// when another client has watched the item since the device saved it. An item the server already counts as watched is
+    /// never written to, and a finished run is always worth sending: it is what ends the item.
     package static func shouldSend(
         point: ResumePoint,
         serverOffsetSecs: Double,
@@ -192,9 +194,9 @@ package enum ResumeFlushRule {
         if point.finished {
             return point.durationSecs <= 0 || serverOffsetSecs < point.durationSecs - ResumePoint.reportTolerance
         }
-        guard point.positionSecs > 0 else { return false }
+        guard point.positionSecs > 0, point.positionSecs > serverOffsetSecs + ResumePoint.reportTolerance else { return false }
         if let serverViewedAt, serverViewedAt.timeIntervalSince(point.savedAt) > clockSkewAllowance { return false }
-        return abs(point.positionSecs - serverOffsetSecs) > ResumePoint.reportTolerance
+        return true
     }
 }
 
@@ -217,20 +219,42 @@ package enum PlaybackResumeSync {
         playing[ratingKey] = count > 1 ? count - 1 : nil
     }
 
-    package static func flush(api: APIClient, server: String, store: PlaybackResumeStore = .shared, within budget: Duration = launchBudget) async {
+    /// Hands the server every position this device still owes it, in the order they were saved, and says whether the server
+    /// now has them all: a report that could not leave (no network yet, or the budget ran out) stays pending for the caller
+    /// to try again rather than being claimed as sent.
+    @discardableResult
+    package static func flush(
+        api: APIClient,
+        server: String,
+        store: PlaybackResumeStore = .shared,
+        within budget: Duration = launchBudget
+    ) async -> Bool {
         let open = await MainActor.run { Set(playing.keys) }
         let pending = store.pendingReports(server: server).filter { !open.contains($0.ratingKey) }
-        guard !pending.isEmpty else { return }
-        await withTaskGroup(of: Void.self) { group in
-            group.addTask { for point in pending { await send(point, api: api, store: store) } }
-            group.addTask { try? await Task.sleep(for: budget) }
-            await group.next()
+        guard !pending.isEmpty else { return true }
+        return await withTaskGroup(of: Bool.self) { group in
+            group.addTask {
+                var landed = true
+                for point in pending {
+                    guard !Task.isCancelled else { return false }
+                    if !(await send(point, api: api, store: store)) { landed = false }
+                }
+                return landed
+            }
+            group.addTask {
+                try? await Task.sleep(for: budget)
+                return false
+            }
+            let first = await group.next() ?? false
             group.cancelAll()
+            return first
         }
     }
 
-    private static func send(_ point: ResumePoint, api: APIClient, store: PlaybackResumeStore) async {
-        guard !Task.isCancelled else { return }
+    /// Tells the server where `point` was, unless the server is already further along. Returns whether the server holds it now.
+    @discardableResult
+    private static func send(_ point: ResumePoint, api: APIClient, store: PlaybackResumeStore) async -> Bool {
+        guard !Task.isCancelled else { return false }
         do {
             let container = try await api.requestContainer(.metadata(ratingKey: point.ratingKey))
             let item = container.Metadata?.first
@@ -242,7 +266,7 @@ package enum PlaybackResumeSync {
                 serverWatched: item?.isWatched ?? false
             ) else {
                 store.recordReport(server: point.server, ratingKey: point.ratingKey, positionSecs: point.reportSecs)
-                return
+                return true
             }
             try await api.requestVoid(.timeline(
                 ratingKey: point.ratingKey,
@@ -253,8 +277,10 @@ package enum PlaybackResumeSync {
             store.recordReport(server: point.server, ratingKey: point.ratingKey, positionSecs: point.reportSecs)
             await ServerStateSync.shared.post(.titles([point.ratingKey]))
             MidgarLog.notice("Reported the saved position of \(point.ratingKey) to the server: \(Int(point.reportSecs)) s finished=\(point.finished)", category: .playback)
+            return true
         } catch {
             MidgarLog.error("Reporting the saved position of \(point.ratingKey) failed: \(error.localizedDescription)", category: .playback)
+            return false
         }
     }
 }

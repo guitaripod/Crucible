@@ -23,9 +23,27 @@ extension PlayerScreen {
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: UInt64(PlaybackTiming.timelineInterval * 1_000_000_000))
                 guard let self, !Task.isCancelled else { return }
+                self.keepPosition()
                 self.report(self.player?.state.isPaused == true ? "paused" : "playing")
             }
         }
+    }
+
+    /// Keeps where the viewer is on this machine as playback goes, so a process that is ended by a crash, a logout or the
+    /// machine losing power still knows: the next launch hands the server the position its last report never carried
+    /// (`PlaybackResumeSync.flush`, in the launch pipeline). The write reaches the disk at once, since the point of it is a
+    /// process that ends without being asked.
+    func keepPosition(finished: Bool? = nil) {
+        guard case .plex(_, let item, _) = source, duration > 0,
+              let server = ServerBootstrap.savedMachineIdentifier, !server.isEmpty else { return }
+        PlaybackResumeStore.shared.save(
+            server: server,
+            ratingKey: item.id,
+            positionSecs: position,
+            durationSecs: duration,
+            finished: finished ?? WatchedRule.isFinished(positionSecs: position, durationSecs: duration, creditsStartSecs: upNext?.creditsStartSecs)
+        )
+        UserDefaults.standard.synchronize()
     }
 
     /// Beats four times a second for as long as the player is open: the sleep timer counts and fades on it, and a beat that
@@ -44,10 +62,13 @@ extension PlayerScreen {
     func report(_ playbackState: String) -> Task<Void, Never>? {
         guard stream != nil, duration > 0, case .plex(let api, let item, _) = source else { return nil }
         lastReportedState = playbackState
-        let endpoint = PlexEndpoint.timeline(ratingKey: item.id, state: playbackState, timeMs: Int(position * 1000), durationMs: Int(duration * 1000))
+        let seconds = position
+        let endpoint = PlexEndpoint.timeline(ratingKey: item.id, state: playbackState, timeMs: Int(seconds * 1000), durationMs: Int(duration * 1000))
+        let server = ServerBootstrap.savedMachineIdentifier
         return Task {
             do {
                 try await api.requestVoid(endpoint)
+                if let server { PlaybackResumeStore.shared.recordReport(server: server, ratingKey: item.id, positionSecs: seconds) }
             } catch {
                 MidgarLog.error("Timeline report failed: \(error)", category: .playback)
             }
@@ -81,6 +102,7 @@ extension PlayerScreen {
         closeWeb()
         closeLive()
         let finished = WatchedRule.isFinished(positionSecs: position, durationSecs: duration, creditsStartSecs: upNext?.creditsStartSecs)
+        keepPosition(finished: finished)
         watchers.forEach { $0.playback(.stopped(position: position, finished: finished, at: Date())) }
         if finished { recordFinish() }
         watchers = []

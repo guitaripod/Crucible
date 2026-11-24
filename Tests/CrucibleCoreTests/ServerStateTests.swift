@@ -178,4 +178,96 @@ struct ServerStateTests {
         #expect(fresh.Metadata?.first?.viewOffset == 9_000)
         #expect(server.requests.filter { $0 == "/library/metadata/1" }.count == 2)
     }
+
+    // MARK: - Entering the app
+
+    /// Every entry hands the server what this device still owes before any screen reads it, so nothing on screen can be older
+    /// than what this device did.
+    @Test func anEntryReportsWhatTheDeviceOwesBeforeScreensReadAgain() async throws {
+        let server = DetailStubServer()
+        server.reply(path: "/library/metadata/7", items: [DetailFixtures.item(["ratingKey": "7", "duration": 2_400_000, "viewOffset": 12_000])])
+        server.reply(path: "/:/timeline")
+        let store = PlaybackResumeStore(defaults: resumeDefaults())
+        let center = ServerStateSync(hub: ServerEventHub(), resumeStore: store)
+        center.attach(api: server.client, server: "srv")
+        var heard: [ServerStateChange] = []
+        let token = center.addObserver { heard.append($0) }
+        store.save(server: "srv", ratingKey: "7", positionSecs: 1_312.6, durationSecs: 2_400)
+
+        center.enteredForeground()
+
+        try await settle(until: { server.requests.contains("/:/timeline") }, timeout: .seconds(10))
+        #expect(server.requestedURLs.first { $0.contains("/:/timeline") }?.contains("time=1312600") == true)
+        #expect(store.pendingReports(server: "srv").isEmpty)
+        try await settle(until: { heard.contains { $0.everything } }, timeout: .seconds(10))
+        center.removeObserver(token)
+        center.detach()
+    }
+
+    /// A wake from sleep often finds the network not back yet: the position is tried again until the server takes it, and the
+    /// screens read once more when it does, since what they read the first time was before the report landed.
+    @Test func aPositionTheServerCouldNotTakeIsSentAgainWhileTheAppStaysInFront() async throws {
+        let server = DetailStubServer()
+        server.failTransport(path: "/library/metadata/7")
+        let store = PlaybackResumeStore(defaults: resumeDefaults())
+        let center = ServerStateSync(hub: ServerEventHub(), resumeStore: store)
+        center.attach(api: server.client, server: "srv")
+        var heard: [ServerStateChange] = []
+        let token = center.addObserver { heard.append($0) }
+        store.save(server: "srv", ratingKey: "7", positionSecs: 1_312.6, durationSecs: 2_400)
+
+        center.enteredForeground()
+        try await Task.sleep(for: .milliseconds(400))
+        #expect(store.pendingReports(server: "srv").count == 1, "the server was not there for the first pass")
+
+        server.reply(path: "/library/metadata/7", items: [DetailFixtures.item(["ratingKey": "7", "duration": 2_400_000, "viewOffset": 12_000])])
+        server.reply(path: "/:/timeline")
+        try await settle(until: { server.requests.contains("/:/timeline") }, timeout: .seconds(20))
+        #expect(store.pendingReports(server: "srv").isEmpty)
+        try await settle(until: { heard.filter { $0.everything }.count >= 2 }, timeout: .seconds(10))
+        center.removeObserver(token)
+        center.detach()
+    }
+
+    /// Leaving the app stops the retries: a position still owed waits for the next entry instead of being sent from the
+    /// background, where the system may cut the request and no screen is there to read what landed.
+    @Test func aPositionStillOwedWaitsForTheNextEntryWhenTheAppLeavesTheFront() async throws {
+        let server = DetailStubServer()
+        server.failTransport(path: "/library/metadata/7")
+        let store = PlaybackResumeStore(defaults: resumeDefaults())
+        let center = ServerStateSync(hub: ServerEventHub(), resumeStore: store)
+        center.attach(api: server.client, server: "srv")
+        store.save(server: "srv", ratingKey: "7", positionSecs: 1_312.6, durationSecs: 2_400)
+
+        center.enteredForeground()
+        try await Task.sleep(for: .milliseconds(400))
+        center.enteredBackground()
+        server.reply(path: "/library/metadata/7", items: [DetailFixtures.item(["ratingKey": "7", "duration": 2_400_000, "viewOffset": 12_000])])
+        server.reply(path: "/:/timeline")
+        try await Task.sleep(for: .seconds(2))
+        #expect(!server.requests.contains("/:/timeline"), "nothing is sent while the app is away")
+        #expect(store.pendingReports(server: "srv").count == 1)
+
+        center.enteredForeground()
+        try await settle(until: { server.requests.contains("/:/timeline") }, timeout: .seconds(10))
+        #expect(store.pendingReports(server: "srv").isEmpty)
+        center.detach()
+    }
+
+    private func resumeDefaults() -> UserDefaults {
+        let suite = "server-state-entry-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        return defaults
+    }
+
+    /// Waits for `condition`, polling, and fails the test when it never holds.
+    private func settle(until condition: () -> Bool, timeout: Duration) async throws {
+        let deadline = ContinuousClock.now.advanced(by: timeout)
+        while ContinuousClock.now < deadline {
+            if condition() { return }
+            try await Task.sleep(for: .milliseconds(50))
+        }
+        Issue.record("condition not met within \(timeout)")
+    }
 }

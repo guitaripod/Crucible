@@ -276,7 +276,7 @@ A Linux job in CI (`.github/workflows/linux-core.yml`) runs `CRUCIBLE_CORE_ONLY=
 | Notifications | `org.freedesktop.Notifications` for `LibraryNews` while the app runs; a systemd user timer for background refresh can follow |
 | Output HDR and refresh rate | `kde_output_management_v2` (§7.4) |
 | Steam Deck layout | `crucible --steam-deck` as a non-Steam shortcut for Big Picture and Game Mode: `linux/scripts/steam-library.py` adds it to the running Steam with its library artwork (§9.1); `linux/scripts/steam-shortcut.py` does it with Steam closed on a desktop, picking Steam Input's own gamepad templates (gamepad and trackpad mouse on the Steam Deck and DualSense, gamepad elsewhere) |
-| Clean exit | SIGTERM, SIGINT and SIGHUP save resume positions and send the stopped timeline before exiting (the Tailscode lesson that an unhandled SIGTERM counts as a crash) |
+| Clean exit | SIGTERM, SIGINT and SIGHUP save resume positions and send the stopped timeline before exiting (the Tailscode lesson that an unhandled SIGTERM counts as a crash); the position is also kept on the machine as playback goes (`PlaybackResumeStore`), so a crash, a logout or a power cut loses nothing: the next launch hands the server what its last report did not carry |
 
 ### 9.1 Steam Deck
 

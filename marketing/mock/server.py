@@ -552,7 +552,7 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(body)
 
     def set_hubs_mode(self, mode):
-        if mode not in ("ok", "empty", "error", "slow"):
+        if mode not in ("ok", "empty", "error", "unavailable", "slow"):
             return self.send_json(container(size=0, error="unknown mode"), 400)
         OVERRIDES["MOCK_HUBS_MODE"] = mode
         self.send_json(container(size=0, mode=mode))
@@ -1086,6 +1086,8 @@ class Handler(BaseHTTPRequestHandler):
             hubs_mode = env("MOCK_HUBS_MODE", "ok")
             if hubs_mode == "error":
                 return self.send_json(container(size=0, error="mock hubs error"), 404)
+            if hubs_mode == "unavailable":
+                return self.send_json(container(size=0, error="mock hubs unavailable"), 503)
             if hubs_mode == "slow":
                 time.sleep(4)
             if hubs_mode == "empty":

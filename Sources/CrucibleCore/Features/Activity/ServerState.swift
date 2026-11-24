@@ -57,15 +57,20 @@ package struct ServerStateChange: Sendable, Equatable {
 ///
 /// While the main app is up it keeps the server's event stream open, closes it while the app is away and, when the app
 /// returns, first hands the server what this device still owes it (positions saved while suspended, queued integration
-/// changes) and then asks every screen to read again, so nothing on screen predates the return.
+/// changes) and then asks every screen to read again, so nothing on screen predates the return. A wake from sleep often
+/// finds the network not yet up, which is why the positions still owed are tried again, at growing intervals, until they
+/// land: a position this device never handed over is the one thing an entry cannot recover by reading.
 @MainActor
 package final class ServerStateSync {
     package static let shared = ServerStateSync()
 
     /// How long events from the server are gathered before screens hear of them: a scan or a remote session sends many at once.
     package static let eventGathering: Duration = .seconds(1)
-    /// The longest the return to the foreground waits on this device's owed reports before the screens read again.
+    /// The longest one pass of handing the server this device's owed reports waits before the screens read anyway.
     package static let foregroundReportBudget: Duration = .seconds(3)
+    /// How long after an entry the positions still owed are tried again, at growing intervals: an Apple TV woken from sleep
+    /// takes seconds to be back on the network, and an entry that gave up would leave the position behind for days.
+    package static let entryRetryWaits: [Duration] = [.milliseconds(500), .seconds(1), .seconds(2), .seconds(4), .seconds(8), .seconds(15), .seconds(30)]
 
     private var observers: [UUID: @MainActor (ServerStateChange) -> Void] = [:]
     private var pending = ServerStateChange()
@@ -75,11 +80,15 @@ package final class ServerStateSync {
     private var server: String?
     private var listening: ServerEventListening?
     private var resyncToken: UUID?
-    private var returnTask: Task<Void, Never>?
+    private var entryTask: Task<Void, Never>?
+    private var owedTask: Task<Void, Never>?
+    private var isInForeground = true
     private let hub: ServerEventHub
+    private let resumeStore: PlaybackResumeStore
 
-    package init(hub: ServerEventHub = .shared) {
+    package init(hub: ServerEventHub = .shared, resumeStore: PlaybackResumeStore = .shared) {
         self.hub = hub
+        self.resumeStore = resumeStore
     }
 
     package func addObserver(_ handler: @escaping @MainActor (ServerStateChange) -> Void) -> UUID {
@@ -133,6 +142,7 @@ package final class ServerStateSync {
         resyncToken = hub.onResync { [weak self] in
             self?.post(.everything)
         }
+        if isInForeground, !resumeStore.pendingReports(server: server).isEmpty { keepOwing(api: api, server: server) }
     }
 
     /// Signed out, or about to connect to another server.
@@ -141,15 +151,20 @@ package final class ServerStateSync {
         listening = nil
         if let resyncToken { hub.removeResyncHandler(resyncToken) }
         resyncToken = nil
-        returnTask?.cancel()
-        returnTask = nil
+        entryTask?.cancel()
+        entryTask = nil
+        owedTask?.cancel()
+        owedTask = nil
         api = nil
         server = nil
     }
 
-    /// The app left the foreground: the event stream would be cut by the system anyway. A return still reporting what the
-    /// device owes carries on, so a quick trip away does not leave it unsent.
+    /// The app left the foreground: the event stream would be cut by the system anyway. A position still owed is kept for the
+    /// next entry rather than sent from the background.
     package func enteredBackground() {
+        isInForeground = false
+        owedTask?.cancel()
+        owedTask = nil
         hub.suspend()
     }
 
@@ -157,16 +172,54 @@ package final class ServerStateSync {
     /// server first gets what this device still owes it, and then every screen reads again.
     package func enteredForeground() {
         hub.resume()
+        isInForeground = true
         guard let api, let server else { return }
         APIClient.invalidateCaches(token: api.token)
-        returnTask?.cancel()
-        returnTask = Task { [weak self] in
-            await PlaybackResumeSync.flush(api: api, server: server, within: Self.foregroundReportBudget)
+        beginEntry(api: api, server: server)
+    }
+
+    /// One entry of the app, in the order it must happen: hand over what this device owes, then have every screen read the
+    /// server again, and keep trying the reports that could not leave while the app stays in front.
+    private func beginEntry(api: APIClient, server: String) {
+        entryTask?.cancel()
+        owedTask?.cancel()
+        owedTask = nil
+        entryTask = Task { [weak self] in
+            let landed = await PlaybackResumeSync.flush(
+                api: api, server: server, store: self?.resumeStore ?? .shared, within: Self.foregroundReportBudget
+            )
             guard !Task.isCancelled, let self else { return }
-            returnTask = nil
-            MidgarLog.notice("Back in the foreground: reading the server's state again", category: .lifecycle)
+            entryTask = nil
+            MidgarLog.notice(
+                "Back in the foreground: \(landed ? "every position is on the server" : "reports still owed"), reading the server's state again",
+                category: .lifecycle
+            )
             post(.everything)
             await Integrations.returned(api: api, server: server)
+            guard !landed else { return }
+            keepOwing(api: api, server: server)
+        }
+    }
+
+    /// The server was not there when the app came back: tries the positions this device still owes it again at growing
+    /// intervals until it takes them, and has the screens read again when it does, since what they last read predates them.
+    private func keepOwing(api: APIClient, server: String) {
+        owedTask?.cancel()
+        owedTask = Task { [weak self] in
+            for (index, wait) in Self.entryRetryWaits.enumerated() {
+                if index > 0 { try? await Task.sleep(for: wait) }
+                guard !Task.isCancelled, let self, isInForeground else { return }
+                let landed = await PlaybackResumeSync.flush(
+                    api: api, server: server, store: resumeStore, within: Self.foregroundReportBudget
+                )
+                guard !Task.isCancelled, isInForeground else { return }
+                guard landed else { continue }
+                owedTask = nil
+                MidgarLog.notice("The server now has every position this device owed it", category: .lifecycle)
+                post(.everything)
+                return
+            }
+            MidgarLog.error("The server could not be handed the positions this device owes; they wait for the next entry", category: .playback)
         }
     }
 }
