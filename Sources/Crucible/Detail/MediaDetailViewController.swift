@@ -823,6 +823,7 @@ final class MediaDetailViewController: UICollectionViewController {
                     elements.append(UIMenu(options: .displayInline, children: [share]))
                 }
                 elements.append(PlaylistMenu.addMenu(for: [item], api: api, host: self))
+                elements.append(IncompatibleMenuAction.action(for: item, api: api, host: self) { [weak self] in self?.loadData() })
                 if let watchlist = await WatchlistScreen.toggleAction(for: item, api: api, host: self) { elements.append(watchlist) }
                 if let checkIn = TraktPhoneActions.checkInAction(ratingKey: ratingKey, mediaType: mediaType, durationSecs: item.durationSecs, api: api, host: self) {
                     elements.append(checkIn)

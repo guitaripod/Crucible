@@ -522,6 +522,7 @@ final class TVShowDetailViewController: TVDetailViewController {
                 TVPlaylistPicker.present(adding: [show], env: env, from: self)
             }
         ))
+        actions.append(TVIncompatibleAction.button(for: show, env: env, host: self, reload: { [weak self] in self?.reload() }))
         if let manage = TVManageMenus.itemMenu(for: show, env: env, host: self, leavesScreenWhenDeleted: true, reload: { [weak self] in self?.reload() }) {
             actions.append(TVDetailAction(kind: .manage, title: ManageCopy.menuTitle, symbol: "wrench.and.screwdriver", menu: manage))
         }

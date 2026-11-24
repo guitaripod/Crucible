@@ -435,6 +435,7 @@ final class TVMediaDetailViewController: TVDetailViewController {
                 handler: { [weak self] in self?.setOnWatchlist(!onWatchlist, guid: guid) }
             ))
         }
+        actions.append(TVIncompatibleAction.button(for: item, env: env, host: self, reload: { [weak self] in self?.reload() }))
         if let manage = TVManageMenus.itemMenu(for: item, env: env, host: self, leavesScreenWhenDeleted: true, reload: { [weak self] in self?.reload() }) {
             actions.append(TVDetailAction(kind: .manage, title: ManageCopy.menuTitle, symbol: "wrench.and.screwdriver", menu: manage))
         }

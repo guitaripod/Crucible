@@ -603,6 +603,7 @@ final class ShowDetailViewController: UICollectionViewController {
                     })
                 }
                 elements.append(PlaylistMenu.addMenu(for: [show], api: api, host: self))
+                elements.append(IncompatibleMenuAction.action(for: show, api: api, host: self) { [weak self] in self?.loadData() })
                 async let offersSeasons = SeerrPhoneActions.offersMoreSeasons(for: show, api: api)
                 async let listed = WatchlistScreen.isListed(show, api: api)
                 if await offersSeasons { elements.append(SeerrPhoneActions.requestMoreSeasonsAction(for: show, api: api, host: self)) }

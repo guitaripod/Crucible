@@ -84,6 +84,7 @@ package enum AppLaunchSession {
             async let sections = api.requestContainer(.sections)
             let payload = try await LaunchPayload(connection: connection, api: api, hubs: hubs, sections: sections)
             await MainActor.run { LibraryVisibility.record(directories: payload.sections.Directory ?? []) }
+            Task { @MainActor in await IncompatibleTitles.reconcile(api: api) }
             let token = connection.plexTVToken
             let machine = connection.machineIdentifier
             Task { await ServerOwnership.refresh(token: token, machineIdentifier: machine) }

@@ -176,6 +176,7 @@ final class MediaDetailScreen: DetailScreen {
                                      symbol: onWatchlist ? "bookmark.slash" : "bookmark",
                                      behaviour: .run { [weak self] in self?.setOnWatchlist(!onWatchlist, guid: guid) }))
         }
+        list.append(incompatibleAction(for: item))
         if let playback = playbackSettingsAction(for: item) { list.append(playback) }
         if let manage = manageAction(for: item) { list.append(manage) }
         if !copies.isEmpty {

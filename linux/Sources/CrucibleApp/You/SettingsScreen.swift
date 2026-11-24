@@ -536,6 +536,7 @@ final class SettingsCategoryScreen: ScreenView {
         switch destination {
         case .homeRows: HomeRowsScreen()
         case .libraries: LibrariesScreen(api: api)
+        case .incompatibleTitles: IncompatibleTitlesScreen(api: api)
         case .trakt: TraktSettingsScreen()
         case .seerr: SeerrSettingsScreen(api: api)
         case .liveTV: LivePlaylistsScreen(title: LiveTVCopy.title, showsDestinationToggle: true)
@@ -550,7 +551,7 @@ final class SettingsCategoryScreen: ScreenView {
     /// Whether the Linux client has a screen for `destination`; the others show as plain text.
     private static func opens(_ destination: SettingsDestination) -> Bool {
         switch destination {
-        case .homeRows, .libraries, .trakt, .seerr, .liveTV, .serverConnection, .about, .diagnostics, .exactSkips: true
+        case .homeRows, .libraries, .incompatibleTitles, .trakt, .seerr, .liveTV, .serverConnection, .about, .diagnostics, .exactSkips: true
         default: false
         }
     }
@@ -569,6 +570,7 @@ final class SettingsCategoryScreen: ScreenView {
         switch destination {
         case .homeRows: String(localized: "\(HomeLayout.visibleRows().count) rows", comment: "How many Home rows are on, e.g. 5 rows")
         case .libraries: LibrariesSettings.summary
+        case .incompatibleTitles: IncompatibleTitles.count == 0 ? nil : IncompatibleCopy.count(IncompatibleTitles.count)
         case .trakt: TraktAccount.shared.rowStatus
         case .seerr: SeerrAccount.shared.connection?.displayName ?? String(localized: "Off", comment: "Integrations summary when nothing is connected")
         case .liveTV: LiveTVPreferences.showsDestination ? nil : String(localized: "Off", comment: "Integrations summary when nothing is connected")

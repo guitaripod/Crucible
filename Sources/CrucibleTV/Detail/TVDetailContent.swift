@@ -23,6 +23,7 @@ struct TVDetailAction {
         case previouslyOn
         case checkIn
         case request
+        case incompatible
     }
 
     enum Appearance: Sendable {

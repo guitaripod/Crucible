@@ -435,15 +435,35 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
     }
 
     /// Alerts what the server's conversion did to the picture and what fixes it. There is no retry: the stream cannot show
-    /// a picture until the server is changed, so the alert only says so, once, and playback carries on as it was.
+    /// a picture until the server is changed, so the alert says so, once, and offers to leave the title out of the app on
+    /// every device instead of meeting the same green screen again.
     private func presentPictureTrouble(_ trouble: PictureTrouble) {
         guard !isShowingAlert, !isFinishing else { return }
         isShowingAlert = true
         let alert = UIAlertController(title: trouble.title, message: trouble.explanation, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: IncompatibleCopy.hideThisTitle, style: .default) { [weak self] _ in
+            self?.isShowingAlert = false
+            self?.hideThisTitle()
+        })
         alert.addAction(UIAlertAction(title: String(localized: "OK"), style: .default) { [weak self] _ in
             self?.isShowingAlert = false
         })
         topmost(from: rootPresenter ?? playerVC).present(alert, animated: true)
+    }
+
+    private func hideThisTitle() {
+        Haptics.success()
+        Task { [api, request] in
+            await IncompatibleTitles.mark(
+                ratingKey: request.ratingKey,
+                title: request.metadata?.title ?? "",
+                type: request.mediaType,
+                thumb: request.metadata?.posterPath,
+                sectionId: request.metadata?.librarySectionID,
+                reason: .deadPicture,
+                api: api
+            )
+        }
     }
 
     private func retryFromPlayhead() {

@@ -33,7 +33,7 @@ package enum CollectionsFeed {
         while true {
             let container = try await load(start)
             try Task.checkCancellation()
-            let page = container.Metadata ?? []
+            let page = IncompatibleTitles.shown(container.Metadata ?? [])
             all.append(contentsOf: page)
             start += page.count
             let total = container.totalSize ?? container.size ?? start

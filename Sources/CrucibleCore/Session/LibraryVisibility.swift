@@ -26,6 +26,7 @@ package enum LibraryVisibility {
     private static let overridesKey = "libraryOverrides"
 
     @MainActor private static var observers = [UUID: @MainActor () -> Void]()
+    @MainActor private static var bridgesMarked = false
 
     package static var libraries: [Library] {
         guard let data = UserDefaults.standard.data(forKey: librariesKey) else { return [] }
@@ -62,10 +63,10 @@ package enum LibraryVisibility {
         section.map { !excluded.contains($0) } ?? true
     }
 
-    /// `items` without the titles of the libraries left out.
+    /// `items` without the titles of the libraries left out, and without the titles the app marked as unable to play
+    /// here (`IncompatibleTitles`), which every device agrees on.
     package static func shown(_ items: [PlexMetadata], excluding excluded: Set<Int> = LibraryVisibility.excluded) -> [PlexMetadata] {
-        guard !excluded.isEmpty else { return items }
-        return items.filter { shows(section: $0.librarySectionID, excluding: excluded) }
+        IncompatibleTitles.shown(excluded.isEmpty ? items : items.filter { shows(section: $0.librarySectionID, excluding: excluded) })
     }
 
     /// Remembers the server's library list and its hide-from-Home flags.
@@ -114,9 +115,21 @@ package enum LibraryVisibility {
 
     @MainActor
     package static func addObserver(_ handler: @escaping @MainActor () -> Void) -> UUID {
+        installMarkBridge()
         let token = UUID()
         observers[token] = handler
         return token
+    }
+
+    /// A title marked as unable to play here changes what Home, search and the libraries may bring up as much as a
+    /// library left out does, so every observer of the libraries hears about it too (`IncompatibleTitles`).
+    @MainActor
+    private static func installMarkBridge() {
+        guard !bridgesMarked else { return }
+        bridgesMarked = true
+        _ = NotificationCenter.default.addObserver(forName: IncompatibleTitles.changed, object: nil, queue: .main) { _ in
+            MainActor.assumeIsolated { notify() }
+        }
     }
 
     @MainActor

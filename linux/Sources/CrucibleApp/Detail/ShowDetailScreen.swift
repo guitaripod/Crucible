@@ -336,6 +336,7 @@ final class ShowDetailScreen: DetailScreen {
             guard let self, let window = self.window else { return }
             PlaylistPicker.present(adding: [show], api: self.api, in: window)
         }))
+        list.append(incompatibleAction(for: show))
         if let playback = playbackSettingsAction(for: show) { list.append(playback) }
         if let manage = manageAction(for: show) { list.append(manage) }
         return list

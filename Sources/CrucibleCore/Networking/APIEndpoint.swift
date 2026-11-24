@@ -67,6 +67,8 @@ package enum PlexEndpoint: Sendable {
     case match(ratingKey: String, guid: String, name: String, year: Int?)
     case unmatch(ratingKey: String)
     case editFields(sectionId: String, ratingKey: String, type: Int, values: [String: String])
+    /// The whole list of labels the item keeps, in the order it is sent; Plex replaces the ones there.
+    case setLabels(sectionId: String, ratingKey: String, type: Int, labels: [String])
     case artwork(ratingKey: String, kind: ArtworkKind)
     case selectArtwork(ratingKey: String, kind: ArtworkKind, url: String)
     case deleteItem(ratingKey: String)
@@ -143,7 +145,7 @@ package enum PlexEndpoint: Sendable {
     var method: String {
         switch self {
         case .analyzeSection, .emptyTrash, .refreshItem, .analyzeItem, .match, .unmatch, .editFields, .selectArtwork,
-             .updaterCheck, .updaterApply, .setItemPreferences:
+             .updaterCheck, .updaterApply, .setItemPreferences, .setLabels:
             return "PUT"
         case .deleteItem, .cancelActivity, .deleteHistoryEntry, .deleteRecordingRule, .cancelRecording:
             return "DELETE"
@@ -264,7 +266,7 @@ package enum PlexEndpoint: Sendable {
             return "/library/metadata/\(ratingKey)/match"
         case .unmatch(let ratingKey):
             return "/library/metadata/\(ratingKey)/unmatch"
-        case .editFields(let sectionId, _, _, _):
+        case .editFields(let sectionId, _, _, _), .setLabels(let sectionId, _, _, _):
             return "/library/sections/\(sectionId)/all"
         case .artwork(let ratingKey, let kind):
             return "/library/metadata/\(ratingKey)/\(kind.listPath)"
@@ -467,6 +469,12 @@ package enum PlexEndpoint: Sendable {
                 }
         case .selectArtwork(_, _, let url):
             return [URLQueryItem(name: "url", value: url)]
+        case .setLabels(_, let ratingKey, let type, let labels):
+            return [URLQueryItem(name: "type", value: "\(type)"), URLQueryItem(name: "id", value: ratingKey)]
+                + labels.enumerated().flatMap { index, label in
+                    [URLQueryItem(name: "label[\(index)].tag.tag", value: label)]
+                }
+                + [URLQueryItem(name: "label.locked", value: "1")]
         case .terminateSession(let sessionId, let reason):
             return [URLQueryItem(name: "sessionId", value: sessionId), URLQueryItem(name: "reason", value: reason)]
         case .updaterCheck:

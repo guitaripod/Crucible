@@ -434,12 +434,32 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
 
     /// The server's conversion has no picture in it, only a flat colour (`PictureTrouble`). Playback is left as it is: what
     /// fixes it is an action on the server, so the viewer is told that, once, instead of being shown a green screen in silence.
+    /// The title also offered a way out: marking it incompatible leaves it out of the app on every device of the server.
     private func showPictureTrouble(_ trouble: PictureTrouble) {
         guard !isInPiP else { return }
         let alert = UIAlertController(title: trouble.title, message: trouble.explanation, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: IncompatibleCopy.hideThisTitle, style: .default) { [weak self] _ in
+            self?.hideThisTitle()
+        })
         alert.addAction(UIAlertAction(title: String(localized: "OK"), style: .default))
         let host = isDocked ? dock?.presentationHost : (playerVC ?? presentingVC)
         host?.present(alert, animated: true)
+    }
+
+    /// Marks the title this playback was asked for, which takes it out of Home, search and the libraries everywhere.
+    private func hideThisTitle() {
+        Haptics.success()
+        Task { [api, request] in
+            await IncompatibleTitles.mark(
+                ratingKey: request.ratingKey,
+                title: request.metadata?.title ?? "",
+                type: request.mediaType,
+                thumb: request.metadata?.posterPath,
+                sectionId: request.metadata?.librarySectionID,
+                reason: .deadPicture,
+                api: api
+            )
+        }
     }
 
     private func setupForegroundObserver() {

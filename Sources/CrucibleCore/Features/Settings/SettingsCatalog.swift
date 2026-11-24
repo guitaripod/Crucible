@@ -11,6 +11,8 @@ package enum SettingsPlatform: Sendable {
 package enum SettingsDestination: String, Hashable, Sendable {
     case homeRows
     case libraries
+    /// The titles the app left out because the server's copy cannot play here.
+    case incompatibleTitles
     case serverConnection
     case crucibleServer
     /// Crucible Server offered beside the skip settings, until one is paired.
@@ -241,6 +243,7 @@ package enum SettingsCatalog {
             Spec(item: .preference(.holdRight), category: .controls, section: nil, platforms: [.tv, .linux]),
             Spec(item: .destination(.homeRows), category: .home, section: nil, platforms: all),
             Spec(item: .destination(.libraries), category: .home, section: nil, platforms: all),
+            Spec(item: .destination(.incompatibleTitles), category: .home, section: nil, platforms: all),
             Spec(item: .preference(.mergeDuplicateTitles), category: .home, section: nil, platforms: all),
             Spec(item: .preference(.downloadQuality), category: .downloads, section: nil, platforms: phone),
             Spec(item: .preference(.downloadOverCellular), category: .downloads, section: nil, platforms: phone),
@@ -389,6 +392,7 @@ package enum SettingsCatalog {
         switch destination {
         case .homeRows: return String(localized: "Home Rows", comment: "Settings row that opens the Home row arrangement")
         case .libraries: return String(localized: "Libraries")
+        case .incompatibleTitles: return IncompatibleCopy.title
         case .serverConnection: return String(localized: "Server & Connection")
         case .crucibleServer: return CompanionCopy.title
         case .exactSkips: return CompanionCopy.exactSkipsTitle
@@ -407,6 +411,7 @@ package enum SettingsCatalog {
         switch destination {
         case .homeRows: return "rectangle.grid.1x2"
         case .libraries: return "rectangle.stack"
+        case .incompatibleTitles: return "exclamationmark.triangle"
         case .serverConnection: return "server.rack"
         case .crucibleServer: return "sparkles.tv"
         case .exactSkips: return "sparkles.tv"
@@ -425,6 +430,7 @@ package enum SettingsCatalog {
         switch destination {
         case .homeRows: return String(localized: "Turn Home's rows on or off and put them in the order you like.")
         case .libraries: return LibrariesSettings.homeFooterText
+        case .incompatibleTitles: return IncompatibleCopy.explanation
         case .serverConnection: return String(localized: "Which server Crucible uses, every route to it and how fast each one answers.")
         case .crucibleServer: return CompanionCopy.pitch
         case .exactSkips: return CompanionCopy.exactSkipsPitch
@@ -516,6 +522,7 @@ package enum SettingsCatalog {
             switch destination {
             case .homeRows: return String(localized: "home, rows, order, hide, continue watching, recently added", comment: "Search keywords for Home Rows, comma separated")
             case .libraries: return String(localized: "libraries, movies, shows, hide, statistics", comment: "Search keywords for Libraries, comma separated")
+            case .incompatibleTitles: return String(localized: "hide, hidden, won't play, cannot play, broken, codec, no picture, incompatible", comment: "Search keywords for Incompatible Titles, comma separated")
             case .serverConnection: return String(localized: "server, switch, address, IP, Tailscale, relay", comment: "Search keywords for Server & Connection, comma separated")
             case .crucibleServer: return String(localized: "companion, previously on, recap, pair, model, AI", comment: "Search keywords for Crucible Server, comma separated")
             case .exactSkips: return String(localized: "skip intro, exact, early, late, title card, cold open, Crucible Server", comment: "Search keywords for the row offering Crucible Server's exact skips, comma separated")

@@ -30,7 +30,9 @@ hosted model.
 - **Integrations**: Trakt (scrobbling, ratings, scores, and each title's community: reviews, replies, reactions, What
   People Say and members to follow) and Seerr, Overseerr or Jellyseerr requests.
 - **For server owners**: Manage (Fix Match, Edit Details, artwork, refresh, delete), Stop Stream and the Server
-  Dashboard, on every platform.
+  Dashboard, on every platform; a title the server's own conversion has no picture for can be marked incompatible,
+  which leaves it out of Home, search and the libraries on every device of the server, and Settings › Incompatible
+  Titles puts it back.
 - **Built right**: Swift 6, programmatic UIKit, Dynamic Type, VoiceOver, Reduce Motion, Plex Home profiles and
   automatic best-route discovery, including Tailscale.
 

@@ -26,7 +26,7 @@ package enum MovieDetailLoader {
     /// The episode after `ratingKey` within the season `seasonKey`; nil at the end of the season.
     package static func nextEpisode(after ratingKey: String, inSeason seasonKey: String, api: APIClient) async throws -> PlexMetadata? {
         let container = try await api.requestContainer(.children(ratingKey: seasonKey))
-        return MovieDetailModel.nextEpisode(after: ratingKey, in: container.Metadata ?? [])
+        return MovieDetailModel.nextEpisode(after: ratingKey, in: IncompatibleTitles.shown(container.Metadata ?? []))
     }
 }
 
@@ -111,7 +111,7 @@ package enum ShowDetailLoader {
         do {
             let container = try await api.requestContainer(.children(ratingKey: seasonKey))
             guard !Task.isCancelled else { return .cancelled }
-            return .loaded(container.Metadata ?? [])
+            return .loaded(IncompatibleTitles.shown(container.Metadata ?? []))
         } catch {
             guard !Task.isCancelled else { return .cancelled }
             MidgarLog.error("Season load failed ratingKey=\(seasonKey): \(error.localizedDescription)", category: .networking)

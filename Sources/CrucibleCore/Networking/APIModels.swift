@@ -182,6 +182,8 @@ package struct PlexMetadata: Decodable, Sendable {
     package let librarySectionID: Int?
     package let librarySectionTitle: String?
     package let Genre: [PlexTag]?
+    /// The labels the server keeps on the item, which carry what Crucible marked it with (`IncompatibleTitles`).
+    package let Label: [PlexTag]?
     package let Role: [PlexRole]?
     package let Director: [PlexTag]?
     package let Writer: [PlexTag]?
@@ -233,6 +235,7 @@ package struct PlexMetadata: Decodable, Sendable {
         librarySectionID: Int?,
         librarySectionTitle: String?,
         Genre: [PlexTag]?,
+        Label: [PlexTag]? = nil,
         Role: [PlexRole]?,
         Director: [PlexTag]?,
         Writer: [PlexTag]?,
@@ -318,6 +321,7 @@ package struct PlexMetadata: Decodable, Sendable {
         self.librarySectionID = librarySectionID
         self.librarySectionTitle = librarySectionTitle
         self.Genre = Genre
+        self.Label = Label
         self.Role = Role
         self.Director = Director
         self.Writer = Writer
@@ -337,6 +341,7 @@ package struct PlexMetadata: Decodable, Sendable {
         case originallyAvailableAt, thumb, art
         case leafCount, viewedLeafCount, childCount, librarySectionID, librarySectionTitle
         case Genre, Role, Director, Writer, Media, Marker, Chapter, Related
+        case Label
         case collectionTags = "Collection"
         case sessionUser = "User"
         case sessionPlayer = "Player"
@@ -403,6 +408,7 @@ package struct PlexMetadata: Decodable, Sendable {
             librarySectionID: number(.librarySectionID, Int.self),
             librarySectionTitle: string(.librarySectionTitle),
             Genre: list([PlexTag].self, .Genre),
+            Label: list([PlexTag].self, .Label),
             Role: list([PlexRole].self, .Role),
             Director: list([PlexTag].self, .Director),
             Writer: list([PlexTag].self, .Writer),

@@ -107,6 +107,8 @@ final class SettingsNavigator {
             host.navigationController?.pushViewController(HomeRowsViewController(), animated: true)
         case .libraries:
             host.navigationController?.pushViewController(LibrariesViewController(api: api), animated: true)
+        case .incompatibleTitles:
+            host.navigationController?.pushViewController(IncompatibleTitlesViewController(api: api), animated: true)
         case .serverConnection:
             host.navigationController?.pushViewController(ServerDetailViewController(api: api), animated: true)
         case .crucibleServer, .exactSkips:
@@ -209,6 +211,8 @@ final class SettingsNavigator {
             return used > 0 ? Formatters.fileSize(used) : String(localized: "None")
         case .destination(.libraries):
             return LibrariesSettings.summary
+        case .destination(.incompatibleTitles):
+            return IncompatibleTitles.count == 0 ? nil : IncompatibleCopy.count(IncompatibleTitles.count)
         case .destination(.crucibleServer):
             return CompanionStore.current()?.name ?? CompanionCopy.notSetUp
         case .destination(.trakt):

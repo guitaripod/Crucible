@@ -25,7 +25,7 @@ package enum PlaylistsFeed {
             let container = try await api.requestContainer(.playlistItems(ratingKey: ratingKey, start: start, size: pageSize))
             try Task.checkCancellation()
             let page = container.Metadata ?? []
-            all.append(contentsOf: page)
+            all.append(contentsOf: IncompatibleTitles.shown(page))
             start += page.count
             let total = container.totalSize ?? container.size ?? start
             guard !page.isEmpty, start < total else { return all }

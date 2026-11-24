@@ -139,6 +139,10 @@ package struct LibraryGridPager: Sendable {
                 indexByOffset.append(max(ids.count - 1, 0))
                 continue
             }
+            guard !IncompatibleTitles.hides(item) else {
+                indexByOffset.append(max(ids.count - 1, 0))
+                continue
+            }
             let known = itemsById[item.id] != nil
             itemsById[item.id] = item
             if known {

@@ -128,6 +128,7 @@ final class TVSettingsCategoryViewController: TVSettingsScaffold {
         switch destination {
         case .homeRows: screen = TVHomeRowsViewController()
         case .libraries: screen = TVScreens.settings(env, page: .libraries)
+        case .incompatibleTitles: screen = TVIncompatibleTitlesViewController(api: env.api)
         case .serverConnection: screen = TVScreens.settings(env, page: .server)
         case .crucibleServer, .exactSkips: screen = TVCompanionViewController()
         case .trakt: screen = TVTraktSettingsViewController()

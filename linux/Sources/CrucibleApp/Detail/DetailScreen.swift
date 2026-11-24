@@ -185,6 +185,35 @@ class DetailScreen: ScreenView {
                             behaviour: .menu(title: ManageCopy.menuTitle, items: tools.items, choose: tools.choose))
     }
 
+    /// Marking a title as one the app cannot play here, which leaves it out of Home, search and the libraries on every
+    /// device of the server, or putting it back (`IncompatibleTitles`).
+    func incompatibleAction(for item: PlexMetadata) -> DetailAction {
+        let marked = IncompatibleTitles.hides(item)
+        return DetailAction(
+            id: "incompatible",
+            title: marked ? IncompatibleCopy.unmark : IncompatibleCopy.mark,
+            symbol: marked ? "eye" : "eye.slash",
+            behaviour: .run { [weak self] in self?.toggleIncompatible(item, marked: marked) }
+        )
+    }
+
+    private func toggleIncompatible(_ item: PlexMetadata, marked: Bool) {
+        Task { [weak self, api] in
+            guard let self else { return }
+            if marked, let mark = IncompatibleTitles.marks.first(where: { $0.ratingKey == item.id }) {
+                do {
+                    try await IncompatibleTitles.unmark(mark, api: api)
+                } catch {
+                    alert(IncompatibleCopy.unmark, message: ConnectionError.message(for: error))
+                    return
+                }
+            } else {
+                await IncompatibleTitles.markManually(item, api: api)
+            }
+            reload()
+        }
+    }
+
     func alert(_ title: String, message: String? = nil) {
         guard let window else { return }
         AlertView.notice(title: title, message: message, in: window)
