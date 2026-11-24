@@ -63,6 +63,41 @@ final class EntrySyncTests: PlayerTestCase {
         TVTest.capture("02-entered-recovered", in: self)
     }
 
+    /// The player the Apple TV froze is still open when the app comes back, and another client has watched minutes further in
+    /// the same episode by then: the player moves to where that client left off instead of playing on from the freeze or handing
+    /// the server its older position over the newer one.
+    func testAPlayerLeftFrozenFollowsAClientThatWatchedFurther() {
+        setFlags("plex_timeline=1")
+        setProgress(Self.episode, seconds: 200)
+        let mark = timelineMark()
+        let app = launch(playing: Self.episode, arguments: ["-streamingQuality", "8000"])
+        XCTAssertTrue(waitForPlayback(in: app))
+        XCTAssertTrue(waitForReport(pastMs: 205_000, since: mark, timeout: 60), "playback runs")
+
+        TVTest.remote.press(.home)
+        TVTest.settle(6)
+        setProgress(Self.episode, seconds: 1_800)
+        TVTest.settle(1)
+        let returnMark = timelineMark()
+
+        app.activate()
+        XCTAssertTrue(
+            waitForReport(pastMs: 1_795_000, since: returnMark, timeout: 40),
+            "the return never reached where the other client left off: \(timeline(since: returnMark).map { "\($0.state)@\($0.timeMs)" })"
+        )
+        TVTest.settle(4)
+        TVTest.capture("01-player-followed-the-other-client", in: self)
+
+        TVTest.remote.press(.menu)
+        XCTAssertTrue(app.otherElements["player.view"].waitForNonExistence(timeout: 20), "Menu leaves the player")
+        XCTAssertTrue(
+            waitForContinueWatchingCard(in: app, ratingKey: Self.episode, containing: "14 min left", timeout: 30)
+                || waitForContinueWatchingCard(in: app, ratingKey: Self.episode, containing: "15 min left", timeout: 10),
+            "Home is behind what the player reported: \(continueWatchingCard(in: app, ratingKey: Self.episode).label)"
+        )
+        TVTest.capture("02-home-after-the-return", in: self)
+    }
+
     private func continueWatchingCard(in app: XCUIApplication, ratingKey: String) -> XCUIElement {
         app.descendants(matching: .any).matching(identifier: "home.card.continueWatching.\(ratingKey)").firstMatch
     }

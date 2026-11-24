@@ -120,9 +120,13 @@ package final class PlaybackReporter {
         }
     }
 
-    /// Reports `state` ("paused", for instance) right away, at `positionSecs` or else at the tracked position.
+    /// Reports `state` ("paused", for instance) right away, at `positionSecs` or else at the tracked position. It still leaves
+    /// after every report queued before it: a report made for a player that has since moved (the pause taken on the way back to
+    /// the foreground, say) must not land after the one that carries the new position and put the server behind it.
     package func send(state: String, positionSecs: Double? = nil) async {
         guard !isStopped, let position = positionSecs ?? currentPosition() else { return }
+        await pending?.value
+        guard !isStopped else { return }
         await Self.report(
             api: api, ratingKey: ratingKey, state: state, position: position,
             durationMs: durationMs, resumeStore: resumeStore, server: server

@@ -115,8 +115,38 @@ extension PlaybackSession {
             seekAfterReturn(to: position, resumesPlayback: resumes)
         }
         Task { [weak self] in
-            await self?.reporter?.send(state: resumes ? "playing" : "paused", positionSecs: target)
+            guard let self else { return }
+            let position = await self.followAnotherClient(from: snapshot, resumes: resumes) ?? target
+            await self.reporter?.send(state: resumes ? "playing" : "paused", positionSecs: position)
         }
+    }
+
+    /// Another client may have watched on while this app was away. The server then holds a position further along than this
+    /// player's snapshot, and either playing on from here shows minutes the viewer has already watched, or reporting this
+    /// player's own place puts the server back behind them — the position loss a viewer sees as one client overwriting another.
+    /// The player moves to where the server says the viewer is, and that is the position it reports. Nothing moves while the
+    /// server is at or behind the snapshot (the rewind after a break included), when the server counts the item watched, when
+    /// the item is offline, or when the server cannot be asked.
+    private func followAnotherClient(from snapshot: Double, resumes: Bool) async -> Double? {
+        guard !isStopped, request.offline == nil, let stream else { return nil }
+        guard let item = try? await api.requestContainer(.metadata(ratingKey: request.ratingKey)).Metadata?.first,
+              !item.isWatched,
+              item.positionSecs > snapshot + ResumePoint.reportTolerance,
+              !Task.isCancelled, !isStopped else { return nil }
+        let position = item.positionSecs
+        MidgarLog.notice(
+            "Another client watched \(request.ratingKey) on to \(Int(position)) s; this player moves there from \(Int(snapshot)) s",
+            category: .playback
+        )
+        tracker.moved(to: position)
+        keepPosition(position)
+        switch ReturnPlan.make(target: position, isDirectPlay: stream.isDirectPlay) {
+        case .restartTranscode(let target):
+            restartTranscode(atAbsolute: target, resumesPlayback: resumes, freshSession: true, reason: "another client watched on")
+        case .seek(let target):
+            seekAfterReturn(to: target, resumesPlayback: resumes)
+        }
+        return position
     }
 
     func seekAfterReturn(to position: Double, resumesPlayback: Bool) {
