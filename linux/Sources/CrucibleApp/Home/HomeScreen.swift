@@ -125,21 +125,31 @@ final class HomeScreen: ScreenView {
         restWatch.moved(onto: nil)
     }
 
-    /// Ctrl+R and the server's change events.
+    /// Ctrl+R and the server's change events. A read that failed while the rows already have content is tried again with
+    /// `RefreshRetry`: the machine may have just woken, and rows from before the sleep would otherwise stay there until the
+    /// next event.
     func reload() {
         refreshTask?.cancel()
         refreshTask = Task { [weak self] in
             guard let self else { return }
-            do {
-                try await self.feed.refresh()
-                WatchlistReleases.shared.noteOnServer(self.feed.fetchedItems)
-                self.missingNext = UpNextGaps.shared.entries(nextUp: self.feed.nextUpItems)
-                self.render()
-                self.loadMissingNext()
-            } catch {
+            for (index, wait) in RefreshRetry.waits.enumerated() {
+                if index > 0 { try? await Task.sleep(for: wait) }
                 guard !Task.isCancelled else { return }
-                MidgarLog.error("Home refresh failed: \(error)", category: .networking)
-                if self.feed.isEmpty { self.showLoadError(error) } else { self.render() }
+                do {
+                    try await self.feed.refresh()
+                    WatchlistReleases.shared.noteOnServer(self.feed.fetchedItems)
+                    self.missingNext = UpNextGaps.shared.entries(nextUp: self.feed.nextUpItems)
+                    self.render()
+                    self.loadMissingNext()
+                    return
+                } catch {
+                    guard !Task.isCancelled else { return }
+                    MidgarLog.error("Home refresh failed: \(error)", category: .networking)
+                    guard !self.feed.isEmpty, RefreshRetry.isTransport(error) else {
+                        if self.feed.isEmpty { self.showLoadError(error) } else { self.render() }
+                        return
+                    }
+                }
             }
         }
     }

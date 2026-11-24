@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 /// How a screen tries a read of the server again after it failed, while what it shows would otherwise stay as it was before
 /// the app was entered. An Apple TV woken from sleep, a phone brought back from a tunnel and a laptop whose lid was opened
