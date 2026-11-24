@@ -1,0 +1,24 @@
+WHAT'S NEW IN 2.15.1 (Apple TV; follows 2.15.0 on the store)
+- Progress now stays in step between devices. Waking the Apple TV with the app in front first hands the Plex server the position this device was still holding, then reads Home again, so Continue Watching shows what was watched on the person's other devices. A device that was away never writes an older position over a newer one.
+- A player left paused moves to where the person carried on elsewhere before it reports its position, instead of playing on from behind it.
+- Fixed: a converted stream (the Plex server transcoding the item) that shows a flat colour instead of the picture is now reported with an offer to retry, instead of playing on in silence; the same trouble is reported again the next time that title is opened.
+
+Crucible is a client for the user's own Plex Media Server and has no content of its own. Plex needs a Plex Pass or Remote Watch Pass to stream away from home, so I cannot give App Review a working account and server. The demo runs a fictional Plex server inside the app (Guideline 2.1(a)): no account, server or network needed.
+
+START THE DEMO
+Welcome screen > "Try the demo" > "Start exploring". Account types and settings are under You.
+
+ACCOUNT TYPES
+1. Server owner ("Demo"): everything unlocked plus owner tools (Manage in a title's long-press menu and a library's header, Stop Stream in Server Activity, Server Dashboard under You).
+2. Plex Home member with a PIN: You > Switch Profile > Sam, PIN 1234.
+3. Managed profile: Kids, no PIN. Switch Profile > Demo returns.
+4. Free install: You > Preview Free Version locks What to Watch, Write a Recap, every Trakt comment, What People Say, member pages, Statistics past Week, the library filter, the Year in Review poster and Top Shelf; the locks open the paywall.
+
+WHERE THE NEW THINGS ARE
+- Progress between devices needs a real Plex server and two devices, so the demo, a fictional server inside the app, cannot show it. The Live TV tab (Beta) is unchanged, and the rest of the app is unchanged from 2.15.0.
+
+CRUCIBLE PRO
+com.guitaripod.crucible.pro.lifetime, non-consumable, $17.99 (rises to $39.99 on December 7, 2026); com.guitaripod.crucible.pro.yearly, auto-renewable, $7.99 a year ($14.99 for new subscribers from December 7, 2026), no free trial. Both approved; universal purchase covers iPhone and iPad. Playback is never gated.
+
+OTHER NOTES
+Local network access reaches servers on the home network; App Transport Security allows arbitrary loads because Plex servers on private addresses use HTTP or self-signed HTTPS. No third-party SDK. Data: an anonymous Midgar ID for purchases and, only when the person asks Crucible's AI, what the privacy policy and App Privacy answers describe; what they write in Trakt Community goes to their own Trakt account. Crucible uses Trakt but is not endorsed or certified by Trakt.
