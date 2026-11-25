@@ -45,8 +45,8 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     private var skipPill: SkipPillView?
     private var moreButton: PlayerMoreButton?
     var scrubPreview: ScrubPreview?
-    private var shownSkip: (title: String, target: Double)?
-    private var shownUpNext: UpNextOffer?
+    var shownSkip: (title: String, target: Double)?
+    var shownUpNext: UpNextOffer?
     private var skipToast: SkipToastView?
     private var advanceIndicator: AdvanceIndicator?
     private(set) var isInPiP = false
@@ -568,7 +568,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         shownSkip = (marker.title, target)
     }
 
-    private func skip(to target: Double) {
+    func skip(to target: Double) {
         removeSkipButton()
         session.seek(toAbsolute: target)
     }
@@ -639,7 +639,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     }
 
     /// Whatever the viewer does while an episode plays ends a run of episodes nobody watched.
-    private func viewerActed() {
+    func viewerActed() {
         viewerActedThisEpisode = true
     }
 
@@ -670,7 +670,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     /// viewer touched this episode. The player stays on screen and swaps its item, so there is no dismissal
     /// in between, the screen underneath is not reloaded, and the subtitle and audio chosen on the episode
     /// before carry over.
-    private func playNext(_ offer: UpNextOffer, byViewer: Bool) {
+    func playNext(_ offer: UpNextOffer, byViewer: Bool) {
         guard !isFinishing, !isAdvancing else { return }
         let startedByViewer = byViewer || offer.reason == .requested
         unattendedEpisodes = startedByViewer ? 0 : (viewerActedThisEpisode ? 0 : unattendedEpisodes) + 1
@@ -881,7 +881,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         advanceIndicator = nil
     }
 
-    private func dismissPlayer() async {
+    func dismissPlayer() async {
         guard !isFinishing else { return }
         isFinishing = true
         advanceTask?.cancel()
@@ -990,28 +990,4 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     private var windowTabBar: TabBarController? {
         dock?.tabBarController ?? presentingVC?.tabBarController as? TabBarController
     }
-
-    // MARK: - Keyboard
-
-    /// What the on-screen skip button offers right now ("Skip Intro"), so the keyboard can take it too.
-    var skipTitle: String? { shownSkip?.title }
-
-    var offersNextEpisode: Bool { shownUpNext != nil }
-
-    func performShownSkip() {
-        guard let shownSkip else { return }
-        Haptics.light()
-        viewerActed()
-        skip(to: shownSkip.target)
-    }
-
-    func close() {
-        Task { await dismissPlayer() }
-    }
-
-    func playOfferedNextEpisode() {
-        guard let shownUpNext else { return }
-        playNext(shownUpNext, byViewer: true)
-    }
-
 }
