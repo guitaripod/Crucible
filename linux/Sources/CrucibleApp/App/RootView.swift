@@ -499,7 +499,7 @@ final class RootView: View, WindowRestoration.Restorable {
             }
             screen?.removeFromSuperview()
             self?.player = nil
-            self?.current?.top?.screenDidAppear()
+            self?.pagesShownAgain()
         }
         screen.onMinimize = { [weak self] in self?.minimizePlayer() }
         screen.onExpand = { [weak self] in self?.expandPlayer() }
@@ -546,7 +546,7 @@ final class RootView: View, WindowRestoration.Restorable {
             } else {
                 self.window?.focus.focus(self.current, animated: false)
             }
-            self.current?.top?.screenDidAppear()
+            self.pagesShownAgain()
         }
         shorts = screen
         screen.frame = bounds
@@ -569,6 +569,14 @@ final class RootView: View, WindowRestoration.Restorable {
             && subviews.allSatisfy { $0 === tabBar || $0 === sidebar || $0 === current || $0 === player }
     }
 
+    /// The pages are showing again over nothing (the player shrank to its corner, the Shorts player closed, the window came
+    /// back from the background): the screen on top reads what changed while it was covered, as it does when a player closes
+    /// over it, and keeps what it has if that read fails.
+    func pagesShownAgain() {
+        guard !isCovered else { return }
+        current?.top?.screenDidAppear()
+    }
+
     // MARK: Mini player
 
     /// The corner the mini player sits in, kept between plays.
@@ -581,7 +589,7 @@ final class RootView: View, WindowRestoration.Restorable {
     private var miniOffset = Point(x: 0, y: 0)
 
     /// Shrinks the player into a corner of the window so the viewer can browse while it plays on; the pages come back
-    /// under it with the keyboard on them.
+    /// under it with the keyboard on them, reading again what changed while they were covered.
     func minimizePlayer() {
         guard let player, !player.isMini else { return }
         player.isMini = true
@@ -589,6 +597,7 @@ final class RootView: View, WindowRestoration.Restorable {
         showUnderPlayer(true)
         layoutSubviews()
         window?.focus.focus(current, animated: false)
+        pagesShownAgain()
     }
 
     /// Brings the full player back from the mini player.

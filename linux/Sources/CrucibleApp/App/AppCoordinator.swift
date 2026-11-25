@@ -45,6 +45,8 @@ final class AppCoordinator: WindowDelegate {
     private var scenes: [SceneWindow] = []
     private weak var activeWindow: Window?
     private var focusedWindows: Set<ObjectIdentifier> = []
+    /// When Crucible last lost the keyboard in every window, which tells how long it was behind another app or minimized.
+    private var resignedAt: Date?
 
     /// Every open window, the first one first.
     var allWindows: [Window] { [window] + scenes.map(\.window) }
@@ -56,6 +58,8 @@ final class AppCoordinator: WindowDelegate {
     private static let finaleRetryInterval: Duration = .milliseconds(800)
     /// The launch gate takes 0.4 s to dissolve over the app; the welcome comes up a moment after.
     private static let welcomeSettleDelay: Duration = .milliseconds(600)
+    /// Coming back to the front after this long away reads the screen on top again; a switch away and straight back does not.
+    private static let shownAgainInterval: TimeInterval = 15
 
     init(window: Window) {
         self.window = window
@@ -254,11 +258,24 @@ final class AppCoordinator: WindowDelegate {
         } else {
             focusedWindows.remove(ObjectIdentifier(window))
         }
-        if focusedWindows.isEmpty, wasActive { ServerRouteMonitor.shared.appResignedActive() }
+        if focusedWindows.isEmpty, wasActive {
+            ServerRouteMonitor.shared.appResignedActive()
+            resignedAt = Date()
+        }
         guard !focusedWindows.isEmpty, !wasActive else { return }
         ServerRouteMonitor.shared.appBecameActive()
+        let away = resignedAt.map { Date().timeIntervalSince($0) } ?? .greatestFiniteMagnitude
+        resignedAt = nil
         guard root != nil else { return }
         Task { _ = await GuideStore.shared.refresh() }
+        if away >= Self.shownAgainInterval { showAgain(window) }
+    }
+
+    /// The screen on top of the window that came back reads again everything it loads when it shows, so Home offers what
+    /// changed while Crucible was behind another app or minimized; a quick switch away and back costs nothing.
+    private func showAgain(_ window: Window) {
+        let root = window === self.window ? self.root : scenes.first { $0.window === window }?.root
+        root?.pagesShownAgain()
     }
 
     /// The launch gate stays a moment over the app it hands to, fading out (`TVAppCoordinator`'s 0.4 s cross-dissolve).
