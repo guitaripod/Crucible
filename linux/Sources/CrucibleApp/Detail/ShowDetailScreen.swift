@@ -6,9 +6,10 @@ import MidgarCore
 
 /// A show page (`TVShowDetailViewController`): Play Up Next or Continue, the Essentials offer and Episodes menu (levels,
 /// retold arcs, skipped episodes, highlights and Spoiler Shield), the Watched menu for the show and its season, Rate and Add
-/// to Playlist; the season chips with what is watched of each, including seasons only the catalogue knows, the season's
-/// episodes with the aired ones the server lacks (selecting one plays it, a right click offers Play, Play from Beginning,
-/// Watched, Keep or Hide Again and Episode Details), Cast & Crew and More Like This.
+/// to Playlist; a chip naming the open season and what is watched of it that opens the season menu (every season with what is
+/// watched of it, including the ones only the catalogue knows), the season's episodes with the aired ones the server lacks
+/// (selecting one plays it, a right click offers Play, Play from Beginning, Watched, Keep or Hide Again and Episode Details),
+/// Cast & Crew and More Like This.
 @MainActor
 final class ShowDetailScreen: DetailScreen {
     private let showKey: String
@@ -28,6 +29,7 @@ final class ShowDetailScreen: DetailScreen {
     private var offersRequest = false
     private var requestTask: Task<Void, Never>?
     private var missingByID: [String: MissingEpisode] = [:]
+    private static let seasonPickerID = "show.season"
     private let seasons = ChipRowView()
     private let episodes = ShelfView(header: nil, style: .episode)
     /// The season's episodes as a list, in the Desktop layout.
@@ -48,10 +50,7 @@ final class ShowDetailScreen: DetailScreen {
         showKey = ratingKey
         self.initialSeasonKey = initialSeasonKey
         super.init(api: api, placeholder: placeholder)
-        seasons.onSelect = { [weak self] chip in
-            self?.viewerPickedSeason = true
-            self?.selectSeason(chip.id)
-        }
+        seasons.onSelect = { [weak self] _ in self?.presentSeasonMenu() }
         episodes.onActivate = { [weak self] card in
             guard let self else { return }
             if let episode = self.episode(card.id) {
@@ -189,10 +188,7 @@ final class ShowDetailScreen: DetailScreen {
                 cards.append(missingCard(missing, shielded: shield))
             }
         }
-        seasons.setChips(model.seasonChips.map {
-            ChipRowView.Chip(id: $0.id, title: [$0.title, $0.watchedText].compactMap { $0 }.joined(separator: "  ·  "), isSelected: $0.isSelected,
-                             isDimmed: $0.isMissing)
-        })
+        seasons.setChips(Self.offersSeasonPicker(model) ? [Self.seasonPicker(model)] : [])
         let loading = loadingSeasonKey != nil
         episodes.header = SectionHeader(title: model.selectedSeasonTitle,
                                         secondaryText: loading || model.episodesFailed ? nil : Self.episodesDetail(model, count: Self.countedEpisodes(model, rows: rows)))
@@ -203,7 +199,7 @@ final class ShowDetailScreen: DetailScreen {
         cast.setItems(roles.enumerated().map { DetailMapping.person($1, index: $0) })
         related.setItems(DetailMapping.related(model.related))
         var sections: [View] = []
-        if !model.seasonChips.isEmpty { sections.append(seasons) }
+        if Self.offersSeasonPicker(model) { sections.append(seasons) }
         if model.selectedSeason != nil || model.selectedMissingSeason != nil {
             if loading {
                 sections.append(episodesLoading)
@@ -578,6 +574,35 @@ final class ShowDetailScreen: DetailScreen {
         guard let current = model else { return }
         guard current.selectedSeasonKey != key || current.episodesFailed || current.needsMissingEpisodes else { return }
         loadSeason(key)
+    }
+
+    /// Whether the seasons need a chip at all: a show with one season is already named by the episodes header under it.
+    private static func offersSeasonPicker(_ model: ShowDetailModel) -> Bool {
+        model.seasonChips.count > 1
+    }
+
+    /// The one chip above the episodes, naming the open season and what is watched of it and opening the season menu: a show
+    /// with thirty seasons would otherwise fill the page with chips (the iPad keeps them in its own season menu).
+    private static func seasonPicker(_ model: ShowDetailModel) -> ChipRowView.Chip {
+        let open = model.seasonChips.first(where: \.isSelected) ?? model.seasonChips[0]
+        return ChipRowView.Chip(id: seasonPickerID, title: [open.title, open.watchedText].compactMap { $0 }.joined(separator: "  ·  "),
+                                opensMenu: true)
+    }
+
+    /// The seasons under that chip as a dropdown: each with what is watched of it, the open one checked and a season the
+    /// server lacks dashed. Choosing one opens it, and choosing the open season retries it when it failed.
+    private func presentSeasonMenu() {
+        guard let window, let model, !model.seasonChips.isEmpty else { return }
+        let anchor = seasons.frameInWindow(of: Self.seasonPickerID) ?? seasons.frameInWindow
+        var entries: [ContextMenuView.Entry] = [.section(String(localized: "Seasons"))]
+        entries += model.seasonChips.map { chip in
+            .action(ContextMenuView.Action(chip.title, detail: chip.watchedText, symbol: chip.isMissing ? "circle.dashed" : nil,
+                                           isChecked: chip.isSelected) { [weak self] in
+                self?.viewerPickedSeason = true
+                self?.selectSeason(chip.id)
+            })
+        }
+        ContextMenuView(anchor: anchor) { entries }.present(in: window)
     }
 
     /// Shows `key` loading at once and fills it when its episodes arrive; a response for a season no longer selected is
