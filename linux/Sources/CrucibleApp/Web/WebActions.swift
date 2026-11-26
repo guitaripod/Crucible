@@ -62,9 +62,20 @@ enum WebActions {
         view.rootView?.push(WebChannelScreen(address: address, title: entry.channel ?? ""))
     }
 
-    /// Play or Resume, Play from Beginning, Watch Later, Go to Channel, Follow, Copy Link, Open in Browser and Remove
-    /// from History; what does not apply is left out. `afterChange` runs once the library changed.
-    static func presentMenu(for entry: WebEntry, at point: Point?, in view: View, showsChannel: Bool = true, afterChange: (() -> Void)? = nil) {
+    /// What a notification row can say about itself in the menu, and the ways to change it.
+    struct NotificationMenu {
+        var isUnread: Bool
+        var isMuted: Bool
+        var markRead: () -> Void
+        var markUnread: () -> Void
+        var toggleMute: () -> Void
+    }
+
+    /// Play or Resume, Play from Beginning, what the inbox can change about a row, Watch Later, Go to Channel, Follow,
+    /// Copy Link, Open in Browser and Remove from History; what does not apply is left out. `afterChange` runs once the
+    /// library changed.
+    static func presentMenu(for entry: WebEntry, at point: Point?, in view: View, showsChannel: Bool = true, afterChange: (() -> Void)? = nil,
+                            notification: NotificationMenu? = nil) {
         guard let window = view.window else { return }
         let library = WebService.shared.library
         var items: [MenuView.Item] = []
@@ -73,6 +84,16 @@ enum WebActions {
             let resumes = library.resumePosition(of: entry.id) > 0
             items.append(.init(id: "play", title: resumes ? String(localized: "Resume") : String(localized: "Play"), symbol: "play.fill"))
             if resumes { items.append(.init(id: "restart", title: String(localized: "Play from Beginning"), symbol: "gobackward")) }
+            if let notification {
+                items.append(.init(id: "notification.read", title: notification.isUnread ? String(localized: "Mark as Read")
+                                                                                            : String(localized: "Mark as Unread"),
+                                   symbol: notification.isUnread ? "circle-check" : "circle-dot"))
+                if entry.channelID != nil {
+                    items.append(.init(id: "notification.mute", title: notification.isMuted ? String(localized: "Unmute Notifications")
+                                                                                            : String(localized: "Mute Notifications"),
+                                       symbol: notification.isMuted ? "bell" : "bell-dot"))
+                }
+            }
             let saved = library.isSavedForLater(entry.id)
             items.append(.init(id: "later", title: saved ? String(localized: "Remove from Watch Later", comment: "Web video menu")
                                                         : String(localized: "Watch Later", comment: "Web video menu: save the video for later"),
@@ -110,6 +131,12 @@ enum WebActions {
             switch item.id {
             case "play": play(entry, from: view)
             case "restart": play(entry, at: 0, from: view)
+            case "notification.read":
+                if notification?.isUnread == true { notification?.markRead() } else { notification?.markUnread() }
+                afterChange?()
+            case "notification.mute":
+                notification?.toggleMute()
+                afterChange?()
             case "open": open(entry, from: view)
             case "later":
                 if library.isSavedForLater(entry.id) { library.removeFromWatchLater(entry.id) } else { library.saveForLater(entry) }

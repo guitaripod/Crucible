@@ -62,6 +62,7 @@ package final class WebLibrary: @unchecked Sendable {
         var watchLater: [WebEntry] = []
         var history: [WebWatch] = []
         var downloads: [WebDownload]?
+        var notifications: WebNotificationState?
     }
 
     private let file: URL
@@ -129,6 +130,45 @@ package final class WebLibrary: @unchecked Sendable {
         change { contents in
             if let index = contents.subscriptions.firstIndex(where: { $0.id == channelID }) { contents.subscriptions[index] = channel }
         }
+    }
+
+    // MARK: Notifications
+
+    /// What the viewer read and muted in the subscriptions inbox.
+    package var notificationState: WebNotificationState {
+        lock.withLock { contents.notifications ?? WebNotificationState() }
+    }
+
+    package func markNotificationsRead(_ ids: [String], at date: Date = Date()) {
+        guard !ids.isEmpty else { return }
+        change { contents in
+            var state = contents.notifications ?? WebNotificationState()
+            state.markRead(ids, at: date)
+            contents.notifications = state
+        }
+    }
+
+    package func markNotificationsUnread(_ ids: [String]) {
+        guard !ids.isEmpty else { return }
+        change { contents in
+            var state = contents.notifications ?? WebNotificationState()
+            state.markUnread(ids)
+            contents.notifications = state
+        }
+    }
+
+    /// Keeps a channel's uploads out of the inbox without unfollowing the channel.
+    package func setNotificationMuted(_ isMuted: Bool, channelID: String) {
+        guard !channelID.isEmpty else { return }
+        change { contents in
+            var state = contents.notifications ?? WebNotificationState()
+            state.setMuted(isMuted, channelID: channelID)
+            contents.notifications = state
+        }
+    }
+
+    package func isNotificationMuted(channelID: String) -> Bool {
+        notificationState.isMuted(channelID: channelID)
     }
 
     // MARK: Watch Later
@@ -204,6 +244,9 @@ package final class WebLibrary: @unchecked Sendable {
             contents.history.insert(WebWatch(entry: entry, position: max(position, 0), duration: max(duration, 0), watchedAt: date, isFinished: finished), at: 0)
             if contents.history.count > Self.historyLimit { contents.history.removeLast(contents.history.count - Self.historyLimit) }
             if finished { contents.watchLater.removeAll { $0.id == entry.id } }
+            var notifications = contents.notifications ?? WebNotificationState()
+            notifications.markRead([entry.id], at: date)
+            contents.notifications = notifications
         }
     }
 

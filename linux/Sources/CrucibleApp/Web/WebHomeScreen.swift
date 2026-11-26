@@ -29,6 +29,7 @@ final class WebHomeScreen: ScreenView, Reloadable {
     private var loadTask: Task<Void, Never>?
     private var recommendedTask: Task<Void, Never>?
     private var observer: NSObjectProtocol?
+    private var observers: [NSObjectProtocol] = []
     private var downloadsObserver: NSObjectProtocol?
     private var refreshQueued = false
 
@@ -78,6 +79,10 @@ final class WebHomeScreen: ScreenView, Reloadable {
         observer = NotificationCenter.default.addObserver(forName: WebLibrary.didChange, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.libraryChanged() }
         }
+        let notifications = NotificationCenter.default.addObserver(forName: WebService.notificationsDidChange, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.libraryChanged() }
+        }
+        observers.append(notifications)
         downloadsObserver = NotificationCenter.default.addObserver(forName: WebDownloads.didChange, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.libraryChanged() }
         }
@@ -85,6 +90,7 @@ final class WebHomeScreen: ScreenView, Reloadable {
 
     isolated deinit {
         if let observer { NotificationCenter.default.removeObserver(observer) }
+        for extra in observers { NotificationCenter.default.removeObserver(extra) }
         if let downloadsObserver { NotificationCenter.default.removeObserver(downloadsObserver) }
         loadTask?.cancel()
         recommendedTask?.cancel()
@@ -108,6 +114,7 @@ final class WebHomeScreen: ScreenView, Reloadable {
 
     override func screenDidAppear() {
         load(fresh: false)
+        Task { await WebService.shared.refreshNotificationsIfStale() }
     }
 
     override func screenWillDisappear() {
@@ -186,7 +193,9 @@ final class WebHomeScreen: ScreenView, Reloadable {
         fill(recommendedShelf, with: Array(recommended.prefix(24)))
         fill(laterShelf, with: Array(later.prefix(24)))
         channelShelf.setItems(channels.map { WebCards.card($0) })
+        let unread = WebService.shared.notificationUnreadCount
         var listed: [ChipRowView.Chip] = [
+            .init(id: "notifications", title: notificationsChipTitle(unread: unread), symbol: "bell"),
             .init(id: "link", title: WebCopy.openLink, symbol: "link"),
             .init(id: "search", title: String(localized: "Search"), symbol: "magnifyingglass"),
             .init(id: "history", title: String(localized: "History"), symbol: "clock.arrow.circlepath"),
@@ -214,6 +223,7 @@ final class WebHomeScreen: ScreenView, Reloadable {
 
     private func choose(_ id: String) {
         switch id {
+        case "notifications": rootView?.push(WebNotificationsScreen())
         case "link": rootView?.presentOpenLink()
         case "search": rootView?.select("search")
         case "history": rootView?.push(WebScreens.history())
@@ -224,6 +234,12 @@ final class WebHomeScreen: ScreenView, Reloadable {
         case "settings": rootView?.push(WebSettingsScreen())
         default: break
         }
+    }
+
+    /// The bell's chip, with how many videos are waiting when there are any.
+    private func notificationsChipTitle(unread: Int) -> String {
+        let title = String(localized: "Notifications")
+        return unread > 0 ? "\(title) · \(unread)" : title
     }
 
     private func presentChannelMenu(_ channel: WebChannel, at point: Point?) {

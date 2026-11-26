@@ -13,7 +13,7 @@ Design for a Linux client that looks and behaves like the Apple TV app, on a des
 | D3 | Language | 2026-11-15: Swift (§2) |
 | D4 | Primary input | 2026-11-15: mouse and keyboard first. Gamepad, remote-style keys and the TV are a plus, never at the desk's expense (§5.4) |
 | D5 | Glass | 2026-11-15: Kiln draws Liquid Glass, not a blur stand-in (§5.7) |
-| D6 | Web video | 2026-11-17: the Linux client plays YouTube and whatever else yt-dlp reads, as a destination beside the libraries, built on open tools (yt-dlp, mpv, SponsorBlock) and never on a site's API or account. It exists on Linux only: none of its code or words is in any target or catalog the Apple apps build from (§14) |
+| D6 | Web video | 2026-11-17: the Linux client plays YouTube and whatever else yt-dlp reads, as a destination beside the libraries, built on open tools (yt-dlp, mpv, SponsorBlock) and never on a site's API or account, with an inbox of every followed channel's new videos. It exists on Linux only: none of its code or words is in any target or catalog the Apple apps build from (§14) |
 
 The bar is the best media client on any desktop: nothing ships that looks or feels worse than the Apple TV app it mirrors.
 
@@ -385,7 +385,7 @@ The Linux client is free and open, so it can do what mpv and yt-dlp have long do
 | Piece | Where | What it holds |
 | --- | --- | --- |
 | `CrucibleWeb` | `linux/Sources/CrucibleWeb`, a Linux-only library with no UI | The yt-dlp runner, what yt-dlp says of a video or a list, the stream picker, a channel's feed, SponsorBlock, links, the viewer's library and its imports |
-| Screens | `linux/Sources/CrucibleApp/Web` | The YouTube destination, a channel's page, lists, card menus, Open Link, Settings › Web Video, `WebService` (yt-dlp's answers kept, the subscriptions feed, captions) |
+| Screens | `linux/Sources/CrucibleApp/Web` | The YouTube destination, its notifications inbox, a channel's page, lists, card menus, Open Link, Settings › Web Video, `WebService` (yt-dlp's answers kept, the subscriptions feed, captions) |
 | Player | `PlayerScreen+Web.swift` | The web source: it hands the player the same `ResolvedStream` a Plex title has, so chapters, skips, menus, Stream Info and Match Content need no second implementation |
 | Words | `linux/Sources/CrucibleApp/Resources/Web.xcstrings` | Every string of the above in the sixteen languages, loaded after `Localizable.xcstrings` (`LocalizationCatalog.add`). The shared catalog, which the Apple apps ship, carries none of them |
 
@@ -411,7 +411,7 @@ SponsorBlock is asked by the first four characters of the video ID's SHA-256, so
 
 ### 14.4 The viewer's library
 
-Followed channels, Watch Later, progress and downloads are one file, `web/library.json` in the app's data folder, written a moment after each change and before quitting. No site hears of any of it. A video's page (View Details) shows its description, its chapters and the top of its comments, which yt-dlp reads in a second, slower run. Download saves a video as one Matroska file with its chapters and the publisher's subtitles into `Crucible` in the viewer's Videos folder, within the quality set in Settings; a downloaded video plays from its file and keeps its place like any other. Subscriptions come in from Google Takeout, OPML, NewPipe, FreeTube and Invidious, and go out as OPML. With a browser's cookies set, the account's recommendations, Watch Later and liked videos become rows and chips, its channels can be followed in one step, and a finished video can be noted in its history.
+Followed channels, Watch Later, progress, downloads and what the inbox has read and muted are one file, `web/library.json` in the app's data folder, written a moment after each change and before quitting. No site hears of any of it. A video's page (View Details) shows its description, its chapters and the top of its comments, which yt-dlp reads in a second, slower run. Download saves a video as one Matroska file with its chapters and the publisher's subtitles into `Crucible` in the viewer's Videos folder, within the quality set in Settings; a downloaded video plays from its file and keeps its place like any other. Subscriptions come in from Google Takeout, OPML, NewPipe, FreeTube and Invidious, and go out as OPML. With a browser's cookies set, the account's recommendations, Watch Later and liked videos become rows and chips, its channels can be followed in one step, and a finished video can be noted in its history.
 
 ### 14.5 What leaves the machine
 
@@ -424,7 +424,7 @@ Followed channels, Watch Later, progress and downloads are one file, `web/librar
 
 ### 14.6 Testing
 
-`CrucibleWebTests` (31 tests) reads fixtures cut from real yt-dlp answers with every stream address replaced, since those carry the address of the machine that asked. `CRUCIBLE_PLAY_LINK=<address>` plays one link in a bare player for headless checks, and `linux/scripts/mock-session.sh` shows the destination beside the mock library. With `CRUCIBLE_OPEN_LINK=https://www.youtube.com/shorts/<id>` the mock session opens the Shorts player, which `--capture` then drives with keys, the pointer, the wheel and the virtual gamepad.
+`CrucibleWebTests` (40 tests) reads fixtures cut from real yt-dlp answers with every stream address replaced, since those carry the address of the machine that asked. `CRUCIBLE_PLAY_LINK=<address>` plays one link in a bare player for headless checks, and `linux/scripts/mock-session.sh` shows the destination beside the mock library. With `CRUCIBLE_OPEN_LINK=https://www.youtube.com/shorts/<id>` the mock session opens the Shorts player, which `--capture` then drives with keys, the pointer, the wheel and the virtual gamepad.
 
 ### 14.7 Shorts
 
@@ -458,3 +458,9 @@ Shorts never mix into the rows of videos. The YouTube page keeps the followed ch
 | Escape, B, the mouse's back button | Close the details sheet, then leave the rail, then go back |
 
 The details sheet reads the comments in a second yt-dlp run, begun once a clip has stayed over half a second, and is scrolled by the wheel or, with the keyboard or a gamepad on it, the arrows.
+
+### 14.8 Notifications
+
+The YouTube page's bell opens the inbox: every video the channels' public feeds carry, Shorts included, newest first, under the day it arrived, dropping anything older than sixty days. A row shows the picture, the channel's face, the title and the facts, an accent bar while unread and a tick once watched; selecting it plays it and reads it. The chips filter by Videos, Shorts and Unread, choose one channel, mark everything read or read the feeds again; the Channels menu lists the channels with their counts and, under them, the muted ones, which choosing restores. A right click offers the menu every web video has, with Mark as Read and Mute Notifications added.
+
+What was read and muted stays in `web/library.json`; watching a video reads its notification too, read ids beyond four thousand are forgotten, and videos older than sixty days leave the inbox whether or not they were read. The unread count sits on the YouTube tab and, on a desk, in the sidebar, and the YouTube page carries it in its Notifications chip. `WebService` reads the feeds every ten minutes while the app runs, so the badge is current without opening the page; the inbox is the same public feed as the shelves and never asks an account for anything.

@@ -32,6 +32,7 @@ final class RootView: View, WindowRestoration.Restorable {
     private(set) var current: NavigationView?
     private var currentID = "home"
     private let libraryLayout: LibraryTabLayout
+    private var notificationObservers: [NSObjectProtocol] = []
 
     init(payload: LaunchPayload) {
         self.payload = payload
@@ -56,6 +57,36 @@ final class RootView: View, WindowRestoration.Restorable {
         addSubview(tabBar)
         installSidebar()
         select("home")
+        watchNotifications()
+    }
+
+    isolated deinit {
+        for observer in notificationObservers { NotificationCenter.default.removeObserver(observer) }
+    }
+
+    /// Keeps the YouTube destination's badge on the tab bar and the sidebar in step with the inbox, and checks the feeds
+    /// while the app runs so it is current without opening the page.
+    private func watchNotifications() {
+        for name in [WebLibrary.didChange, WebService.notificationsDidChange] {
+            notificationObservers.append(NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.updateWebBadge() }
+            })
+        }
+        guard Self.showsWeb else { return }
+        WebService.shared.startNotificationMonitoring()
+        Task { await WebService.shared.refreshNotificationsIfStale(maxAge: 5 * 60) }
+        updateWebBadge()
+    }
+
+    private func updateWebBadge() {
+        guard Self.showsWeb else {
+            tabBar.setBadge(nil, for: Self.webID)
+            sidebar.setBadge(nil, for: Self.webID)
+            return
+        }
+        let unread = WebService.shared.notificationUnreadCount
+        tabBar.setBadge(unread, for: Self.webID)
+        sidebar.setBadge(unread, for: Self.webID)
     }
 
     /// The YouTube destination's name among the tabs.

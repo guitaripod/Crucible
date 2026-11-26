@@ -445,3 +445,80 @@ enum Fixture {
         if case .signInRequired = members {} else { Issue.record("members-only content should need an account, got \(members)") }
     }
 }
+
+@Suite struct WebInboxTests {
+    private static let now = Date(timeIntervalSince1970: 1_800_000_000)
+
+    private func entry(_ id: String, hoursAgo: Double, channel: String = "UC1") -> WebEntry {
+        WebEntry(id: id, url: "https://www.youtube.com/watch?v=\(id)", title: "Video \(id)", channel: "Channel \(channel)",
+                 channelID: channel, published: Self.now.addingTimeInterval(-hoursAgo * 3600))
+    }
+
+    @Test func listsEveryVideoNewestFirstWithoutRepeats() {
+        let entries = [entry("a", hoursAgo: 1), entry("b", hoursAgo: 5), entry("a", hoursAgo: 1), entry("c", hoursAgo: 30)]
+        let items = WebInbox.items(entries: entries, state: WebNotificationState(), watched: [], now: Self.now)
+        #expect(items.map(\.id) == ["a", "b", "c"])
+    }
+
+    @Test func leavesOutMutedChannelsAndOldVideos() {
+        var state = WebNotificationState()
+        state.setMuted(true, channelID: "UC2")
+        let entries = [entry("a", hoursAgo: 2), entry("b", hoursAgo: 2, channel: "UC2"), entry("c", hoursAgo: 61 * 24)]
+        let items = WebInbox.items(entries: entries, state: state, watched: [], now: Self.now)
+        #expect(items.map(\.id) == ["a"])
+    }
+
+    @Test func keepsReadingAndWatchingApartFromUnread() {
+        var state = WebNotificationState()
+        state.markRead(["a"], at: Self.now)
+        let entries = [entry("a", hoursAgo: 1), entry("b", hoursAgo: 2), entry("c", hoursAgo: 3)]
+        let items = WebInbox.items(entries: entries, state: state, watched: ["b"], now: Self.now)
+        #expect(items.first { $0.id == "a" }?.isUnread == false)
+        #expect(items.first { $0.id == "b" }?.isWatched == true)
+        #expect(items.first { $0.id == "b" }?.isUnread == true)
+        #expect(WebInbox.unreadCount(entries: entries, state: state, watched: ["b"], now: Self.now) == 2)
+    }
+
+    @Test func readsAreForgottenOldestFirst() {
+        var state = WebNotificationState()
+        for index in 0..<WebNotificationState.readLimit + 10 {
+            state.markRead(["v\(index)"], at: Self.now.addingTimeInterval(Double(index)))
+        }
+        #expect(state.read.count == WebNotificationState.readLimit)
+        #expect(state.isRead("v0") == false)
+        #expect(state.isRead("v\(WebNotificationState.readLimit + 9)"))
+    }
+
+    @Test func watchingAVideoReadsItsNotification() throws {
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent("web-watch-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: file) }
+        let library = WebLibrary(file: file)
+        let video = entry("watched", hoursAgo: 1)
+        library.record(video, position: 60, duration: 600, at: Self.now)
+        #expect(library.notificationState.isRead(video.id))
+    }
+
+    @Test func groupsTheLastWeekByDayAndTheRestAsEarlier() {
+        let calendar = Calendar(identifier: .gregorian)
+        let twoHoursAgo = Self.now.addingTimeInterval(-2 * 3600)
+        let yesterday = Self.now.addingTimeInterval(-26 * 3600)
+        let weekday = Self.now.addingTimeInterval(-3 * 24 * 3600)
+        let old = Self.now.addingTimeInterval(-20 * 24 * 3600)
+        #expect(WebInbox.day(of: twoHoursAgo, now: Self.now, calendar: calendar) == .today)
+        #expect(WebInbox.day(of: yesterday, now: Self.now, calendar: calendar) == .yesterday)
+        #expect(WebInbox.day(of: weekday, now: Self.now, calendar: calendar) == .weekday(calendar.component(.weekday, from: weekday)))
+        #expect(WebInbox.day(of: old, now: Self.now, calendar: calendar) == .earlier)
+    }
+
+    @Test func keepsWhatWasReadWithTheLibraryAcrossLaunches() throws {
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent("web-library-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: file) }
+        let library = WebLibrary(file: file)
+        library.markNotificationsRead(["a", "b"], at: Self.now)
+        library.setNotificationMuted(true, channelID: "UC2")
+        library.flush()
+        let reopened = WebLibrary(file: file)
+        #expect(reopened.notificationState.isRead("a"))
+        #expect(reopened.notificationState.isMuted(channelID: "UC2"))
+    }
+}

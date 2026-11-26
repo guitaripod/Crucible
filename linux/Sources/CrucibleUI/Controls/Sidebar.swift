@@ -65,6 +65,7 @@ public final class SidebarView: View {
     private let scroller = ScrollView(axis: .vertical)
     private var rows: [SidebarRow] = []
     private var headings: [(title: String, y: Float)] = []
+    private var badges: [String: Int] = [:]
 
     public override init(frame: Rect = .zero) {
         super.init(frame: frame)
@@ -102,12 +103,21 @@ public final class SidebarView: View {
         rows.first { $0.item.id == id }?.frameInWindow
     }
 
+    /// Puts a count of new things on a destination, or takes it away with nil or zero.
+    public func setBadge(_ count: Int?, for id: String) {
+        let value = count.flatMap { $0 > 0 ? $0 : nil }
+        guard badges[id] != value else { return }
+        if let value { badges[id] = value } else { badges.removeValue(forKey: id) }
+        rows.first { $0.item.id == id }?.badge = value
+    }
+
     private func rebuild() {
         rows.forEach { $0.removeFromSuperview() }
         rows = (sections.flatMap(\.items) + footer).map { item in
             let row = SidebarRow(item: item)
             row.isCollapsed = isCollapsed
             row.isSelected = item.id == selectedID
+            row.badge = badges[item.id]
             row.onPress = { [weak self, weak row] in
                 guard let self, let row else { return }
                 self.onSelect?(row.item, row.frameInWindow)
@@ -180,6 +190,7 @@ final class SidebarRow: View {
     var onPress: (() -> Void)?
     var isSelected = false { didSet { if isSelected != oldValue { setNeedsDisplay() } } }
     var isCollapsed = false { didSet { if isCollapsed != oldValue { setNeedsDisplay() } } }
+    var badge: Int? { didSet { if badge != oldValue { setNeedsDisplay() } } }
     private var hover = Animated(0)
     private var pressed = false
 
@@ -190,6 +201,7 @@ final class SidebarRow: View {
 
     override var canBecomeFocused: Bool { true }
     override var accessibilityLabel: String? { item.title }
+    override var accessibilityValue: String? { badge.map { String($0) } }
     override var accessibilityRole: AccessibilityRole { .tab }
     override var accessibilityIsSelected: Bool? { isSelected }
 
@@ -252,11 +264,41 @@ final class SidebarRow: View {
         let symbolX = isCollapsed ? (bounds.width - side) / 2 : metrics.tv(18)
         let tint = isSelected ? palette.accentText : palette.label
         context.symbol(item.symbol, in: Rect(x: symbolX, y: bounds.midY - side / 2, width: side, height: side), color: tint)
-        guard !isCollapsed else { return }
+        guard !isCollapsed else {
+            if let badge, badge > 0 {
+                let dot = metrics.tv(20)
+                context.fill(Rect(x: symbolX + side - dot * 0.7, y: bounds.midY - side / 2 - dot * 0.3, width: dot, height: dot), radius: dot / 2,
+                             color: palette.accent)
+            }
+            return
+        }
+        let badgeRoom = badgeWidth + (badge == nil ? 0 : metrics.tv(12))
         let x = symbolX + side + metrics.tv(20)
-        let title = TextLayout(item.title, font: isSelected ? theme.type.cardTitle : theme.type.body, maxWidth: bounds.width - x - metrics.tv(12), maxLines: 1,
-                               scale: scale)
+        let title = TextLayout(item.title, font: isSelected ? theme.type.cardTitle : theme.type.body, maxWidth: bounds.width - x - metrics.tv(12) - badgeRoom,
+                               maxLines: 1, scale: scale)
         context.text(title, at: Point(x: x, y: ((bounds.height - title.size.height) / 2 * scale).rounded() / scale), color: isSelected ? palette.label : palette.label)
+        if let badge, badge > 0 {
+            drawBadge(badge > 99 ? "99+" : String(badge), in: &context)
+        }
+    }
+
+    private var badgeWidth: Float {
+        guard let badge, badge > 0, let scale = window?.scale else { return 0 }
+        let text = badge > 99 ? "99+" : String(badge)
+        let layout = TextLayout(text, font: Theme.current.type.caption2, maxLines: 1, scale: scale)
+        return max(Theme.current.metrics.tv(34), layout.size.width + Theme.current.metrics.tv(16))
+    }
+
+    private func drawBadge(_ text: String, in context: inout DrawContext) {
+        guard let scale = window?.scale else { return }
+        let metrics = Theme.current.metrics
+        let palette = Theme.current.palette
+        let layout = TextLayout(text, font: Theme.current.type.caption2, maxLines: 1, scale: scale)
+        let height = metrics.tv(34)
+        let width = max(height, layout.size.width + metrics.tv(16))
+        let rect = Rect(x: bounds.maxX - width - metrics.tv(10), y: (bounds.height - height) / 2, width: width, height: height)
+        context.fill(rect, radius: height / 2, color: palette.accent)
+        context.text(layout, at: Point(x: rect.midX - layout.size.width / 2, y: rect.midY - layout.size.height / 2), color: palette.onAccent)
     }
 }
 

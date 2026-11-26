@@ -31,6 +31,7 @@ public final class TabBarView: View {
     public var menuTitle = "Menu" { didSet { rebuild() } }
 
     private var items: [TabItemView] = []
+    private var badges: [String: Int] = [:]
     private var menuItem: TabItemView?
     private var pillX = Animated(0)
     private var pillWidth = Animated(0)
@@ -45,6 +46,15 @@ public final class TabBarView: View {
     public override var remembersFocus: Bool { true }
     public override var preferredFocusView: View? { items.first { $0.tab.id == selectedID } ?? items.first }
     public override var overdraw: Float { Theme.current.metrics.tv(60) }
+
+    /// Puts a count of new things on a tab, or takes it away with nil or zero.
+    public func setBadge(_ count: Int?, for id: String) {
+        let value = count.flatMap { $0 > 0 ? $0 : nil }
+        guard badges[id] != value else { return }
+        if let value { badges[id] = value } else { badges.removeValue(forKey: id) }
+        items.first { $0.tab.id == id }?.badge = value
+        setNeedsLayout()
+    }
 
     public func select(_ id: String, animated: Bool) {
         selectedID = id
@@ -170,6 +180,13 @@ final class TabItemView: View {
     var isSelected = false { didSet { setNeedsDisplay() } }
     /// Shows the tab's symbol instead of its title, in a window too narrow for every title.
     var isCompact = false { didSet { setNeedsDisplay() } }
+    var badge: Int? {
+        didSet {
+            guard badge != oldValue else { return }
+            superview?.setNeedsLayout()
+            setNeedsDisplay()
+        }
+    }
     var tone: Float = 0
     var onPress: (() -> Void)?
     private var lift = Animated(0)
@@ -193,7 +210,21 @@ final class TabItemView: View {
 
     var titledWidth: Float { (layout.size.width + Theme.current.metrics.tabItemInset * 2).rounded(.up) }
 
-    var preferredWidth: Float { isCompact ? (Theme.current.metrics.tabBarHeight * 1.15).rounded(.up) : titledWidth }
+    private var badgeText: String? {
+        guard let badge, badge > 0 else { return nil }
+        return badge > 99 ? "99+" : String(badge)
+    }
+
+    private var badgeWidth: Float {
+        guard let text = badgeText, let scale = window?.scale else { return badgeText == nil ? 0 : Theme.current.metrics.tv(30) }
+        let layout = TextLayout(text, font: Theme.current.type.caption2, maxLines: 1, scale: scale)
+        return max(Theme.current.metrics.tv(34), layout.size.width + Theme.current.metrics.tv(16))
+    }
+
+    var preferredWidth: Float {
+        if isCompact { return (Theme.current.metrics.tabBarHeight * 1.15).rounded(.up) }
+        return titledWidth + (badgeText == nil ? 0 : badgeWidth + Theme.current.metrics.tv(6))
+    }
 
     private func update() {
         lift.set(isFocused && (window?.isFocusVisible ?? false) ? 1 : 0, animation: .focus)
@@ -243,8 +274,29 @@ final class TabItemView: View {
             return
         }
         let text = layout
-        let x = ((rect.width - text.size.width) / 2 * rasterScale).rounded() / rasterScale
+        let x = badgeText == nil ? ((rect.width - text.size.width) / 2 * rasterScale).rounded() / rasterScale : Theme.current.metrics.tv(18)
         let y = ((rect.height - text.size.height) / 2 * rasterScale).rounded() / rasterScale
         context.text(text, at: Point(x: x, y: y), color: color)
+        if let badgeText {
+            drawBadge(badgeText, in: &context)
+        }
+    }
+
+    /// The count on the tab's trailing end, a dot when the tab shows only its symbol.
+    private func drawBadge(_ text: String, in context: inout DrawContext) {
+        let metrics = Theme.current.metrics
+        let palette = Theme.current.palette
+        if isCompact {
+            let dot = metrics.tv(18)
+            context.fill(Rect(x: bounds.maxX - dot - metrics.tv(6), y: bounds.minY + metrics.tv(6), width: dot, height: dot), radius: dot / 2,
+                         color: palette.accent)
+            return
+        }
+        let layout = TextLayout(text, font: Theme.current.type.caption2, maxLines: 1, scale: rasterScale)
+        let height = metrics.tv(34)
+        let width = max(height, layout.size.width + metrics.tv(16))
+        let rect = Rect(x: bounds.maxX - width - metrics.tv(6), y: (bounds.height - height) / 2, width: width, height: height)
+        context.fill(rect, radius: height / 2, color: palette.accent)
+        context.text(layout, at: Point(x: rect.midX - layout.size.width / 2, y: rect.midY - layout.size.height / 2), color: palette.onAccent)
     }
 }

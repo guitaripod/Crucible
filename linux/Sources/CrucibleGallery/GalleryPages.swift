@@ -91,8 +91,9 @@ enum GalleryFixtures {
             if case .url(let url) = item.artwork { urls[url] = .some(nil) }
         }
         let untitled: String? = nil
-        urls[GalleryArt.url("backdrop", "lighthouse")] = untitled
-        urls[GalleryArt.url("backdrop", "salt-flats")] = untitled
+        for seed in ["lighthouse", "salt-flats", "neon", "ember"] {
+            urls[GalleryArt.url("backdrop", seed)] = untitled
+        }
         return urls
     }
 }

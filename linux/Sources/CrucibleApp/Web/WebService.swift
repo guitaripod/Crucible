@@ -102,8 +102,13 @@ final class WebService {
 
     private var feed: (entries: [WebEntry], at: Date, channels: Set<String>)?
     private var feedTask: Task<(entries: [WebEntry], names: [String: String]), Never>?
+    private var notificationMonitor: Task<Void, Never>?
     private static let feedLife: TimeInterval = 15 * 60
     private static var feedFile: URL { AppPlatform.cachesDirectory.appendingPathComponent("web/feed.json") }
+
+    /// Posted when the subscriptions feed brought videos the viewer had not been shown, or was read afresh, so the
+    /// window's badges and an open inbox can follow.
+    static let notificationsDidChange = Notification.Name("org.guitaripod.Crucible.WebNotificationsDidChange")
 
     /// Everything the feed held when it was last read, at once: this launch's, else the one kept from the launch before.
     private var feedEntriesAtHand: [WebEntry] {
@@ -118,6 +123,19 @@ final class WebService {
     /// The feed's videos as they were last read.
     var subscriptionsFeedAtHand: [WebEntry] { visible(feedEntriesAtHand) }
 
+    /// Every video the feed held when it was last read, Shorts included, for the inbox.
+    var inboxEntriesAtHand: [WebEntry] { feedEntriesAtHand }
+
+    /// The subscriptions inbox as it stands: every video of the followed channels in the last sixty days, with what the
+    /// viewer read, muted and finished.
+    var notificationItems: [WebInboxItem] {
+        let finished = Set(library.history.lazy.filter { $0.isFinished }.map { $0.entry.id })
+        return WebInbox.items(entries: feedEntriesAtHand, state: library.notificationState, watched: finished)
+    }
+
+    /// How many videos in the inbox have not been read.
+    var notificationUnreadCount: Int { notificationItems.lazy.filter(\.isUnread).count }
+
     /// The feed's Shorts as they were last read, those the viewer has not watched first; none while they hide Shorts.
     var subscriptionShortsAtHand: [WebEntry] {
         guard !WebSettings.hidesShorts else { return [] }
@@ -129,10 +147,38 @@ final class WebService {
     /// channels are a hundred small requests, eight at a time, and none of them is a yt-dlp run. A feed read in the last
     /// quarter of an hour for the same channels is kept unless `fresh`.
     func subscriptionsFeed(fresh: Bool = false) async -> [WebEntry] {
+        visible(await feedEntries(fresh: fresh))
+    }
+
+    /// Reads the feeds afresh for the inbox and hands back everything they hold, Shorts included.
+    func notificationsFeed(fresh: Bool = false) async -> [WebEntry] {
+        await feedEntries(fresh: fresh)
+    }
+
+    /// Checks the feeds on a timer while the app runs, so the badge is current without opening the page.
+    func startNotificationMonitoring() {
+        guard notificationMonitor == nil else { return }
+        notificationMonitor = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(10 * 60))
+                guard !Task.isCancelled, let self else { return }
+                await self.refreshNotificationsIfStale()
+            }
+        }
+    }
+
+    /// Reads the feeds again unless they were read within `maxAge`.
+    func refreshNotificationsIfStale(maxAge: TimeInterval = 10 * 60) async {
+        guard !library.subscriptions.isEmpty else { return }
+        if let feed, Date().timeIntervalSince(feed.at) < maxAge { return }
+        _ = await notificationsFeed(fresh: true)
+    }
+
+    private func feedEntries(fresh: Bool = false) async -> [WebEntry] {
         let channels = library.subscriptions
         let followed = Set(channels.map(\.id))
-        if !fresh, let feed, feed.channels == followed, Date().timeIntervalSince(feed.at) < Self.feedLife { return visible(feed.entries) }
-        if let running = feedTask { return visible(await running.value.entries) }
+        if !fresh, let feed, feed.channels == followed, Date().timeIntervalSince(feed.at) < Self.feedLife { return feed.entries }
+        if let running = feedTask { return await running.value.entries }
         let task = Task.detached(priority: .userInitiated) { await Self.readFeeds(of: channels) }
         feedTask = task
         let (entries, names) = await task.value
@@ -147,7 +193,8 @@ final class WebService {
             try? FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
             try? data.write(to: file, options: .atomic)
         }
-        return visible(entries)
+        NotificationCenter.default.post(name: Self.notificationsDidChange, object: self)
+        return entries
     }
 
     /// The feed's videos; its Shorts have a shelf and a player of their own (`subscriptionShortsAtHand`).
@@ -179,7 +226,7 @@ final class WebService {
             }
         }
         let newestFirst = entries.sorted { ($0.published ?? .distantPast) > ($1.published ?? .distantPast) }
-        return (Array(newestFirst.prefix(400)), names)
+        return (Array(newestFirst.prefix(1200)), names)
     }
 
     // MARK: Beside yt-dlp

@@ -36,11 +36,13 @@ struct Gallery {
         case "tiles": GalleryTiles()
         case "panels": GalleryPanels()
         case "stats": GalleryStats()
+        case "inbox": GalleryInbox()
+        case "badges": GalleryBadges()
         default: GalleryHome()
         }
     }
 
-    static let pages = ["home", "cards", "controls", "grid", "states", "tiles", "panels", "stats"]
+    static let pages = ["home", "cards", "controls", "grid", "states", "tiles", "panels", "stats", "inbox", "badges"]
 
     /// Renders each page in its rest state and in the states that matter (keyboard focus, hover, what it presents), writing
     /// PNGs; returns whether every golden check passed.
@@ -76,6 +78,12 @@ struct Gallery {
                 window.handleKey(KeyEvent(key: .down))
                 settle(window)
                 write(window, to: "\(directory)/home-focus-people.png", report: &report)
+            case "inbox":
+                let inbox = page as! GalleryInbox
+                window.focus.setVisible(true)
+                window.focus.focus(inbox.list, animated: false)
+                settle(window)
+                write(window, to: "\(directory)/inbox-focus.png", report: &report)
             case "cards":
                 let cards = page as! GalleryCards
                 if let card = cards.posters.card(for: "the-last-lighthouse") {
