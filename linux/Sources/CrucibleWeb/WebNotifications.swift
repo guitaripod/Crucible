@@ -64,20 +64,35 @@ package struct WebNotificationState: Codable, Sendable, Equatable {
         return mutedChannels.contains(channelID)
     }
 
-    package mutating func markRead(_ ids: some Sequence<String>, at date: Date = Date()) {
-        for id in ids { read[id] = date }
-        trimRead()
+    /// Marks `ids` read and returns whether any of them was not read already.
+    @discardableResult
+    package mutating func markRead(_ ids: some Sequence<String>, at date: Date = Date()) -> Bool {
+        var changed = false
+        for id in ids where read[id] == nil {
+            read[id] = date
+            changed = true
+        }
+        if changed { trimRead() }
+        return changed
     }
 
-    package mutating func markUnread(_ ids: some Sequence<String>) {
-        for id in ids { read.removeValue(forKey: id) }
+    /// Marks `ids` unread and returns whether any of them was read.
+    @discardableResult
+    package mutating func markUnread(_ ids: some Sequence<String>) -> Bool {
+        var changed = false
+        for id in ids where read.removeValue(forKey: id) != nil { changed = true }
+        return changed
     }
 
-    /// Mutes or unmutes a channel, keeping the list sorted so the file changes only when the set does.
-    package mutating func setMuted(_ isMuted: Bool, channelID: String) {
+    /// Mutes or unmutes a channel, keeping the list sorted so the file changes only when the set does. Returns whether
+    /// the set changed.
+    @discardableResult
+    package mutating func setMuted(_ isMuted: Bool, channelID: String) -> Bool {
         var channels = Set(mutedChannels)
         if isMuted { channels.insert(channelID) } else { channels.remove(channelID) }
+        guard channels != Set(mutedChannels) else { return false }
         mutedChannels = channels.sorted()
+        return true
     }
 
     /// Forgets the oldest read notifications past the limit.

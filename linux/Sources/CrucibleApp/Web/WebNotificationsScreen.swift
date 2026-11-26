@@ -53,6 +53,10 @@ final class WebNotificationsScreen: ScreenView, Reloadable {
     private var hasLoaded = false
     private var isChecking = false
     private var queued = false
+    private var channelLookup: [String: WebChannel] = [:]
+    private var seenRevision = -1
+    private var seenFeedGeneration = -1
+    private var seenWatchRevision = -1
 
     init() {
         super.init()
@@ -102,7 +106,13 @@ final class WebNotificationsScreen: ScreenView, Reloadable {
     private func load(fresh: Bool) {
         loadTask?.cancel()
         isChecking = true
-        renderChrome()
+        let kept = WebService.shared.notificationItems
+        if !kept.isEmpty {
+            hasLoaded = true
+            adopt(kept)
+        } else {
+            renderChrome()
+        }
         loadTask = Task { [weak self] in
             _ = await WebService.shared.notificationsFeed(fresh: fresh)
             guard let self, !Task.isCancelled else { return }
@@ -120,12 +130,24 @@ final class WebNotificationsScreen: ScreenView, Reloadable {
     /// Takes the inbox as the library now stands, keeping the filters and the page the viewer has reached.
     private func adopt(_ newItems: [WebInboxItem]) {
         items = newItems
+        channelLookup = [:]
+        for channel in WebService.shared.library.subscriptions { channelLookup[channel.id] = channel }
+        seenRevision = WebService.shared.library.notificationRevision
+        seenFeedGeneration = WebService.shared.feedGeneration
+        seenWatchRevision = WebService.shared.library.watchRevision
         if let channelID, !items.contains(where: { $0.entry.channelID == channelID }) { self.channelID = nil }
         render()
     }
 
+    /// Library changes that cannot alter the inbox — a video's progress, a download finishing — are left alone, so the
+    /// grid is not rebuilt every ten seconds of playback.
     private func libraryChanged() {
+        guard rootView?.isCovered != true else { return }
         guard !queued else { return }
+        let revision = WebService.shared.library.notificationRevision
+        let generation = WebService.shared.feedGeneration
+        let watch = WebService.shared.library.watchRevision
+        guard revision != seenRevision || generation != seenFeedGeneration || watch != seenWatchRevision else { return }
         queued = true
         Task { [weak self] in
             try? await Task.sleep(for: .milliseconds(120))
@@ -223,7 +245,7 @@ final class WebNotificationsScreen: ScreenView, Reloadable {
 
     private func card(_ item: WebInboxItem) -> InboxCardItem {
         let entry = item.entry
-        let channel = WebService.shared.library.subscriptions.first { $0.id == entry.channelID }
+        let channel = channelLookup[entry.channelID ?? ""]
         let note = item.note
         let title: String
         let context: String?
@@ -246,8 +268,8 @@ final class WebNotificationsScreen: ScreenView, Reloadable {
         let avatar = note?.avatar ?? channel?.avatar
         let badge = entry.isLive ? String(localized: "LIVE") : (entry.isShort ? String(localized: "Shorts") : nil)
         return InboxCardItem(id: item.id, title: title, channel: note?.channel ?? entry.channel ?? channel?.title ?? "",
-                             context: context, facts: facts, thumbnail: WebArtwork.source(for: entry),
-                             avatar: WebArtwork.source(avatar), badge: badge, isComment: item.isComment, isUnread: item.isUnread,
+                             context: context, facts: facts, thumbnail: WebArtwork.inboxSource(for: entry),
+                             avatar: WebArtwork.avatar(avatar), badge: badge, isComment: item.isComment, isUnread: item.isUnread,
                              isWatched: item.isWatched, canMute: entry.channelID != nil)
     }
 
@@ -270,10 +292,16 @@ final class WebNotificationsScreen: ScreenView, Reloadable {
 
     private func renderChrome() {
         let all = items
-        let videos = all.lazy.filter { !$0.isComment && !$0.entry.isShort }.count
-        let shorts = all.lazy.filter { !$0.isComment && $0.entry.isShort }.count
-        let comments = all.lazy.filter(\.isComment).count
-        let unread = all.lazy.filter(\.isUnread).count
+        var videos = 0
+        var shorts = 0
+        var comments = 0
+        var unread = 0
+        for item in all {
+            if item.isUnread { unread += 1 }
+            if item.isComment { comments += 1 }
+            else if item.entry.isShort { shorts += 1 }
+            else { videos += 1 }
+        }
         var listed: [ChipRowView.Chip] = [
             .init(id: ChipID.all, title: "\(Filter.all.title) \(all.count)", isSelected: filter == .all),
             .init(id: ChipID.videos, title: "\(Filter.videos.title) \(videos)", isSelected: filter == .videos),
@@ -303,7 +331,7 @@ final class WebNotificationsScreen: ScreenView, Reloadable {
     private var channelTitle: String {
         guard let channelID else { return String(localized: "Channels") }
         return items.first { $0.entry.channelID == channelID }?.entry.channel
-            ?? WebService.shared.library.subscriptions.first { $0.id == channelID }?.title
+            ?? channelLookup[channelID]?.title
             ?? String(localized: "Channels")
     }
 
@@ -341,7 +369,7 @@ final class WebNotificationsScreen: ScreenView, Reloadable {
         }
         let library = WebService.shared.library
         let muted = library.notificationState.mutedChannels.map { id in
-            (id: id, name: library.subscriptions.first { $0.id == id }?.title ?? id)
+            (id: id, name: channelLookup[id]?.title ?? id)
         }.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
         menuItems += muted.map { channel in
             MenuView.Item(id: "unmute:\(channel.id)", title: String(localized: "Unmute \(channel.name)"), symbol: "bell")

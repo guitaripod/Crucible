@@ -70,6 +70,9 @@ package final class WebLibrary: @unchecked Sendable {
     private let lock = NSLock()
     private var contents: Contents
     private var writeScheduled = false
+    private var notificationsRevision = 0
+    private var watchGeneration = 0
+    private var watchIndex: [String: WebWatch]?
     private let writer = DispatchQueue(label: "org.guitaripod.Crucible.web-library", qos: .utility)
     private static let historyLimit = 3000
 
@@ -84,6 +87,15 @@ package final class WebLibrary: @unchecked Sendable {
 
     package var subscriptions: [WebChannel] {
         lock.withLock { contents.subscriptions }.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+    }
+
+    package var subscriptionCount: Int { lock.withLock { contents.subscriptions.count } }
+
+    package var subscriptionIDs: Set<String> { lock.withLock { Set(contents.subscriptions.map(\.id)) } }
+
+    /// One followed channel by its ID, without sorting the rest.
+    package func subscription(_ id: String) -> WebChannel? {
+        lock.withLock { contents.subscriptions.first { $0.id == id } }
     }
 
     package func isSubscribed(to channelID: String) -> Bool {
@@ -133,6 +145,23 @@ package final class WebLibrary: @unchecked Sendable {
         }
     }
 
+    /// Keeps every channel's name a feed gave, in one library change rather than one per channel.
+    package func refreshTitles(_ names: [String: String]) {
+        guard !names.isEmpty else { return }
+        let current = lock.withLock { contents.subscriptions }
+        let changed = current.contains { channel in
+            guard let name = names[channel.id], !name.isEmpty else { return false }
+            return name != channel.title
+        }
+        guard changed else { return }
+        change { contents in
+            for index in contents.subscriptions.indices {
+                guard let name = names[contents.subscriptions[index].id], !name.isEmpty else { continue }
+                contents.subscriptions[index].title = name
+            }
+        }
+    }
+
     // MARK: Notifications
 
     /// What the viewer read and muted in the subscriptions inbox.
@@ -140,32 +169,60 @@ package final class WebLibrary: @unchecked Sendable {
         lock.withLock { contents.notifications ?? WebNotificationState() }
     }
 
+    /// Counts the changes that can alter the inbox or its unread count, so a badge does not sort a thousand videos again
+    /// for every ten seconds of playback.
+    package var notificationRevision: Int {
+        lock.withLock { notificationsRevision }
+    }
+
+    private func bumpNotificationRevision() {
+        lock.withLock { notificationsRevision &+= 1 }
+    }
+
+    /// Counts the changes to whether a video is finished, which the inbox draws as a dimmed card; progress that does not
+    /// finish one leaves it alone.
+    package var watchRevision: Int {
+        lock.withLock { watchGeneration }
+    }
+
     package func markNotificationsRead(_ ids: [String], at date: Date = Date()) {
         guard !ids.isEmpty else { return }
+        let known = notificationState
+        guard ids.contains(where: { !known.isRead($0) }) else { return }
+        var changed = false
         change { contents in
             var state = contents.notifications ?? WebNotificationState()
-            state.markRead(ids, at: date)
-            contents.notifications = state
+            changed = state.markRead(ids, at: date)
+            if changed { contents.notifications = state }
         }
+        if changed { bumpNotificationRevision() }
     }
 
     package func markNotificationsUnread(_ ids: [String]) {
         guard !ids.isEmpty else { return }
+        let known = notificationState
+        guard ids.contains(where: { known.isRead($0) }) else { return }
+        var changed = false
         change { contents in
             var state = contents.notifications ?? WebNotificationState()
-            state.markUnread(ids)
-            contents.notifications = state
+            changed = state.markUnread(ids)
+            if changed { contents.notifications = state }
         }
+        if changed { bumpNotificationRevision() }
     }
 
     /// Keeps a channel's uploads out of the inbox without unfollowing the channel.
     package func setNotificationMuted(_ isMuted: Bool, channelID: String) {
         guard !channelID.isEmpty else { return }
+        let known = notificationState
+        guard known.isMuted(channelID: channelID) != isMuted else { return }
+        var changed = false
         change { contents in
             var state = contents.notifications ?? WebNotificationState()
-            state.setMuted(isMuted, channelID: channelID)
-            contents.notifications = state
+            changed = state.setMuted(isMuted, channelID: channelID)
+            if changed { contents.notifications = state }
         }
+        if changed { bumpNotificationRevision() }
     }
 
     package func isNotificationMuted(channelID: String) -> Bool {
@@ -197,6 +254,7 @@ package final class WebLibrary: @unchecked Sendable {
             state.markRead(merged.filter(\.isRead).map(\.id), at: now)
             contents.notifications = state
         }
+        bumpNotificationRevision()
     }
 
     // MARK: Watch Later
@@ -254,7 +312,12 @@ package final class WebLibrary: @unchecked Sendable {
     }
 
     package func watch(of id: String) -> WebWatch? {
-        lock.withLock { contents.history.first { $0.entry.id == id } }
+        lock.withLock {
+            if watchIndex == nil {
+                watchIndex = Dictionary(contents.history.map { ($0.entry.id, $0) }, uniquingKeysWith: { first, _ in first })
+            }
+            return watchIndex?[id]
+        }
     }
 
     /// Where to pick a video up: where it was left, or the start when it was finished or barely begun.
@@ -267,23 +330,44 @@ package final class WebLibrary: @unchecked Sendable {
     /// leaves Watch Later.
     package func record(_ entry: WebEntry, position: Double, duration: Double, at date: Date = Date()) {
         let finished = Self.isFinished(position: position, duration: duration)
+        var readChanged = false
+        var watchChanged = false
         change { contents in
+            let wasFinished = contents.history.first { $0.entry.id == entry.id }?.isFinished ?? false
+            if wasFinished != finished { watchChanged = true }
             contents.history.removeAll { $0.entry.id == entry.id }
             contents.history.insert(WebWatch(entry: entry, position: max(position, 0), duration: max(duration, 0), watchedAt: date, isFinished: finished), at: 0)
             if contents.history.count > Self.historyLimit { contents.history.removeLast(contents.history.count - Self.historyLimit) }
             if finished { contents.watchLater.removeAll { $0.id == entry.id } }
             var notifications = contents.notifications ?? WebNotificationState()
-            notifications.markRead([entry.id], at: date)
-            contents.notifications = notifications
+            if notifications.markRead([entry.id], at: date) {
+                contents.notifications = notifications
+                readChanged = true
+            }
         }
+        if readChanged { bumpNotificationRevision() }
+        if watchChanged { lock.withLock { watchGeneration &+= 1 } }
+        lock.withLock { watchIndex = nil }
     }
 
     package func removeFromHistory(_ id: String) {
-        change { $0.history.removeAll { $0.entry.id == id } }
+        var watchedChanged = false
+        change { contents in
+            if contents.history.first(where: { $0.entry.id == id })?.isFinished == true { watchedChanged = true }
+            contents.history.removeAll { $0.entry.id == id }
+        }
+        if watchedChanged { lock.withLock { watchGeneration &+= 1 } }
+        lock.withLock { watchIndex = nil }
     }
 
     package func clearHistory() {
-        change { $0.history = [] }
+        var watchedChanged = false
+        change { contents in
+            watchedChanged = contents.history.contains(where: \.isFinished)
+            contents.history = []
+        }
+        if watchedChanged { lock.withLock { watchGeneration &+= 1 } }
+        lock.withLock { watchIndex = nil }
     }
 
     /// A position under ten seconds is a video opened by mistake, not one to carry on with.

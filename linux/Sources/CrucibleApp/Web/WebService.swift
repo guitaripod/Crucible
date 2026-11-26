@@ -101,7 +101,11 @@ final class WebService {
     // MARK: The subscriptions feed
 
     private var feed: (entries: [WebEntry], at: Date, channels: Set<String>)?
+    private var keptFeed: (entries: [WebEntry], followed: Set<String>)?
     private var feedTask: Task<(entries: [WebEntry], names: [String: String]), Never>?
+    private(set) var feedGeneration = 0
+    private var inboxCache: (revision: Int, generation: Int, subscriptions: Int, watch: Int, items: [WebInboxItem])?
+    private var unreadCache: (revision: Int, generation: Int, subscriptions: Int, count: Int)?
     private var notificationMonitor: Task<Void, Never>?
     private var accountNotesAt: Date?
     private var accountNotesTask: Task<Void, Never>?
@@ -120,11 +124,14 @@ final class WebService {
     /// Everything the feed held when it was last read, at once: this launch's, else the one kept from the launch before.
     private var feedEntriesAtHand: [WebEntry] {
         if let feed { return feed.entries }
+        let followed = library.subscriptionIDs
+        if let keptFeed, keptFeed.followed == followed { return keptFeed.entries }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         guard let data = try? Data(contentsOf: Self.feedFile), let kept = try? decoder.decode([WebEntry].self, from: data) else { return [] }
-        let followed = Set(library.subscriptions.map(\.id))
-        return kept.filter { $0.channelID.map(followed.contains) ?? false }
+        let entries = kept.filter { $0.channelID.map(followed.contains) ?? false }
+        keptFeed = (entries, followed)
+        return entries
     }
 
     /// The feed's videos as they were last read.
@@ -134,17 +141,40 @@ final class WebService {
     var inboxEntriesAtHand: [WebEntry] { feedEntriesAtHand }
 
     /// The subscriptions inbox as it stands: every video of the followed channels in the last sixty days, with what the
-    /// viewer read, muted and finished.
+    /// viewer read, muted and finished. Kept until something that can change it does, since the badge and the screen both
+    /// ask for it.
     var notificationItems: [WebInboxItem] {
+        let revision = library.notificationRevision
+        let generation = feedGeneration
+        let subscriptions = library.subscriptionCount
+        let watch = library.watchRevision
+        if let inboxCache, inboxCache.revision == revision, inboxCache.generation == generation,
+           inboxCache.subscriptions == subscriptions, inboxCache.watch == watch {
+            return inboxCache.items
+        }
         let finished = Set(library.history.lazy.filter { $0.isFinished }.map { $0.entry.id })
-        return WebInbox.items(entries: feedEntriesAtHand, state: library.notificationState, watched: finished, notes: library.notes)
+        let items = WebInbox.items(entries: feedEntriesAtHand, state: library.notificationState, watched: finished, notes: library.notes)
+        inboxCache = (revision, generation, subscriptions, watch, items)
+        return items
     }
 
     /// Whether the browser's cookies can carry the account's own inbox, where replies and mentions arrive.
     var canReadAccountInbox: Bool { WebSettings.cookiesBrowser != nil }
 
-    /// How many videos in the inbox have not been read.
-    var notificationUnreadCount: Int { notificationItems.lazy.filter(\.isUnread).count }
+    /// How many videos and comments in the inbox have not been read. Kept between library changes that cannot alter it
+    /// (a video's progress, a download), so the tab's badge never sorts the whole inbox on a tick.
+    var notificationUnreadCount: Int {
+        let revision = library.notificationRevision
+        let generation = feedGeneration
+        let subscriptions = library.subscriptionCount
+        if let unreadCache, unreadCache.revision == revision, unreadCache.generation == generation,
+           unreadCache.subscriptions == subscriptions {
+            return unreadCache.count
+        }
+        let count = notificationItems.lazy.filter(\.isUnread).count
+        unreadCache = (revision, generation, subscriptions, count)
+        return count
+    }
 
     /// The feed's Shorts as they were last read, those the viewer has not watched first; none while they hide Shorts.
     var subscriptionShortsAtHand: [WebEntry] {
@@ -154,7 +184,7 @@ final class WebService {
     }
 
     /// The newest videos of every followed channel, newest first, read from each channel's public feed: a hundred
-    /// channels are a hundred small requests, eight at a time, and none of them is a yt-dlp run. A feed read in the last
+    /// channels are a hundred small requests, sixteen at a time, and none of them is a yt-dlp run. A feed read in the last
     /// quarter of an hour for the same channels is kept unless `fresh`.
     func subscriptionsFeed(fresh: Bool = false) async -> [WebEntry] {
         visible(await feedEntries(fresh: fresh))
@@ -235,7 +265,11 @@ final class WebService {
         let (entries, names) = await task.value
         feedTask = nil
         feed = (entries, Date(), followed)
-        for (id, name) in names { library.refresh(id, title: name, handle: nil, avatar: nil) }
+        feedGeneration &+= 1
+        keptFeed = nil
+        inboxCache = nil
+        unreadCache = nil
+        library.refreshTitles(names)
         let file = Self.feedFile
         Task.detached(priority: .utility) {
             let encoder = JSONEncoder()
@@ -255,26 +289,34 @@ final class WebService {
 
     /// Reads every channel's feed and merges them, newest first, with each channel's name as its feed gives it now.
     private nonisolated static func readFeeds(of channels: [WebChannel]) async -> (entries: [WebEntry], names: [String: String]) {
+        let batch = 16
+        let read: @Sendable (WebChannel) async -> (String, WebFeed?) = { channel in
+            guard let address = WebFeed.address(channelID: channel.id), let data = try? await WebArtwork.data(from: address, timeout: 10)
+            else { return (channel.id, nil) }
+            return (channel.id, WebFeed(atom: data))
+        }
+        let all = await withTaskGroup(of: (String, WebFeed?).self, returning: [(String, WebFeed?)].self) { group in
+            var index = 0
+            func addNext() {
+                guard index < channels.count else { return }
+                let channel = channels[index]
+                index += 1
+                group.addTask { await read(channel) }
+            }
+            for _ in 0..<min(batch, channels.count) { addNext() }
+            var results: [(String, WebFeed?)] = []
+            for await result in group {
+                results.append(result)
+                addNext()
+            }
+            return results
+        }
         var entries: [WebEntry] = []
         var names: [String: String] = [:]
-        var rest = channels[...]
-        while !rest.isEmpty {
-            let batch = rest.prefix(8)
-            rest = rest.dropFirst(8)
-            await withTaskGroup(of: (String, WebFeed?).self) { group in
-                for channel in batch {
-                    group.addTask {
-                        guard let address = WebFeed.address(channelID: channel.id), let data = try? await WebArtwork.data(from: address, timeout: 10)
-                        else { return (channel.id, nil) }
-                        return (channel.id, WebFeed(atom: data))
-                    }
-                }
-                for await (id, feed) in group {
-                    guard let feed else { continue }
-                    entries += feed.entries
-                    if let name = feed.channel { names[id] = name }
-                }
-            }
+        for (id, feed) in all {
+            guard let feed else { continue }
+            entries += feed.entries
+            if let name = feed.channel { names[id] = name }
         }
         let newestFirst = entries.sorted { ($0.published ?? .distantPast) > ($1.published ?? .distantPast) }
         return (Array(newestFirst.prefix(1200)), names)

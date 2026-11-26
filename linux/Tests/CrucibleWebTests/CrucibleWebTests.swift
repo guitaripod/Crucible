@@ -674,3 +674,68 @@ enum Fixture {
         #expect(WebLibrary(file: file).notes.first?.title == "edited elsewhere")
     }
 }
+
+@Suite struct WebInboxPerformanceTests {
+    private static let now = Date(timeIntervalSince1970: 1_800_000_000)
+
+    @Test func sortsTwelveHundredVideosQuickly() {
+        let entries = (0..<1200).map { index in
+            WebEntry(id: "v\(index)", url: "https://www.youtube.com/watch?v=v\(index)", title: "Video \(index)", channel: "Channel \(index % 97)",
+                     channelID: "UC\(index % 97)", published: Self.now.addingTimeInterval(-Double(index) * 60))
+        }
+        let clock = ContinuousClock()
+        let elapsed = clock.measure {
+            _ = WebInbox.items(entries: entries, state: WebNotificationState(), watched: [], now: Self.now)
+        }
+        #expect(elapsed < .seconds(1))
+    }
+
+    @Test func revisionMovesOnlyWhenTheInboxDoes() throws {
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent("web-revision-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: file) }
+        let library = WebLibrary(file: file)
+        let start = library.notificationRevision
+        library.markNotificationsRead(["a"], at: Self.now)
+        let afterRead = library.notificationRevision
+        #expect(afterRead > start)
+        library.markNotificationsRead(["a"], at: Self.now)
+        #expect(library.notificationRevision == afterRead)
+        library.markNotificationsUnread(["a"])
+        #expect(library.notificationRevision > afterRead)
+        let afterUnread = library.notificationRevision
+        library.setNotificationMuted(true, channelID: "UC1")
+        #expect(library.notificationRevision > afterUnread)
+        let afterMute = library.notificationRevision
+        library.setNotificationMuted(true, channelID: "UC1")
+        #expect(library.notificationRevision == afterMute)
+        let entry = WebEntry(id: "v1", url: "https://www.youtube.com/watch?v=v1", title: "Video", channelID: "UC1", published: Self.now)
+        library.record(entry, position: 20, duration: 600, at: Self.now)
+        #expect(library.notificationRevision > afterMute)
+        let afterRecord = library.notificationRevision
+        library.record(entry, position: 40, duration: 600, at: Self.now)
+        #expect(library.notificationRevision == afterRecord)
+    }
+}
+
+@Suite struct WebLibraryWatchIndexTests {
+    private static let now = Date(timeIntervalSince1970: 1_800_000_000)
+
+    @Test func keepsWatchLookupsCurrentAfterEveryHistoryChange() throws {
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent("web-watch-index-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: file) }
+        let library = WebLibrary(file: file)
+        let first = WebEntry(id: "a", url: "https://www.youtube.com/watch?v=a", title: "A", published: Self.now)
+        let second = WebEntry(id: "b", url: "https://www.youtube.com/watch?v=b", title: "B", published: Self.now)
+        library.record(first, position: 30, duration: 600, at: Self.now)
+        library.record(second, position: 60, duration: 600, at: Self.now)
+        #expect(library.watch(of: "a")?.position == 30)
+        #expect(library.watch(of: "b")?.position == 60)
+        library.record(first, position: 90, duration: 600, at: Self.now)
+        #expect(library.watch(of: "a")?.position == 90)
+        library.removeFromHistory("a")
+        #expect(library.watch(of: "a") == nil)
+        #expect(library.watch(of: "b")?.position == 60)
+        library.clearHistory()
+        #expect(library.watch(of: "b") == nil)
+    }
+}

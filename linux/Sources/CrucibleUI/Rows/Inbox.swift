@@ -69,6 +69,7 @@ public final class InboxCardView: View {
     private var pressedZone: Zone?
     private var pressedByPointer = false
     private var laidOut: (width: Float, scale: Float, texts: Texts)?
+    private var textSignature: String?
     private var loadedArtwork = false
     private var art = Rect.zero
 
@@ -106,7 +107,11 @@ public final class InboxCardView: View {
 
     private func apply() {
         loadedArtwork = false
-        laidOut = nil
+        let signature = "\(item.title)\u{1}\(item.channel)\u{1}\(item.context ?? "")\u{1}\(item.facts ?? "")\u{1}\(item.isUnread)"
+        if signature != textSignature {
+            textSignature = signature
+            laidOut = nil
+        }
         setNeedsLayout()
         setNeedsDisplay()
     }
@@ -430,8 +435,8 @@ public final class InboxCardView: View {
 /// The heading above a day's notifications ("Today", "Yesterday", "Tuesday", "Earlier") with how many are new.
 @MainActor
 public final class InboxGroupHeaderView: View {
-    public var title: String { didSet { setNeedsDisplay() } }
-    public var detail: String? { didSet { setNeedsDisplay() } }
+    public var title: String { didSet { laidOut = nil; setNeedsDisplay() } }
+    public var detail: String? { didSet { laidOut = nil; setNeedsDisplay() } }
 
     public init(title: String, detail: String? = nil) {
         self.title = title
@@ -443,14 +448,18 @@ public final class InboxGroupHeaderView: View {
     public override var accessibilityLabel: String? { [title, detail].compactMap { $0 }.joined(separator: ", ") }
 
     private var rasterScale: Float { window?.scale ?? 1 }
+    private var laidOut: (width: Float, scale: Float, title: TextLayout, detail: TextLayout?)?
 
     private func layouts(width: Float) -> (TextLayout, TextLayout?) {
+        let scale = rasterScale
+        if let laidOut, laidOut.width == width, laidOut.scale == scale { return (laidOut.title, laidOut.detail) }
         let type = Theme.current.type
-        let title = TextLayout(self.title, font: type.headline, maxLines: 1, scale: rasterScale)
+        let title = TextLayout(self.title, font: type.headline, maxLines: 1, scale: scale)
         let detail = self.detail.flatMap { text in
             text.isEmpty ? nil : TextLayout(text, font: type.callout, maxWidth: max(1, width - title.size.width - Theme.current.metrics.tv(32)),
-                                            maxLines: 1, scale: rasterScale)
+                                            maxLines: 1, scale: scale)
         }
+        laidOut = (width, scale, title, detail)
         return (title, detail)
     }
 

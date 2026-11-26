@@ -18,6 +18,7 @@ package struct WebFeed: Sendable, Equatable {
     package init?(atom data: Data) {
         let text = String(decoding: data, as: UTF8.self)
         guard text.contains("<feed") else { return nil }
+        let formatter = ISO8601DateFormatter()
         let head = text.range(of: "<entry>").map { String(text[..<$0.lowerBound]) } ?? text
         let feedChannel = Self.content(of: "title", in: head)
         let feedChannelID = Self.content(of: "yt:channelId", in: head).map { $0.hasPrefix("UC") ? $0 : "UC" + $0 }
@@ -33,7 +34,7 @@ package struct WebFeed: Sendable, Equatable {
                 id: id, url: link, title: title, channel: Self.content(of: "name", in: block) ?? feedChannel, channelID: channelID,
                 channelURL: channelID.map { "https://www.youtube.com/channel/\($0)" },
                 viewCount: Self.attribute("views", of: "media:statistics", in: block).flatMap(Int.init),
-                published: Self.content(of: "published", in: block).flatMap(Self.date),
+                published: Self.content(of: "published", in: block).flatMap { formatter.date(from: $0) },
                 thumbnail: Self.attribute("url", of: "media:thumbnail", in: block), isShort: link.contains("/shorts/")))
         }
         channel = feedChannel
@@ -52,10 +53,6 @@ package struct WebFeed: Sendable, Equatable {
         let inside = text[open.upperBound..<end.lowerBound]
         guard let start = inside.range(of: "\(name)=\""), let stop = inside.range(of: "\"", range: start.upperBound..<inside.endIndex) else { return nil }
         return unescaped(String(inside[start.upperBound..<stop.lowerBound]))
-    }
-
-    private static func date(_ text: String) -> Date? {
-        ISO8601DateFormatter().date(from: text)
     }
 
     /// Turns XML's character references back into the characters they stand for.

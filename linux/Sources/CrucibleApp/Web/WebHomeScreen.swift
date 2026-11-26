@@ -153,6 +153,7 @@ final class WebHomeScreen: ScreenView, Reloadable {
 
     /// The library changes with every ten seconds of a playing video; the rows are drawn again once after a burst.
     private func libraryChanged() {
+        guard rootView?.isCovered != true else { return }
         guard !refreshQueued else { return }
         refreshQueued = true
         Task { [weak self] in

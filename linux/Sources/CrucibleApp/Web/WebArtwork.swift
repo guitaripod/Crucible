@@ -21,6 +21,23 @@ enum WebArtwork {
         address.flatMap { url([$0]) }.map(ArtworkSource.url)
     }
 
+    /// The inbox card's picture: the 480 pixel thumbnail rather than the 1280 the shelves draw, since a card's artwork is
+    /// a fraction of the window and sixty of them arrive at once.
+    static func inboxSource(for entry: WebEntry) -> ArtworkSource? {
+        let video = WebLink.youTubeVideoID(in: entry.url) ?? (entry.id.count == 11 && entry.url.contains("youtu") ? entry.id : nil)
+        guard let video else { return source(for: entry) }
+        return url(["https://i.ytimg.com/vi/\(video)/hqdefault.jpg", "https://i.ytimg.com/vi/\(video)/mqdefault.jpg"])
+            .map(ArtworkSource.url)
+    }
+
+    /// A channel's face at 88 pixels square, where the subscriptions list keeps its 900 pixel picture, for the small rounds
+    /// beside an inbox card's channel.
+    static func avatar(_ address: String?) -> ArtworkSource? {
+        guard let address, address.contains("yt3.googleusercontent.com"),
+              let suffix = address.range(of: "=s", options: .backwards) else { return source(address) }
+        return url([String(address[..<suffix.lowerBound]) + "=s88-c-k-c0x00ffffff-no-rj"]).map(ArtworkSource.url)
+    }
+
     /// One marked address standing for `candidates`: the first one, with the rest in its fragment to try when it is
     /// missing.
     static func url(_ candidates: [String]) -> URL? {
