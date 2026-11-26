@@ -63,6 +63,7 @@ package final class WebLibrary: @unchecked Sendable {
         var history: [WebWatch] = []
         var downloads: [WebDownload]?
         var notifications: WebNotificationState?
+        var notes: [WebNote]?
     }
 
     private let file: URL
@@ -169,6 +170,33 @@ package final class WebLibrary: @unchecked Sendable {
 
     package func isNotificationMuted(channelID: String) -> Bool {
         notificationState.isMuted(channelID: channelID)
+    }
+
+    /// The comment, mention and live notes the signed-in account's inbox last gave, newest first.
+    package var notes: [WebNote] {
+        lock.withLock { contents.notes ?? [] }
+    }
+
+    /// Takes what the account's inbox said, keeping the first time each note was seen and forgetting notes older than the
+    /// inbox keeps. A note YouTube marks read is read here too.
+    package func replaceNotes(_ notes: [WebNote], now: Date = Date()) {
+        let cutoff = now.addingTimeInterval(-WebInbox.retention)
+        let existing = lock.withLock { contents.notes ?? [] }
+        let seen = Dictionary(uniqueKeysWithValues: existing.map { ($0.id, $0.publishedAt) })
+        var merged = notes.map { note -> WebNote in
+            var kept = note
+            if let first = seen[note.id] { kept.publishedAt = first }
+            return kept
+        }
+        merged.sort { $0.publishedAt > $1.publishedAt }
+        merged = Array(merged.filter { $0.publishedAt >= cutoff }.prefix(200))
+        guard merged != existing else { return }
+        change { contents in
+            contents.notes = merged
+            var state = contents.notifications ?? WebNotificationState()
+            state.markRead(merged.filter(\.isRead).map(\.id), at: now)
+            contents.notifications = state
+        }
     }
 
     // MARK: Watch Later

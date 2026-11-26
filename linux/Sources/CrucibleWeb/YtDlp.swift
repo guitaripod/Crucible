@@ -59,6 +59,35 @@ package struct YtDlp: Sendable {
         }
     }
 
+    /// The browser's cookies as yt-dlp writes them, in Netscape's format, for the account inbox the site keeps behind
+    /// them. The file lives in a private folder for the length of the call and is removed before it returns.
+    package func cookieJar() async throws -> String {
+        guard let browser = cookiesBrowser.flatMap({ YtDlp.cookiesArgument(for: $0) }) else {
+            throw YtDlpError.cookiesUnreadable("No browser is signed in.")
+        }
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("crucible-cookies-\(UUID().uuidString)", isDirectory: true)
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true,
+                                                 attributes: [.posixPermissions: 0o700])
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let file = folder.appendingPathComponent("cookies.txt")
+        let arguments = ["--ignore-config", "--no-warnings", "--no-progress", "--socket-timeout", "15",
+                         "--cookies-from-browser", browser, "--cookies", file.path,
+                         "--simulate", "--skip-download", "--ignore-errors", "--", "https://www.youtube.com/robots.txt"]
+        await YtDlpGate.shared.enter()
+        let outcome: Result<WebProcess.Output, any Error>
+        do {
+            outcome = .success(try await WebProcess.run(executable, arguments: arguments, timeout: .seconds(30)))
+        } catch {
+            outcome = .failure(error)
+        }
+        await YtDlpGate.shared.leave()
+        if case .failure(WebProcess.Failure.launch) = outcome { throw YtDlpError.notInstalled }
+        guard let data = try? Data(contentsOf: file), !data.isEmpty else {
+            throw YtDlpError.cookiesUnreadable("The browser's cookie store could not be read.")
+        }
+        return String(decoding: data, as: UTF8.self)
+    }
+
     /// Tells the site the signed-in viewer watched the video at `address`, as its own player would.
     package func markWatched(_ address: String) async throws {
         _ = try await run(["--mark-watched", "--simulate", "--no-playlist", "--", address], timeout: .seconds(45))

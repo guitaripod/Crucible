@@ -37,6 +37,7 @@ struct Gallery {
         case "panels": GalleryPanels()
         case "stats": GalleryStats()
         case "inbox": GalleryInbox()
+        case "inbox-more": GalleryInbox(short: true)
         case "badges": GalleryBadges()
         default: GalleryHome()
         }
@@ -81,7 +82,7 @@ struct Gallery {
             case "inbox":
                 let inbox = page as! GalleryInbox
                 window.focus.setVisible(true)
-                window.focus.focus(inbox.list, animated: false)
+                window.focus.focus(inbox.grid, animated: false)
                 settle(window)
                 write(window, to: "\(directory)/inbox-focus.png", report: &report)
             case "cards":

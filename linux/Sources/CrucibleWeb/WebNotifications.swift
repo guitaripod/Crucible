@@ -1,5 +1,45 @@
 import Foundation
 
+/// A comment, mention, live stream or upload from the viewer's own YouTube inbox, read through the account's cookies when
+/// one is signed in. Comments and mentions are what the public feeds cannot carry.
+package struct WebNote: Sendable, Codable, Hashable, Identifiable {
+    package enum Kind: String, Sendable, Codable {
+        case reply, mention, like, live, upload, notice
+
+        /// Whether a row for this note is about a comment rather than a video.
+        package var isComment: Bool { self == .reply || self == .mention || self == .like }
+    }
+
+    package var id: String
+    package var kind: Kind
+    /// The comment itself where the inbox carries it, else empty and the app names what happened.
+    package var title: String
+    package var channel: String?
+    package var channelID: String?
+    package var avatar: String?
+    package var videoID: String?
+    package var thumbnail: String?
+    package var url: String
+    package var publishedAt: Date
+    /// Whether YouTube itself counts the note as read; only the first sight of a note uses this.
+    package var isRead: Bool
+
+    package init(id: String, kind: Kind, title: String, channel: String? = nil, channelID: String? = nil,
+                 avatar: String? = nil, videoID: String? = nil, thumbnail: String? = nil, url: String, publishedAt: Date, isRead: Bool = false) {
+        self.id = id
+        self.kind = kind
+        self.title = title
+        self.channel = channel
+        self.channelID = channelID
+        self.avatar = avatar
+        self.videoID = videoID
+        self.thumbnail = thumbnail
+        self.url = url
+        self.publishedAt = publishedAt
+        self.isRead = isRead
+    }
+}
+
 /// What the viewer has read, muted and checked last in the subscriptions inbox, kept with the library on this machine.
 package struct WebNotificationState: Codable, Sendable, Equatable {
     /// When each notification was read, kept so the oldest can be forgotten once there are very many.
@@ -48,16 +88,20 @@ package struct WebNotificationState: Codable, Sendable, Equatable {
     }
 }
 
-/// A video as the inbox shows it: its entry with what the viewer has done about it.
+/// A video or a comment as the inbox shows it: its entry with what the viewer has done about it.
 package struct WebInboxItem: Identifiable, Hashable, Sendable {
     package let entry: WebEntry
+    /// The account inbox's note when the row is a reply, mention, like or live stream; nil for an upload from the feeds.
+    package let note: WebNote?
     package let isUnread: Bool
     package let isWatched: Bool
 
     package var id: String { entry.id }
+    package var isComment: Bool { note?.kind.isComment ?? false }
 
-    package init(entry: WebEntry, isUnread: Bool, isWatched: Bool) {
+    package init(entry: WebEntry, note: WebNote? = nil, isUnread: Bool, isWatched: Bool) {
         self.entry = entry
+        self.note = note
         self.isUnread = isUnread
         self.isWatched = isWatched
     }
@@ -77,16 +121,35 @@ package enum WebInbox {
     /// Videos older than this leave the inbox, whether or not they were read.
     package static let retention: TimeInterval = 60 * 24 * 60 * 60
 
-    package static func items(entries: [WebEntry], state: WebNotificationState, watched: Set<String>,
+    package static func items(entries: [WebEntry], state: WebNotificationState, watched: Set<String>, notes: [WebNote] = [],
                               now: Date = Date()) -> [WebInboxItem] {
         let oldest = now.addingTimeInterval(-retention)
         var seen = Set<String>()
+        var byVideo: [String: Int] = [:]
         var items: [WebInboxItem] = []
         for entry in entries {
             guard entry.kind == .video, let published = entry.published, published >= oldest else { continue }
             guard !state.isMuted(channelID: entry.channelID) else { continue }
             guard seen.insert(entry.id).inserted else { continue }
+            byVideo[entry.id] = items.count
             items.append(WebInboxItem(entry: entry, isUnread: !state.isRead(entry.id), isWatched: watched.contains(entry.id)))
+        }
+        for note in notes {
+            guard note.publishedAt >= oldest, !state.isMuted(channelID: note.channelID) else { continue }
+            if note.kind == .upload || note.kind == .live, let videoID = note.videoID, let index = byVideo[videoID] {
+                if note.kind == .live {
+                    var entry = items[index].entry
+                    entry.isLive = true
+                    items[index] = WebInboxItem(entry: entry, note: items[index].note, isUnread: items[index].isUnread,
+                                                isWatched: items[index].isWatched)
+                }
+                continue
+            }
+            guard seen.insert(note.id).inserted else { continue }
+            let entry = WebEntry(id: note.id, url: note.url, kind: .video, title: note.title, channel: note.channel, channelID: note.channelID,
+                                 channelURL: note.channelID.map { "https://www.youtube.com/channel/\($0)" }, published: note.publishedAt,
+                                 thumbnail: note.thumbnail, isLive: note.kind == .live, isShort: note.url.contains("/shorts/"))
+            items.append(WebInboxItem(entry: entry, note: note, isUnread: !state.isRead(note.id), isWatched: false))
         }
         return items.sorted {
             let left = $0.entry.published ?? .distantPast
@@ -95,9 +158,9 @@ package enum WebInbox {
         }
     }
 
-    package static func unreadCount(entries: [WebEntry], state: WebNotificationState, watched: Set<String>,
+    package static func unreadCount(entries: [WebEntry], state: WebNotificationState, watched: Set<String>, notes: [WebNote] = [],
                                     now: Date = Date()) -> Int {
-        items(entries: entries, state: state, watched: watched, now: now).lazy.filter(\.isUnread).count
+        items(entries: entries, state: state, watched: watched, notes: notes, now: now).lazy.filter(\.isUnread).count
     }
 
     /// Which heading a day belongs under: today, yesterday, a weekday of the last week, or earlier.

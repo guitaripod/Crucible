@@ -103,7 +103,14 @@ final class WebService {
     private var feed: (entries: [WebEntry], at: Date, channels: Set<String>)?
     private var feedTask: Task<(entries: [WebEntry], names: [String: String]), Never>?
     private var notificationMonitor: Task<Void, Never>?
+    private var accountNotesAt: Date?
+    private var accountNotesTask: Task<Void, Never>?
+    private var accountCookies: (cookies: YouTubeCookies, at: Date)?
+    /// Whether the browser's cookies are no longer a signed-in account's, so comments cannot be read until it signs in.
+    private(set) var accountInboxSignedOut = false
     private static let feedLife: TimeInterval = 15 * 60
+    private static let accountNotesLife: TimeInterval = 10 * 60
+    private static let cookiesLife: TimeInterval = 30 * 60
     private static var feedFile: URL { AppPlatform.cachesDirectory.appendingPathComponent("web/feed.json") }
 
     /// Posted when the subscriptions feed brought videos the viewer had not been shown, or was read afresh, so the
@@ -130,8 +137,11 @@ final class WebService {
     /// viewer read, muted and finished.
     var notificationItems: [WebInboxItem] {
         let finished = Set(library.history.lazy.filter { $0.isFinished }.map { $0.entry.id })
-        return WebInbox.items(entries: feedEntriesAtHand, state: library.notificationState, watched: finished)
+        return WebInbox.items(entries: feedEntriesAtHand, state: library.notificationState, watched: finished, notes: library.notes)
     }
+
+    /// Whether the browser's cookies can carry the account's own inbox, where replies and mentions arrive.
+    var canReadAccountInbox: Bool { WebSettings.cookiesBrowser != nil }
 
     /// How many videos in the inbox have not been read.
     var notificationUnreadCount: Int { notificationItems.lazy.filter(\.isUnread).count }
@@ -167,11 +177,52 @@ final class WebService {
         }
     }
 
-    /// Reads the feeds again unless they were read within `maxAge`.
+    /// Reads the feeds and the account's own inbox again unless they were read within `maxAge`.
     func refreshNotificationsIfStale(maxAge: TimeInterval = 10 * 60) async {
         guard !library.subscriptions.isEmpty else { return }
-        if let feed, Date().timeIntervalSince(feed.at) < maxAge { return }
-        _ = await notificationsFeed(fresh: true)
+        if feed == nil || Date().timeIntervalSince(feed?.at ?? .distantPast) >= maxAge {
+            _ = await notificationsFeed(fresh: true)
+        }
+        await refreshAccountInbox(fresh: false)
+    }
+
+    /// Reads the signed-in account's notification menu, where replies, mentions and likes on the viewer's comments arrive.
+    /// The browser's cookies are exported by yt-dlp into a private file, read here and thrown away; a note is kept with the
+    /// library and never written back to the site.
+    func refreshAccountInbox(fresh: Bool = false) async {
+        guard canReadAccountInbox, isAvailable else { return }
+        if !fresh, let accountNotesAt, Date().timeIntervalSince(accountNotesAt) < Self.accountNotesLife { return }
+        if let running = accountNotesTask { return await running.value }
+        let task = Task { [weak self] in
+            guard let self else { return }
+            await self.loadAccountInbox(fresh: fresh)
+        }
+        accountNotesTask = task
+        await task.value
+        accountNotesTask = nil
+    }
+
+    private func loadAccountInbox(fresh: Bool) async {
+        defer { accountNotesAt = Date() }
+        do {
+            let cookies = try await accountCookieJar(fresh: fresh)
+            let notes = try await YouTubeInbox().notes(cookies: cookies)
+            library.replaceNotes(notes)
+            accountInboxSignedOut = false
+        } catch YouTubeInboxError.signedOut {
+            accountInboxSignedOut = true
+            MidgarLog.notice("The web account inbox is not signed in", category: .networking)
+        } catch {
+            MidgarLog.notice("The web account inbox could not be read: \(error)", category: .networking)
+        }
+    }
+
+    private func accountCookieJar(fresh: Bool) async throws -> YouTubeCookies {
+        if !fresh, let accountCookies, Date().timeIntervalSince(accountCookies.at) < Self.cookiesLife { return accountCookies.cookies }
+        let text = try await tool().cookieJar()
+        guard let cookies = YouTubeCookies(netscape: text, now: Date()) else { throw YouTubeInboxError.signedOut }
+        accountCookies = (cookies, Date())
+        return cookies
     }
 
     private func feedEntries(fresh: Bool = false) async -> [WebEntry] {

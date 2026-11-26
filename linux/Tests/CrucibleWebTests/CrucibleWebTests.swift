@@ -522,3 +522,155 @@ enum Fixture {
         #expect(reopened.notificationState.isMuted(channelID: "UC2"))
     }
 }
+
+@Suite struct YouTubeInboxTests {
+    private static let now = Date(timeIntervalSince1970: 1_800_000_000)
+
+    private func renderer(_ id: String, _ message: String, video: String? = "abcdefghijk", read: Bool = false,
+                          comment: String? = nil) -> [String: Any] {
+        var navigation: [String: Any] = [:]
+        if let video {
+            var command: [String: Any] = ["videoId": video]
+            if let comment { command["linkedCommentId"] = comment }
+            navigation["getCommentsFromInboxCommand"] = command
+        }
+        return [
+            "notificationId": id,
+            "read": read,
+            "shortMessage": ["simpleText": message],
+            "sentTimeText": ["simpleText": "2 hours ago"],
+            "navigationEndpoint": navigation,
+            "thumbnail": ["thumbnails": [["url": "https://yt3.ggpht.com/avatar-\(id)"]]],
+            "videoThumbnail": ["thumbnails": [["url": "https://i.ytimg.com/vi/\(video ?? "abcdefghijk")/hq720.jpg"]]],
+        ]
+    }
+
+    private var menu: Data {
+        let renderers = [
+            renderer("1", "Quiet Channel replied to your comment: Nice catch", comment: "comment-1"),
+            renderer("2", "Your comment got a ❤ from Another Channel"),
+            renderer("3", "Your comment got a reply from Third Channel"),
+            renderer("4", "Uploading Channel uploaded: A New Video", video: "zzzzzzzzzzz"),
+            renderer("5", "Fourth Channel mentioned you in a comment: Hello there"),
+            renderer("6", "Live Channel is live: An Evening Stream", read: true),
+        ]
+        let root: [String: Any] = ["mainAppWebResponseContext": ["loggedOut": false],
+                                   "notifications": renderers.map { ["notificationRenderer": $0] as [String: Any] }]
+        return try! JSONSerialization.data(withJSONObject: root)
+    }
+
+    @Test func readsRepliesHeartsMentionsAndLiveNotes() throws {
+        let notes = try YouTubeInbox.notes(in: menu, now: Self.now)
+        #expect(notes.map(\.id) == ["n:1", "n:2", "n:3", "n:4", "n:5", "n:6"])
+        #expect(notes.map(\.kind) == [.reply, .like, .reply, .upload, .mention, .live])
+        #expect(notes[0].title == "Nice catch")
+        #expect(notes[0].channel == "Quiet Channel")
+        #expect(notes[1].title == "")
+        #expect(notes[1].channel == "Another Channel")
+        #expect(notes[2].title == "")
+        #expect(notes[2].channel == "Third Channel")
+        #expect(notes[3].title == "A New Video")
+        #expect(notes[4].title == "Hello there")
+        #expect(notes[4].channel == "Fourth Channel")
+        #expect(notes[5].title == "An Evening Stream")
+        #expect(notes[5].isRead)
+        #expect(notes[0].videoID == "abcdefghijk")
+        #expect(notes[0].url.contains("&lc=comment-1"))
+        #expect(notes[0].publishedAt == Self.now.addingTimeInterval(-2 * 3600))
+        #expect(notes[0].thumbnail?.contains("hq720.jpg") == true)
+    }
+
+    @Test func leavesOutAnAccountThatIsNotSignedIn() throws {
+        let data = try JSONSerialization.data(withJSONObject: ["mainAppWebResponseContext": ["loggedOut": true]])
+        #expect(throws: YouTubeInboxError.signedOut) { try YouTubeInbox.notes(in: data, now: Self.now) }
+    }
+
+    /// The real inbox, behind an opt-in: `CRUCIBLE_LIVE_BROWSER=vivaldi CRUCIBLE_LIVE_INBOX=1 swift test --filter
+    /// YouTubeInboxTests`. It reads the browser's cookies and the account's menu, and prints only counts.
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["CRUCIBLE_LIVE_INBOX"] == "1"))
+    func readsTheSignedInAccountsInbox() async throws {
+        let browser = try #require(ProcessInfo.processInfo.environment["CRUCIBLE_LIVE_BROWSER"])
+        let executable = try #require(YtDlp.locate())
+        let jar = try await YtDlp(executable: executable, cookiesBrowser: browser).cookieJar()
+        let cookies = try #require(YouTubeCookies(netscape: jar))
+        let notes = try await YouTubeInbox().notes(cookies: cookies)
+        print("live inbox notes:", notes.count, notes.reduce(into: [String: Int]()) { $0[$1.kind.rawValue, default: 0] += 1 })
+        #expect(!notes.isEmpty)
+    }
+
+    @Test func readsTheBrowsersYouTubeCookiesAndItsSignInKey() throws {
+        let jar = """
+        # Netscape HTTP Cookie File
+
+        .youtube.com\tTRUE\t/\tTRUE\t0\tSAPISID\tsecret-sapisid
+        #HttpOnly_.youtube.com\tTRUE\t/\tTRUE\t0\t__Secure-3PSID\tsecure-psid
+        .google.com\tTRUE\t/\tTRUE\t0\tSAPISID\tgoogle-sapisid
+        .youtube.com\tTRUE\t/\tTRUE\t1\tEXPIRED\tgone
+        .youtube.com\tTRUE\t/\tTRUE\t4102444800\tPREF\tkept
+        """
+        let cookies = try #require(YouTubeCookies(netscape: jar, now: Self.now))
+        #expect(cookies.sapisid == "secret-sapisid")
+        #expect(cookies.header.contains("SAPISID=secret-sapisid"))
+        #expect(cookies.header.contains("__Secure-3PSID=secure-psid"))
+        #expect(cookies.header.contains("PREF=kept"))
+        #expect(!cookies.header.contains("google-sapisid"))
+        #expect(!cookies.header.contains("EXPIRED"))
+    }
+}
+
+@Suite struct WebInboxNoteTests {
+    private static let now = Date(timeIntervalSince1970: 1_800_000_000)
+
+    private func upload(_ id: String, channel: String = "UC1", hoursAgo: Double = 2) -> WebEntry {
+        WebEntry(id: id, url: "https://www.youtube.com/watch?v=\(id)", title: "Video \(id)", channel: "Channel \(channel)",
+                 channelID: channel, published: Self.now.addingTimeInterval(-hoursAgo * 3600))
+    }
+
+    private func note(_ id: String, _ kind: WebNote.Kind, video: String? = nil, channel: String = "UC9", hoursAgo: Double = 1) -> WebNote {
+        WebNote(id: "n:\(id)", kind: kind, title: kind == .reply ? "Nice" : "", channel: "Commenter", channelID: channel,
+                videoID: video, url: video.map { "https://www.youtube.com/watch?v=\($0)&lc=\(id)" } ?? "https://www.youtube.com/",
+                publishedAt: Self.now.addingTimeInterval(-hoursAgo * 3600))
+    }
+
+    @Test func keepsCommentsAndMergesUploadAndLiveNotesIntoTheFeed() {
+        let entries = [upload("v1"), upload("v2", hoursAgo: 5)]
+        let notes = [note("1", .reply, video: "v1"), note("2", .upload, video: "v1"), note("3", .live, video: "v2"), note("4", .like, video: "v3")]
+        let items = WebInbox.items(entries: entries, state: WebNotificationState(), watched: [], notes: notes, now: Self.now)
+        #expect(items.map(\.id) == ["n:4", "n:1", "v1", "v2"])
+        #expect(items.first { $0.id == "v1" }?.note == nil)
+        #expect(items.first { $0.id == "v2" }?.entry.isLive == true)
+        #expect(items.first { $0.id == "n:1" }?.isComment == true)
+        #expect(items.first { $0.id == "n:1" }?.entry.title == "Nice")
+        #expect(WebInbox.unreadCount(entries: entries, state: WebNotificationState(), watched: [], notes: notes, now: Self.now) == 4)
+    }
+
+    @Test func readsAMutedCommentsChannelAndRemembersItsReadState() {
+        var state = WebNotificationState()
+        state.setMuted(true, channelID: "UC9")
+        state.markRead(["n:1"], at: Self.now)
+        let items = WebInbox.items(entries: [], state: state, watched: [], notes: [note("1", .reply, video: "v1"), note("2", .reply, video: "v2")],
+                                   now: Self.now)
+        #expect(items.isEmpty)
+        state.setMuted(false, channelID: "UC9")
+        let unread = WebInbox.items(entries: [], state: state, watched: [], notes: [note("1", .reply, video: "v1"), note("2", .reply, video: "v2")],
+                                    now: Self.now)
+        #expect(unread.map(\.id) == ["n:2", "n:1"])
+        #expect(unread.first { $0.id == "n:1" }?.isUnread == false)
+    }
+
+    @Test func keepsTheFirstSightingOfANoteAndReadsWhatYouTubeHadRead() throws {
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent("web-notes-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: file) }
+        let library = WebLibrary(file: file)
+        let first = note("1", .reply, video: "v1", hoursAgo: 3)
+        library.replaceNotes([first], now: Self.now)
+        var read = first
+        read.isRead = true
+        read.title = "edited elsewhere"
+        library.replaceNotes([read], now: Self.now.addingTimeInterval(600))
+        #expect(library.notes.first?.publishedAt == first.publishedAt)
+        #expect(library.notificationState.isRead("n:1"))
+        library.flush()
+        #expect(WebLibrary(file: file).notes.first?.title == "edited elsewhere")
+    }
+}
