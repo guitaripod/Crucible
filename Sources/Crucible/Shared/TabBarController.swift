@@ -181,6 +181,9 @@ final class TabBarController: UITabBarController {
         self.liveTab = live
         tabs = [homeTab, libraryTab] + (showsLiveTab ? [live] : []) + [downloadsTab, youTab, searchTab]
         customizationIdentifier = "com.guitaripod.crucible.tabs"
+        if traitCollection.userInterfaceIdiom == .pad {
+            mode = .tabSidebar
+        }
         if #available(iOS 26.0, *) {
             tabBarMinimizeBehavior = .onScrollDown
         }
