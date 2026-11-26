@@ -46,7 +46,7 @@ final class LivePlaylistsScreen: SettingsScaffold {
         items.append(RowItem.onOff(id: RowID.plex, title: LiveTVCopy.showPlexChannels, subtitle: LiveTVCopy.showPlexChannelsFooter,
                                    isOn: LiveTVPreferences.showsPlexChannels, symbol: "tv"))
         items.append(RowItem.onOff(id: RowID.merge, title: LiveTVCopy.mergeDuplicates, subtitle: LiveTVCopy.mergeDuplicatesFooter,
-                                   isOn: LiveTVPreferences.mergesDuplicates, symbol: "square.on.square"))
+                                   isOn: LiveTVPreferences.mergesDuplicates, symbol: "rectangle.on.rectangle"))
         items.append(RowItem(id: RowID.refresh, title: LiveTVCopy.refreshPlaylists, symbol: "arrow.clockwise"))
         setRows(items)
     }
