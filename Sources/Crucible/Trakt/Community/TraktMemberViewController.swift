@@ -80,7 +80,9 @@ final class TraktMemberViewController: UICollectionViewController {
             list.backgroundColor = Theme.Color.canvas
             let section = self?.dataSource?.sectionIdentifier(for: index)
             list.headerMode = section == .comments || section == .watching ? .supplementary : .none
-            return NSCollectionLayoutSection.list(using: list, layoutEnvironment: environment)
+            let rows = NSCollectionLayoutSection.list(using: list, layoutEnvironment: environment)
+            Theme.centerReadable(rows, environment)
+            return rows
         }
     }
 

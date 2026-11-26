@@ -44,15 +44,24 @@ final class TraktCommentsViewController: UICollectionViewController {
     init(source: Source, titleName: String) {
         self.source = source
         self.titleName = titleName
-        var list = UICollectionLayoutListConfiguration(appearance: .plain)
-        list.backgroundColor = Theme.Color.canvas
-        list.showsSeparators = true
-        list.separatorConfiguration.color = Theme.Color.separator
-        super.init(collectionViewLayout: UICollectionViewCompositionalLayout.list(using: list))
+        super.init(collectionViewLayout: Self.layout())
     }
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
+
+    /// Plain rows of comment text, kept to a readable width and centred on a large screen.
+    private static func layout() -> UICollectionViewCompositionalLayout {
+        UICollectionViewCompositionalLayout { _, environment in
+            var list = UICollectionLayoutListConfiguration(appearance: .plain)
+            list.backgroundColor = Theme.Color.canvas
+            list.showsSeparators = true
+            list.separatorConfiguration.color = Theme.Color.separator
+            let section = NSCollectionLayoutSection.list(using: list, layoutEnvironment: environment)
+            Theme.centerReadable(section, environment)
+            return section
+        }
+    }
 
     deinit {
         if let changeObserver { NotificationCenter.default.removeObserver(changeObserver) }

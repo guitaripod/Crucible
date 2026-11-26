@@ -104,7 +104,9 @@ final class TraktCommentThreadViewController: UICollectionViewController {
             list.showsSeparators = false
             let isReplies = self?.dataSource?.sectionIdentifier(for: index) == .replies
             list.headerMode = isReplies ? .supplementary : .none
-            return NSCollectionLayoutSection.list(using: list, layoutEnvironment: environment)
+            let section = NSCollectionLayoutSection.list(using: list, layoutEnvironment: environment)
+            Theme.centerReadable(section, environment)
+            return section
         }
     }
 
