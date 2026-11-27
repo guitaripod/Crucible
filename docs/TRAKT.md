@@ -10,7 +10,7 @@ Design for a Trakt.tv integration on iPhone, iPad and Apple TV that covers the w
 | --- | --- | --- |
 | D1 | Trakt Developer Premium | Not needed: Trakt approved Crucible for production on 2026-11-11 without a developer plan, keeping the same Client ID |
 | D2 | Prices when Trakt ships | Decided 2026-11-08 (founder handed pricing over): from 2026-12-07 yearly $14.99 (was $7.99) and lifetime $39.99 (launch $17.99 until then, instead of the planned $24.99); existing subscribers keep their price, lifetime buyers keep everything. Reasons in `docs/pricing.md` |
-| D3 | App Privacy label | Done for 2.9.0 (2026-11-11): Product Interaction and Other User Content, linked, App Functionality, not tracking, in `docs/app-privacy.json`, `docs/app-privacy.md` and both `PrivacyInfo.xcprivacy` files; the label is published with `asc web privacy` before the 2.9.0 submission (§10.2) |
+| D3 | App Privacy label | Done for 2.9.0 (2026-11-11): Product Interaction and Other User Content, linked, App Functionality, not tracking, in `docs/app-privacy.json`, `docs/app-privacy.md` (now `store/app-privacy.json` and `store/privacy-label.md`) and both `PrivacyInfo.xcprivacy` files; the label is published with `asc web privacy` before the 2.9.0 submission (§10.2) |
 | D4 | Tab or no tab | A Trakt tab appears when the plugin is on (iPhone on iOS 26, iPad sidebar, Apple TV). Where the tab bar has no room it lives in You (§8.5) |
 
 ## Status

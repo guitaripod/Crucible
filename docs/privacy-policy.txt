@@ -1,12 +1,12 @@
 Crucible Privacy Policy
-Effective November 15, 2026
+Effective November 27, 2026
 https://midgarcorp.cc/crucible/privacy
 
 What Crucible is
 Crucible is a Plex client for iPhone and Apple TV made by Midgar Oy. It runs on your device and talks to plex.tv, to sign you in, find your servers, read your watchlist and, from version 2.11, look up in Plex’s own catalogue which seasons and episodes of a show have aired, and to the Plex Media Server you choose. If you are on a Tailscale network it may also ask the computers on that network which one is your server, and only if you opt in does it talk to api.tailscale.com. From version 2.9 you can also connect Trakt and your own Seerr, described below; neither is contacted until you connect it. From version 2.10 you can also ask Crucible’s AI what to watch or for a written recap, described below; nothing is sent to it until you ask.
 
 What we collect
-Only what Crucible Pro needs: an anonymous Midgar ID and the records of your Crucible Pro purchases, described under The anonymous Midgar ID and Purchases below. Nothing about your library, your viewing or your Plex account reaches us, except what you send when you ask Crucible’s AI for something, described under Crucible’s AI below. There are no ads, no analytics and no tracking SDKs. Midgar may publish aggregate statistics built from anonymous counts, such as weekly active installs, which never identify a person; Crucible sends no usage counts, so it adds nothing to them.
+What Crucible Pro needs: an anonymous Midgar ID and the records of your Crucible Pro purchases, described under The anonymous Midgar ID and Purchases below. From the first version released after 27 November 2026, also anonymous usage counts and crash reports, described under Crash reports and usage counts below, which you can turn off. Nothing about your library, your viewing or your Plex account reaches us, except what you send when you ask Crucible’s AI for something, described under Crucible’s AI below. There are no ads, no third-party analytics and no tracking SDKs. Midgar may publish aggregate statistics built from anonymous counts, such as weekly active installs, which never identify a person.
 
 Your Plex account
 You sign in with Plex’s own sign-in flow. Your Plex token is stored in the Keychain on your device and sent only to plex.tv and to your own servers. Plex’s privacy policy applies to your Plex account.
@@ -40,6 +40,13 @@ From version 2.4, the first time the app starts it asks Midgar’s server at api
 
 Purchases
 Crucible Pro (lifetime or yearly) is sold through the App Store. Apple processes the payment; we never see your payment details or your Apple Account. Apple’s own notifications about Crucible Pro purchases (which product, the price, the dates, whether it renewed, lapsed or was refunded, the order identifiers and your App Store country) reach Midgar’s purchase ledger. From version 2.4, the app also sends the ledger the signed transaction record Apple has already issued, with your Midgar ID, so Crucible Pro is recognised on all your devices; the ledger keeps these records for as long as Apple’s financial records require. Version 2.4 contains no RevenueCat software. Earlier versions check and restore your purchase through RevenueCat (RevenueCat, Inc., United States), which receives a random app user ID and your purchase history for this app under its own privacy policy at https://www.revenuecat.com/privacy.
+
+Crash reports and usage counts
+Versions of the app released after 27 November 2026 send a short crash report to api.midgarcorp.cc when the iPhone app crashes or freezes: the kind of fault, the places in the app’s code where it happened, the last few screens of the app that were open (named from a fixed list, such as Home or Search), the app version, the system version and the device model, at most five a day. It contains no title, no library or server name, nothing from your Plex account, no file name and no identifier, so it cannot be linked to you or to a device. Once a day the iPhone app also sends how long it took to start, how long it stopped responding, the memory it used and how often the system closed it. Apple TV sends no crash report. This report is separate from the diagnostic log, which stays on your device.
+
+The same versions, on iPhone and Apple TV, also send anonymous counts in the same way and with no identifier: that the app was used on a day, a week and a month, that the Crucible Pro screen was shown and where it was opened from, which parts of the app are used in a week (such as the player, Search, Downloads or Statistics), whether this install is free, on a trial, paying or lapsed, and how soon after installing the first film or episode played. After a purchase, or after a subscription’s renewal is turned off, the app sends some hours later, and one fact at a time, where the purchase screen was opened from, how often it had been shown, how long the app had been installed, how long the subscription had run and on how many of the last fourteen days the app was opened. Each is a word from a fixed list, and they are stored apart, so they cannot be matched to your purchase or to what you watch.
+
+All of this stops when you turn off Usage Counts in Settings, Privacy & Data. Versions installed through TestFlight and development builds send none of it, and the Linux app sends nothing.
 
 Diagnostics
 A diagnostic log is kept on your device. It leaves your device only if you export and share it yourself.
