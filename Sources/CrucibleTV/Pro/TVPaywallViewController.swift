@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 import UIKit
 
 /// The Crucible Pro paywall on Apple TV, a full-screen modal driven only by `PaywallModel`: what Pro includes on the left;
@@ -77,6 +78,7 @@ final class TVPaywallViewController: UIViewController {
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("paywall")
         guard !hasStarted else { return }
         hasStarted = true
         model.start()

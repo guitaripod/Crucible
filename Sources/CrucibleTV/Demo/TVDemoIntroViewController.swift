@@ -1,10 +1,16 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 import UIKit
 
 /// The first thing a person sees inside the demo: what is real and what is fictional, and the things worth trying, with one button
 /// that starts exploring. Full screen and focusable; Menu starts exploring too.
 final class TVDemoIntroViewController: TVDemoModalViewController {
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("demo")
+    }
     private lazy var startButton = makeStartButton()
 
     override var focusTarget: UIView? { startButton }

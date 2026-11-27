@@ -52,6 +52,11 @@ final class TVSeerrRequestViewController: TVSettingsScaffold {
         load()
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("seerr", feature: true)
+    }
+
     override var preferredFocusRowID: String? {
         guard let state else { return nil }
         if hasRequested { return showsPlay ? "seerr.request.play" : "seerr.request.requests" }

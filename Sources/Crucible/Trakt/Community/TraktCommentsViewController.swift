@@ -100,6 +100,11 @@ final class TraktCommentsViewController: UICollectionViewController {
         reload()
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("comments", feature: true)
+    }
+
     /// Redraws the aspect heading once its translation lands; the comments' own cells follow their translations.
     private func aspectTranslationChanged(_ key: String?) {
         guard case .aspect = source, key == nil || key?.hasPrefix(TraktSentimentsTranslation.prefix) == true else { return }

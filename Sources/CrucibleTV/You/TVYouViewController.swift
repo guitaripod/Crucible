@@ -1,6 +1,7 @@
 import CrucibleCore
 import CrucibleDesign
 import CrucibleStats
+import MidgarCore
 import UIKit
 
 /// The You tab: the account and the Year in Review card on the left, the list of places on the
@@ -81,6 +82,11 @@ final class TVYouViewController: TVSettingsScaffold {
         releasesObserver = WatchlistReleases.shared.addObserver { [weak self] in self?.refreshRows() }
         refreshProfile()
         refreshRows()
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("you")
     }
 
     override func viewIsAppearing(_ animated: Bool) {

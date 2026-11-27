@@ -25,6 +25,7 @@ final class TVWelcomeViewController: TVOnboardingViewController {
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("setup")
         if allowsAmbientMotion { glyph.startBreathing() }
     }
 

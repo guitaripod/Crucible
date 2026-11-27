@@ -94,6 +94,11 @@ final class ShowDetailViewController: UICollectionViewController {
         }
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("show")
+    }
+
     private func configureMultiSelect() {
         multiSelect.onEnter = { [weak self] in self?.updateBarButtons(); self?.reconfigureEpisodeAccessories() }
         multiSelect.onExit = { [weak self] in self?.updateBarButtons(); self?.reconfigureEpisodeAccessories(); self?.catchUpAfterSelecting() }

@@ -82,6 +82,11 @@ final class SeerrRequestsViewController: UICollectionViewController {
         }
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("seerr", feature: true)
+    }
+
     /// Loads the list for the current filter; a newer load cancels an older one, so a slow answer never replaces a newer list.
     private func reload() {
         let scope: SeerrRequests.Scope = filter == .mine ? .mine : .everyone

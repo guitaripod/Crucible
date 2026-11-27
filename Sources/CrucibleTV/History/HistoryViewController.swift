@@ -62,6 +62,11 @@ final class HistoryViewController: TVScreenViewController {
         })
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("history", feature: true)
+    }
+
     override func viewIsAppearing(_ animated: Bool) {
         super.viewIsAppearing(animated)
         hasRequestedFirstPage = true

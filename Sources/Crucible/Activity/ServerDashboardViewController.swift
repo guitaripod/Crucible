@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 @preconcurrency import UIKit
 
 /// The owner's server dashboard: how hard the server is working, what it is busy with (scans, refreshes, conversions, with
@@ -54,6 +55,11 @@ final class ServerDashboardViewController: UICollectionViewController {
         }
         configureDataSource()
         applySnapshot()
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("server_dashboard", feature: true)
     }
 
     override func viewIsAppearing(_ animated: Bool) {

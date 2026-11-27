@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 @preconcurrency import UIKit
 
 final class SearchViewController: UICollectionViewController, UISearchResultsUpdating {
@@ -67,6 +68,11 @@ final class SearchViewController: UICollectionViewController, UISearchResultsUpd
         }, refresh: { [weak self] in
             self?.session.refresh()
         })
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("search", feature: true)
     }
 
     /// Results a title was played or marked from since they were found are asked for again, so their progress and watched

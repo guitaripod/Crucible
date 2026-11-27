@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 @preconcurrency import UIKit
 
 /// What covers the last frame once a movie, or the last episode of a show, has ended and nothing plays next: titles like it
@@ -87,6 +88,7 @@ final class PostPlayViewController: UIViewController, UICollectionViewDelegate {
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("post_play")
         UIAccessibility.post(notification: .screenChanged, argument: heading)
     }
 

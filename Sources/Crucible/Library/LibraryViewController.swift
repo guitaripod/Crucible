@@ -72,6 +72,11 @@ final class LibraryViewController: UIViewController, LibraryGridHosting {
         }
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("library", feature: true)
+    }
+
     func libraryGridDidUpdateOptions(_ grid: LibraryGridViewController) {
         guard grid === currentChild else { return }
         optionsItem.menu = grid.optionsMenu()

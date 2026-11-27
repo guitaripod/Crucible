@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 @preconcurrency import UIKit
 
 /// Fix Match: searches the server's agents for the right movie or show, starting from the title as it is, and matches the
@@ -55,6 +56,11 @@ final class FixMatchViewController: UICollectionViewController, UISearchBarDeleg
             collectionView.dequeueConfiguredReusableCell(using: registration, for: indexPath, item: result)
         }
         search()
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("manage", feature: true)
     }
 
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {

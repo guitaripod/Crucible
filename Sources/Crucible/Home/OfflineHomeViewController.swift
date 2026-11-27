@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 @preconcurrency import UIKit
 
 /// Home when the server can't be reached at launch but completed downloads exist: an offline
@@ -52,6 +53,11 @@ final class OfflineHomeViewController: UICollectionViewController {
         collectionView.collectionViewLayout = createLayout()
         DownloadManager.shared.bootstrap()
         reload(animated: false)
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("home")
     }
 
     override func viewIsAppearing(_ animated: Bool) {

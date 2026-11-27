@@ -59,6 +59,11 @@ final class ActivityHistoryViewController: UICollectionViewController {
         })
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("history", feature: true)
+    }
+
     /// Plays made since the list was loaded, here or anywhere else, go on top when the screen comes back.
     override func viewIsAppearing(_ animated: Bool) {
         super.viewIsAppearing(animated)

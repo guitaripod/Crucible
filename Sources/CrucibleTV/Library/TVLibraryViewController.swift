@@ -78,6 +78,11 @@ final class TVLibraryViewController: TVScreenViewController {
         })
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("library", feature: true)
+    }
+
     override func viewIsAppearing(_ animated: Bool) {
         super.viewIsAppearing(animated)
         startRevealDeadline()

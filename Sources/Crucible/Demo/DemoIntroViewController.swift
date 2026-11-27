@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 @preconcurrency import UIKit
 
 /// The one-screen welcome shown the first time the demo opens: what is real, what is fictional, and the things worth trying.
@@ -38,6 +39,11 @@ final class DemoIntroViewController: DemoSheetViewController {
             self?.dismiss(animated: true)
         }, for: .primaryActionTriggered)
         addAction(start)
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("demo")
     }
 
     override func accessibilityPerformEscape() -> Bool {

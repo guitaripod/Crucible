@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 import UIKit
 
 /// Everything under the system search field: the idle shelves (recent searches, genres, recently
@@ -48,6 +49,11 @@ final class TVSearchResultsViewController: TVScreenViewController, UISearchResul
         }, refresh: { [weak self] in
             self?.refreshFromServer()
         })
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("search", feature: true)
     }
 
     /// Results a title was played or marked from since they were found are asked for again, so their progress and watched

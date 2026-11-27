@@ -43,6 +43,11 @@ final class TVFixMatchViewController: TVSettingsScaffold {
         search()
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("manage", feature: true)
+    }
+
     override func rowDidSelect(_ id: String) {
         switch id {
         case Self.searchID:

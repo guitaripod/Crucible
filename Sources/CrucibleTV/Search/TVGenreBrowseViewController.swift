@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 import UIKit
 
 /// Every title of one genre as a poster grid sorted by title. The first page of each library the
@@ -28,6 +29,11 @@ final class TVGenreBrowseViewController: TVScreenViewController {
         configureDataSource()
         model.onUpdate = { [weak self] update in self?.render(update) }
         show(state: .loading(title: nil))
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("genres", feature: true)
     }
 
     override func viewIsAppearing(_ animated: Bool) {

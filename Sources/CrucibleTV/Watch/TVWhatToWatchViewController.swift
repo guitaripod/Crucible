@@ -50,6 +50,11 @@ final class TVWhatToWatchViewController: TVScreenViewController {
         ask()
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("what_to_watch", feature: true)
+    }
+
     private func configureDataSource() {
         let tile = TVHostCell.registration { [weak self] (item: String) -> UIView in
             guard let self, let answer else { return UIView() }

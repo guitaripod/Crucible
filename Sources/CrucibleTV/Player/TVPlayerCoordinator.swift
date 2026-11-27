@@ -227,6 +227,7 @@ final class TVPlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControlle
 
     private func playerRevealed() {
         isRevealing = false
+        MidgarSignals.noteScreen("player", feature: true)
         guard let pending = pendingFailure else { return }
         pendingFailure = nil
         presentFailure(pending.message, retry: pending.retry)

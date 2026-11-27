@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 import UIKit
 
 final class YouViewController: UICollectionViewController {
@@ -58,6 +59,11 @@ final class YouViewController: UICollectionViewController {
         releasesObserver = WatchlistReleases.shared.addObserver { [weak self] in
             self?.reconfigure(.watchlist)
         }
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("you")
     }
 
     override func viewIsAppearing(_ animated: Bool) {

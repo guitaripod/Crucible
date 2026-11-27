@@ -399,6 +399,7 @@ final class TVHomeViewController: TVScreenViewController {
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("home")
         warmLead()
     }
 

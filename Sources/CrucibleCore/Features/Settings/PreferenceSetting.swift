@@ -1,4 +1,5 @@
 import Foundation
+import MidgarCore
 
 /// One selectable value of a choice setting.
 package struct SettingChoice: Hashable, Identifiable, Sendable {
@@ -59,6 +60,8 @@ package enum PreferenceSetting: CaseIterable, Sendable {
     case allowRelayConnection
     case translateAutomatically
     case translationLanguage
+    /// Anonymous usage counts and crash reports to Midgar (MidgarSignals); never restored to a default.
+    case usageCounts
 
     package enum Control: Equatable, Sendable {
         case choice([SettingChoice])
@@ -107,6 +110,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         case .allowRelayConnection: return String(localized: "Allow Relay")
         case .translateAutomatically: return TranslationCopy.automaticSetting
         case .translationLanguage: return TranslationCopy.languageSetting
+        case .usageCounts: return String(localized: "Usage Counts", comment: "Settings switch for anonymous usage counts and crash reports")
         }
     }
 
@@ -150,6 +154,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         case .allowRelayConnection: return String(localized: "Plex Relay reaches a server no other way can, at a lower speed.")
         case .translateAutomatically: return TranslationCopy.automaticExplanation
         case .translationLanguage: return TranslationCopy.languageExplanation
+        case .usageCounts: return String(localized: "Anonymous counts of which parts of Crucible are used, and a short report when it crashes or freezes. Nothing about your library, what you watch or your Plex account, and nothing that identifies you.", comment: "Explanation of the Usage Counts switch in Settings")
         }
     }
 
@@ -192,6 +197,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         case .allowRelayConnection: return "arrow.triangle.branch"
         case .translateAutomatically: return "character.bubble"
         case .translationLanguage: return "translate"
+        case .usageCounts: return "chart.bar"
         }
     }
 
@@ -283,6 +289,8 @@ package enum PreferenceSetting: CaseIterable, Sendable {
             return .toggle(isOn: TranslationPreferences.translatesAutomatically)
         case .translationLanguage:
             return .choice(Self.translationLanguageChoices())
+        case .usageCounts:
+            return .toggle(isOn: MidgarSignals.isEnabled)
         }
     }
 
@@ -308,6 +316,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
     /// choices depend on the device, so it counts as changed only while a language is chosen over Automatic.
     package var isChanged: Bool {
         guard self != .translationLanguage else { return TranslationPreferences.chosenLanguage != nil }
+        guard self != .usageCounts else { return false }
         return control != Self.defaults[self]
     }
 
@@ -390,6 +399,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         case .preferLocalConnection: Preferences.preferLocalConnection = isOn
         case .allowRelayConnection: Preferences.allowRelayConnection = isOn
         case .translateAutomatically: TranslationPreferences.translatesAutomatically = isOn
+        case .usageCounts: MidgarSignals.isEnabled = isOn
         case .notifyRatingReminders, .notifyNewEpisodes, .notifyWatchlistArrivals, .notifyWeeklyRecap, .notifyYearInReview, .notifyDownloads:
             guard let kind = notificationKind else { return }
             Preferences.setNotifies(kind, isOn)

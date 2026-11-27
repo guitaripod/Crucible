@@ -47,6 +47,11 @@ final class ProfilesViewController: UICollectionViewController {
         load()
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("profiles", feature: true)
+    }
+
     private var currentID: String? { HomeProfiles.active?.id ?? accountID }
 
     private func configureDataSource() {

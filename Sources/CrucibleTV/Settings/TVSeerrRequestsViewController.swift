@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 import UIKit
 
 /// The viewer's Seerr requests on Apple TV; whoever approves requests also sees everyone's and decides on them from the
@@ -46,6 +47,11 @@ final class TVSeerrRequestsViewController: TVSettingsScaffold {
         changeObserver = NotificationCenter.default.addObserver(forName: .seerrRequestsChanged, object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor in self?.reload() }
         }
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("seerr", feature: true)
     }
 
     override var preferredFocusRowID: String? {

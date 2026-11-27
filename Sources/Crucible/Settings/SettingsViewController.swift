@@ -1,6 +1,7 @@
 import CrucibleCore
 import CrucibleDesign
 import CrucibleStats
+import MidgarCore
 @preconcurrency import UIKit
 
 /// The first Settings screen: a search field that finds any setting by name or by what it does, Crucible Pro, one row per
@@ -47,6 +48,11 @@ final class SettingsViewController: UICollectionViewController {
         applySnapshot()
         proObservation = ProObservation { [weak self] in self?.reconfigure([.pro]) }
         demoObservation = DemoObservation { [weak self] in self?.demoChanged() }
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("settings")
     }
 
     /// Categories can arrive after launch, as Translation once the device has reported its languages, so a changed list is

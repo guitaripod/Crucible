@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 import UIKit
 
 /// One category of Settings on Apple TV, from the shared catalog: a choice opens a single-select list, a switch flips in
@@ -31,6 +32,11 @@ final class TVSettingsCategoryViewController: TVSettingsScaffold {
         super.viewDidLoad()
         installHeading(heading)
         refreshRows()
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("settings")
     }
 
     override func viewWillAppear(_ animated: Bool) {

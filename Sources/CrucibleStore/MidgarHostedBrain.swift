@@ -101,13 +101,15 @@ package struct MidgarHostedBrain: HostedBrainProviding {
 }
 
 /// The Midgar services of the App Store build, made once at launch on one anonymous identity: the store that sells
-/// Crucible Pro and the hosted model that Pro includes.
+/// Crucible Pro and the hosted model that Pro includes. The anonymous usage counts and crash reports (MidgarSignals) start
+/// first, so the store's tier and purchase notes reach them; Settings › Privacy & Data turns them off.
 package struct MidgarServices {
     package let pro: MidgarProAccess
     package let brain: MidgarHostedBrain
 
     package static func live() -> MidgarServices {
         let configuration = MidgarHTTPConfiguration(appID: MidgarProAccess.appID)
+        MidgarSignals.configure(configuration: configuration)
         let identity = MidgarIdentity(httpConfiguration: configuration, bundleID: MidgarProAccess.bundleID)
         return MidgarServices(pro: MidgarProAccess.live(configuration: configuration, identity: identity), brain: MidgarHostedBrain(identity: identity))
     }

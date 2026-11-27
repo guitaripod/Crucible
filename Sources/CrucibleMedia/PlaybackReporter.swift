@@ -50,6 +50,13 @@ package final class PlaybackReporter {
         setupObservers()
     }
 
+    /// Reports Crucible's value moment, the first film or episode of the viewer's own library that started to play; the demo's
+    /// fictional library does not count. MidgarSignals sends it once per install and ignores every later call.
+    private static func noteFirstPlay() {
+        guard !DemoMode.shared.isActive else { return }
+        MidgarSignals.noteValue()
+    }
+
     private func setupObservers() {
         guard let player else { return }
 
@@ -77,6 +84,7 @@ package final class PlaybackReporter {
             Task { @MainActor [weak self] in
                 guard let self, let position = self.tracker.position(playerSeconds: seconds, isReady: isReady) else { return }
                 self.enqueue(state: state, position: position)
+                if state == "playing" { Self.noteFirstPlay() }
             }
         }
     }

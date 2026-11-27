@@ -565,6 +565,11 @@ final class TVCommentsViewController: TVSettingsScaffold {
         reload()
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("comments", feature: true)
+    }
+
     override var preferredFocusRowID: String? { focusAfterLoad ?? comments.first.map { "comment.\($0.id)" } ?? "comments.write" }
 
     private func reload() {

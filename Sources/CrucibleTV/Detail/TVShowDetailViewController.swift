@@ -53,6 +53,11 @@ final class TVShowDetailViewController: TVDetailViewController {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("show")
+    }
+
     override func fetch() async {
         let isFirst = model == nil
         let scoresTask = isFirst ? startScores() : nil

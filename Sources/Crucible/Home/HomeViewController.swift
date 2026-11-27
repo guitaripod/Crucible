@@ -173,6 +173,7 @@ final class HomeViewController: UICollectionViewController {
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("home")
         warmLead()
     }
 

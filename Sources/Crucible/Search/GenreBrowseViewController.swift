@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 @preconcurrency import UIKit
 
 final class GenreBrowseViewController: UICollectionViewController {
@@ -34,6 +35,11 @@ final class GenreBrowseViewController: UICollectionViewController {
         configureDataSource()
         session.onChange = { [weak self] state in self?.render(state) }
         session.load()
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("genres", feature: true)
     }
 
     private func configureDataSource() {

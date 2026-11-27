@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 import UIKit
 
 /// The end of a movie, or of a show's last episode, on Apple TV: titles like it over the blurred last frame, the same choice
@@ -78,6 +79,7 @@ final class TVPostPlayViewController: UIViewController, UICollectionViewDelegate
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("post_play")
         UIAccessibility.post(notification: .screenChanged, argument: heading)
     }
 

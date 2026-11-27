@@ -149,5 +149,5 @@ package enum TraktCopy {
         String(localized: "\(count) waiting", comment: "Number of Trakt changes waiting to be sent")
     }
 
-    package static let privacyStatementConnected = String(localized: "Crucible has no analytics, no ads and no tracking. It talks to your Plex server, to plex.tv, and to Trakt because you connected it. Your statistics and settings stay on this device.", comment: "Privacy statement in Settings while Trakt is connected")
+    package static let privacyStatementConnected = String(localized: "Crucible has no ads, no tracking and no third-party analytics. It talks to your Plex server, to plex.tv, and to Trakt because you connected it. Your statistics and settings stay on this device.", comment: "Privacy statement in Settings while Trakt is connected")
 }

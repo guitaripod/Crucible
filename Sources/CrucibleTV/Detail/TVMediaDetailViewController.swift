@@ -43,6 +43,11 @@ final class TVMediaDetailViewController: TVDetailViewController {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("detail")
+    }
+
     override var communityKey: String? { ratingKey }
 
     override var followedRatingKeys: [String] {

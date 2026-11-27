@@ -75,6 +75,7 @@ final class WhatToWatchViewController: UIViewController, UICollectionViewDelegat
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("what_to_watch", feature: true)
         if case .asking = phase, request.isEmpty, !answersExamplesOnly { field.becomeFirstResponder() }
     }
 

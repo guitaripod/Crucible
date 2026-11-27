@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 import UIKit
 
 /// Settings › Integrations › Trakt on Apple TV: the pitch and what Trakt receives on the left, and on the right Connect or
@@ -18,6 +19,11 @@ final class TVTraktSettingsViewController: TVSettingsScaffold {
         installHeading(heading)
         render()
         observation = TraktAccount.shared.observe { [weak self] in self?.render() }
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("trakt")
     }
 
     override func viewWillAppear(_ animated: Bool) {

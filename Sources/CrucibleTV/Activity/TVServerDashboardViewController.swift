@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 import UIKit
 
 /// The owner's server dashboard on Apple TV: how hard the server is working, what it is busy with (scans, refreshes,
@@ -38,6 +39,11 @@ final class TVServerDashboardViewController: TVSettingsScaffold {
         super.viewDidLoad()
         installHeading(heading)
         render()
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("server_dashboard", feature: true)
     }
 
     override func viewWillAppear(_ animated: Bool) {

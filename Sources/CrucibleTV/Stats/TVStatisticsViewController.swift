@@ -2,6 +2,7 @@ import CrucibleCore
 import CrucibleDesign
 import CrucibleStats
 import CrucibleStatsUI
+import MidgarCore
 import UIKit
 
 /// Year in Review on a 65-inch screen: range chips and the Libraries filter, the ember hero with its
@@ -73,6 +74,11 @@ final class TVStatisticsViewController: TVScreenViewController {
         }
         proObserver = ProAccess.shared.observe { [weak self] _ in self?.proStatusChanged() }
         traktObserver = TraktAccount.shared.observe { [weak self] in self?.traktChanged() }
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("stats", feature: true)
     }
 
     override func viewIsAppearing(_ animated: Bool) {

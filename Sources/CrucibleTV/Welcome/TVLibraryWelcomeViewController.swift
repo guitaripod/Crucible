@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 import UIKit
 
 /// The welcome a library opens with the first time on this Apple TV (a new install, or the first since the app's data was cleared):
@@ -74,6 +75,7 @@ final class TVLibraryWelcomeViewController: TVDemoModalViewController {
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("welcome")
         if TVMotion.ambientAllowed { glyph.startBreathing() }
     }
 

@@ -1,6 +1,7 @@
 import CrucibleCore
 import CrucibleDesign
 import CrucibleStats
+import MidgarCore
 @preconcurrency import UIKit
 
 final class StatisticsViewController: UICollectionViewController {
@@ -101,6 +102,7 @@ final class StatisticsViewController: UICollectionViewController {
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("stats", feature: true)
         DemoTour.shared.record(.statistics)
     }
 

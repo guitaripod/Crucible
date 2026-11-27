@@ -233,6 +233,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         }
         viewController.present(playerVC, animated: true) {
             DemoTour.shared.record(.play)
+            MidgarSignals.noteScreen("player", feature: true)
         }
     }
 

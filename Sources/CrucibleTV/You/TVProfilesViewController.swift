@@ -41,6 +41,11 @@ final class TVProfilesViewController: TVSettingsScaffold {
         load()
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("profiles", feature: true)
+    }
+
     private var currentID: String? { HomeProfiles.active?.id ?? accountID }
 
     override func rowDidSelect(_ id: String) {

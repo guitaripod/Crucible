@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 @preconcurrency import UIKit
 
 final class DownloadsViewController: UICollectionViewController {
@@ -64,6 +65,11 @@ final class DownloadsViewController: UICollectionViewController {
         configureDataSource()
         configureMultiSelect()
         DownloadManager.shared.bootstrap()
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("downloads", feature: true)
     }
 
     private func configureMultiSelect() {

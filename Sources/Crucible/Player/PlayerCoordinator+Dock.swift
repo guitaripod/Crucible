@@ -83,6 +83,7 @@ extension PlayerCoordinator {
         playerVC.player = session.player
         MidgarLog.notice("Player expanded ratingKey=\(request.ratingKey)", category: .playback)
         host.present(playerVC, animated: !UIAccessibility.isReduceMotionEnabled) { [weak self] in
+            MidgarSignals.noteScreen("player", feature: true)
             self?.flushPendingUpNext()
         }
     }

@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 import UIKit
 
 /// Edit Details on Apple TV: a title's name, sort name, original name, year (for a movie) and summary, each opened in the
@@ -54,6 +55,11 @@ final class TVEditDetailsViewController: TVSettingsScaffold {
         super.viewDidLoad()
         installHeading(heading)
         render()
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("manage", feature: true)
     }
 
     override func rowDidSelect(_ id: String) {

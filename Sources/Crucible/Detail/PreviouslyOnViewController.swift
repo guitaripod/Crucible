@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 import UIKit
 
 /// A show's Previously On. With a paired Crucible Server it is a short read of the episodes watched so far, written
@@ -123,6 +124,11 @@ final class PreviouslyOnViewController: UIViewController {
             scroll.contentLayoutGuide.widthAnchor.constraint(equalTo: scroll.frameLayoutGuide.widthAnchor),
         ] + besideTheBar(stack))
         if offer == .server { load() }
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("recap", feature: true)
     }
 
     /// Keeps the text between the sheet's safe edges. On iPhone Duo's outer display the sheet's bar stands on the

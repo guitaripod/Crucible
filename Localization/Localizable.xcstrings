@@ -32738,6 +32738,101 @@
         }
       }
     },
+    "Anonymous counts of which parts of Crucible are used, and a short report when it crashes or freezes. Nothing about your library, what you watch or your Plex account, and nothing that identifies you." : {
+      "comment" : "Explanation of the Usage Counts switch in Settings",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anonyme tal for, hvilke dele af Crucible der bruges, og en kort rapport, når appen går ned eller fryser. Intet om dit bibliotek, hvad du ser eller din Plex-konto, og intet, der identificerer dig."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anonyme Zahlen dazu, welche Teile von Crucible genutzt werden, und ein kurzer Bericht, wenn die App abstürzt oder hängt. Nichts über deine Mediathek, was du schaust oder dein Plex-Konto und nichts, was dich identifiziert."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recuentos anónimos de qué partes de Crucible se usan y un breve informe cuando se cierra o se bloquea. Nada sobre tu biblioteca, lo que ves o tu cuenta de Plex, y nada que te identifique."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nimettömiä määriä siitä, mitä Cruciblen osia käytetään, ja lyhyt raportti, kun sovellus kaatuu tai jumittuu. Ei mitään kirjastostasi, katselustasi tai Plex-tilistäsi, eikä mitään, mistä sinut voisi tunnistaa."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Des comptes anonymes des parties de Crucible utilisées, et un court rapport quand l’app plante ou se fige. Rien sur votre bibliothèque, ce que vous regardez ou votre compte Plex, et rien qui vous identifie."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nafnlausar tölur um hvaða hlutar Crucible eru notaðir og stutt skýrsla þegar appið hrynur eða frýs. Ekkert um safnið þitt, hvað þú horfir á eða Plex-aðganginn þinn og ekkert sem auðkennir þig."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conteggi anonimi delle parti di Crucible usate e un breve rapporto quando l’app si chiude o si blocca. Niente sulla tua libreria, su cosa guardi o sul tuo account Plex, e niente che ti identifichi."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible のどの機能が使われているかの匿名の集計と、クラッシュやフリーズが起きたときの短いレポートです。ライブラリ、視聴内容、Plex アカウントに関する情報や、あなたを特定できる情報は含まれません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crucible의 어떤 기능이 쓰이는지에 대한 익명 집계와, 앱이 멈추거나 종료될 때 보내는 짧은 보고서예요. 보관함, 시청 내용, Plex 계정에 관한 정보나 사용자를 식별할 수 있는 정보는 없어요."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anonyme tall for hvilke deler av Crucible som brukes, og en kort rapport når appen krasjer eller fryser. Ingenting om biblioteket ditt, hva du ser eller Plex-kontoen din, og ingenting som identifiserer deg."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anonimowe liczniki tego, z których części Crucible korzystasz, i krótki raport, gdy aplikacja się zawiesi lub zamknie. Nic o Twojej bibliotece, tym, co oglądasz, ani o koncie Plex, i nic, co pozwala Cię zidentyfikować."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contagens anônimas de quais partes do Crucible são usadas e um breve relatório quando o app trava ou congela. Nada sobre sua biblioteca, o que você assiste ou sua conta Plex, e nada que identifique você."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anonyma siffror över vilka delar av Crucible som används, och en kort rapport när appen kraschar eller fryser. Inget om ditt bibliotek, vad du tittar på eller ditt Plex-konto, och inget som identifierar dig."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "匿名统计 Crucible 的哪些功能被使用，以及在应用崩溃或卡住时发送的简短报告。不包含你的资料库、观看内容或 Plex 账户的任何信息，也不包含任何能识别你的信息。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "匿名統計 Crucible 的哪些功能被使用，以及在 App 當機或卡住時傳送的簡短報告。不包含您的資料庫、觀看內容或 Plex 帳號的任何資訊，也不包含任何能識別您的資訊。"
+          }
+        }
+      }
+    },
     "Another App Records My Plays" : {
       "comment" : "Trakt setting for when another scrobbler already records plays",
       "localizations" : {
@@ -62978,192 +63073,192 @@
         }
       }
     },
-    "Crucible has no analytics, no ads and no tracking. It talks to your Plex server and to plex.tv, and keeps your history, statistics and settings on this device." : {
+    "Crucible has no ads, no tracking and no third-party analytics. It talks to your Plex server and to plex.tv, and keeps your history, statistics and settings on this device." : {
       "comment" : "Privacy statement in Settings",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible har ingen analyse, ingen reklamer og ingen sporing. Appen taler med din Plex-server og med plex.tv og gemmer historik, statistik og indstillinger på denne enhed."
+            "value" : "Crucible har ingen reklamer, ingen sporing og ingen analyse fra tredjeparter. Appen taler med din Plex-server og med plex.tv og gemmer historik, statistik og indstillinger på denne enhed."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible hat keine Analyse, keine Werbung und kein Tracking. Die App spricht mit deinem Plex-Server und mit plex.tv und speichert Verlauf, Statistiken und Einstellungen auf diesem Gerät."
+            "value" : "Crucible hat keine Werbung, kein Tracking und keine Analyse durch Dritte. Die App spricht mit deinem Plex-Server und mit plex.tv und speichert Verlauf, Statistiken und Einstellungen auf diesem Gerät."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible no tiene analíticas, ni anuncios, ni rastreo. Se comunica con tu servidor de Plex y con plex.tv, y guarda tu historial, tus estadísticas y tus ajustes en este dispositivo."
+            "value" : "Crucible no tiene anuncios, ni rastreo, ni analíticas de terceros. Se comunica con tu servidor de Plex y con plex.tv, y guarda tu historial, tus estadísticas y tus ajustes en este dispositivo."
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible ei sisällä analytiikkaa, mainoksia eikä seurantaa. Se yhdistää Plex-palvelimeesi ja plex.tv-palveluun ja tallentaa historian, tilastot ja asetukset tälle laitteelle."
+            "value" : "Crucible ei sisällä mainoksia, seurantaa eikä kolmansien osapuolten analytiikkaa. Se yhdistää Plex-palvelimeesi ja plex.tv-palveluun ja tallentaa historian, tilastot ja asetukset tälle laitteelle."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible n’a ni outil d’analyse, ni publicité, ni suivi. L’application communique avec votre serveur Plex et avec plex.tv, et conserve votre historique, vos statistiques et vos réglages sur cet appareil."
+            "value" : "Crucible n’a ni publicité, ni suivi, ni outil d’analyse tiers. L’application communique avec votre serveur Plex et avec plex.tv, et conserve votre historique, vos statistiques et vos réglages sur cet appareil."
           }
         },
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible hefur enga greiningu, engar auglýsingar og enga rakningu. Appið talar við Plex-þjóninn þinn og plex.tv og geymir feril, tölfræði og stillingar á þessu tæki."
+            "value" : "Crucible hefur engar auglýsingar, enga rakningu og enga greiningu frá þriðju aðilum. Appið talar við Plex-þjóninn þinn og plex.tv og geymir feril, tölfræði og stillingar á þessu tæki."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible non ha analisi, pubblicità né tracciamento. Comunica con il tuo server Plex e con plex.tv, e conserva cronologia, statistiche e impostazioni su questo dispositivo."
+            "value" : "Crucible non ha pubblicità, tracciamento né analisi di terze parti. Comunica con il tuo server Plex e con plex.tv, e conserva cronologia, statistiche e impostazioni su questo dispositivo."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible は分析、広告、トラッキングを一切行いません。通信するのは お使いの Plex サーバーと plex.tv だけです。視聴履歴、統計、設定はこのデバイスに保存されます。"
+            "value" : "Crucible には広告、トラッキング、他社の分析ツールは一切ありません。通信するのは お使いの Plex サーバーと plex.tv だけです。視聴履歴、統計、設定はこのデバイスに保存されます。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible에는 분석, 광고, 추적이 없어요. Plex 서버와 plex.tv하고만 통신하고, 기록, 통계, 설정은 이 기기에만 보관해요."
+            "value" : "Crucible에는 광고, 추적, 타사 분석 도구가 없어요. Plex 서버와 plex.tv하고만 통신하고, 기록, 통계, 설정은 이 기기에만 보관해요."
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible har ingen analyse, ingen reklame og ingen sporing. Appen snakker med Plex-serveren din og med plex.tv, og lagrer logg, statistikk og innstillinger på denne enheten."
+            "value" : "Crucible har ingen reklame, ingen sporing og ingen analyse fra tredjeparter. Appen snakker med Plex-serveren din og med plex.tv, og lagrer logg, statistikk og innstillinger på denne enheten."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible nie zbiera analityki, nie wyświetla reklam i nie śledzi. Łączy się z Twoim serwerem Plex i z plex.tv, a historię, statystyki i ustawienia przechowuje na tym urządzeniu."
+            "value" : "Crucible nie wyświetla reklam, nie śledzi i nie używa analityki firm trzecich. Łączy się z Twoim serwerem Plex i z plex.tv, a historię, statystyki i ustawienia przechowuje na tym urządzeniu."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O Crucible não tem coleta de dados de uso, anúncios nem rastreamento. Ele se comunica com seu servidor Plex e com o plex.tv, e mantém seu histórico, suas estatísticas e seus ajustes neste dispositivo."
+            "value" : "O Crucible não tem anúncios, rastreamento nem análises de terceiros. Ele se comunica com seu servidor Plex e com o plex.tv, e mantém seu histórico, suas estatísticas e seus ajustes neste dispositivo."
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible har ingen analys, ingen reklam och ingen spårning. Appen kommunicerar med din Plex-server och med plex.tv och sparar historik, statistik och inställningar på den här enheten."
+            "value" : "Crucible har ingen reklam, ingen spårning och ingen analys från tredje part. Appen kommunicerar med din Plex-server och med plex.tv och sparar historik, statistik och inställningar på den här enheten."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible 没有分析、广告和跟踪。它只与你的 Plex 服务器和 plex.tv 通信，并将你的记录、统计和设置保存在此设备上。"
+            "value" : "Crucible 没有广告、跟踪和第三方分析。它只与你的 Plex 服务器和 plex.tv 通信，并将你的记录、统计和设置保存在此设备上。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible 沒有分析工具、廣告或追蹤。它只會與您的 Plex 伺服器和 plex.tv 通訊，並將您的紀錄、統計資料與設定保存在此裝置上。"
+            "value" : "Crucible 沒有廣告、追蹤或第三方分析工具。它只會與您的 Plex 伺服器和 plex.tv 通訊，並將您的紀錄、統計資料與設定保存在此裝置上。"
           }
         }
       }
     },
-    "Crucible has no analytics, no ads and no tracking. It talks to your Plex server, to plex.tv, and to Trakt because you connected it. Your statistics and settings stay on this device." : {
+    "Crucible has no ads, no tracking and no third-party analytics. It talks to your Plex server, to plex.tv, and to Trakt because you connected it. Your statistics and settings stay on this device." : {
       "comment" : "Privacy statement in Settings while Trakt is connected",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible har ingen analyse, ingen reklamer og ingen sporing. Appen taler med din Plex-server, med plex.tv og med Trakt, fordi du har forbundet dem. Dine statistikker og indstillinger bliver på denne enhed."
+            "value" : "Crucible har ingen reklamer, ingen sporing og ingen analyse fra tredjeparter. Appen taler med din Plex-server, med plex.tv og med Trakt, fordi du har forbundet dem. Dine statistikker og indstillinger bliver på denne enhed."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible hat keine Analyse, keine Werbung und kein Tracking. Die App kommuniziert mit deinem Plex-Server, mit plex.tv und mit Trakt, weil du das so eingerichtet hast. Deine Statistiken und Einstellungen bleiben auf diesem Gerät."
+            "value" : "Crucible hat keine Werbung, kein Tracking und keine Analyse durch Dritte. Die App kommuniziert mit deinem Plex-Server, mit plex.tv und mit Trakt, weil du das so eingerichtet hast. Deine Statistiken und Einstellungen bleiben auf diesem Gerät."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible no tiene analítica, ni anuncios, ni rastreo. Se comunica con tu servidor de Plex, con plex.tv y con Trakt porque tú lo conectaste. Tus estadísticas y ajustes se quedan en este dispositivo."
+            "value" : "Crucible no tiene anuncios, ni rastreo, ni analítica de terceros. Se comunica con tu servidor de Plex, con plex.tv y con Trakt porque tú lo conectaste. Tus estadísticas y ajustes se quedan en este dispositivo."
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible ei kerää analytiikkaa, ei näytä mainoksia eikä tee seurantaa. Se ottaa yhteyttä Plex-palvelimeesi, plex.tv-palveluun ja Traktiin, koska yhdistit ne itse. Tilastosi ja asetuksesi pysyvät tällä laitteella."
+            "value" : "Crucible ei näytä mainoksia, ei tee seurantaa eikä käytä kolmansien osapuolten analytiikkaa. Se ottaa yhteyttä Plex-palvelimeesi, plex.tv-palveluun ja Traktiin, koska yhdistit ne itse. Tilastosi ja asetuksesi pysyvät tällä laitteella."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible n'a ni analyse, ni publicité, ni suivi. Il communique avec votre serveur Plex, avec plex.tv et avec Trakt parce que vous l'avez connecté. Vos statistiques et vos réglages restent sur cet appareil."
+            "value" : "Crucible n'a ni publicité, ni suivi, ni outil d'analyse tiers. Il communique avec votre serveur Plex, avec plex.tv et avec Trakt parce que vous l'avez connecté. Vos statistiques et vos réglages restent sur cet appareil."
           }
         },
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible safnar ekki notkunargögnum, sýnir engar auglýsingar og notar enga rakningu. Appið hefur samskipti við Plex-þjóninn þinn, plex.tv og Trakt því þú tengdir það. Tölfræðin þín og stillingar eru eingöngu geymdar í þessu tæki."
+            "value" : "Crucible sýnir engar auglýsingar, notar enga rakningu og enga greiningu frá þriðju aðilum. Appið hefur samskipti við Plex-þjóninn þinn, plex.tv og Trakt því þú tengdir það. Tölfræðin þín og stillingar eru eingöngu geymdar í þessu tæki."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible non ha analisi, pubblicità né tracciamento. Comunica con il tuo server Plex, con plex.tv e con Trakt perché l'hai collegato. Le tue statistiche e impostazioni restano su questo dispositivo."
+            "value" : "Crucible non ha pubblicità, tracciamento né analisi di terze parti. Comunica con il tuo server Plex, con plex.tv e con Trakt perché l'hai collegato. Le tue statistiche e impostazioni restano su questo dispositivo."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible は分析、広告、トラッキングを一切行いません。接続しているため、Plex サーバー、plex.tv、Trakt と通信します。統計と設定はこの端末に残ります。"
+            "value" : "Crucible には広告、トラッキング、他社の分析ツールは一切ありません。接続しているため、Plex サーバー、plex.tv、Trakt と通信します。統計と設定はこの端末に残ります。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible은 분석, 광고, 추적을 하지 않습니다. 연결하셨기 때문에 Plex 서버, plex.tv, Trakt와 통신합니다. 통계와 설정은 이 기기에만 남습니다."
+            "value" : "Crucible에는 광고, 추적, 타사 분석 도구가 없습니다. 연결하셨기 때문에 Plex 서버, plex.tv, Trakt와 통신합니다. 통계와 설정은 이 기기에만 남습니다."
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible har ingen analyse, ingen annonser og ingen sporing. Appen kommuniserer med Plex-serveren din, med plex.tv og med Trakt fordi du har koblet den til. Statistikken og innstillingene dine forblir på denne enheten."
+            "value" : "Crucible har ingen annonser, ingen sporing og ingen analyse fra tredjeparter. Appen kommuniserer med Plex-serveren din, med plex.tv og med Trakt fordi du har koblet den til. Statistikken og innstillingene dine forblir på denne enheten."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible nie ma analityki, reklam ani śledzenia. Łączy się z Twoim serwerem Plex, z plex.tv i z Trakt, bo je połączono. Twoje statystyki i ustawienia zostają na tym urządzeniu."
+            "value" : "Crucible nie ma reklam, śledzenia ani analityki firm trzecich. Łączy się z Twoim serwerem Plex, z plex.tv i z Trakt, bo je połączono. Twoje statystyki i ustawienia zostają na tym urządzeniu."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O Crucible não tem análises, anúncios nem rastreamento. Ele se comunica com seu servidor Plex, com o plex.tv e com o Trakt porque você os conectou. Suas estatísticas e ajustes ficam neste dispositivo."
+            "value" : "O Crucible não tem anúncios, rastreamento nem análises de terceiros. Ele se comunica com seu servidor Plex, com o plex.tv e com o Trakt porque você os conectou. Suas estatísticas e ajustes ficam neste dispositivo."
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible innehåller ingen analys, inga annonser och ingen spårning. Appen kommunicerar med din Plex-server, med plex.tv och med Trakt eftersom du har anslutit den. Din statistik och dina inställningar stannar på den här enheten."
+            "value" : "Crucible innehåller inga annonser, ingen spårning och ingen analys från tredje part. Appen kommunicerar med din Plex-server, med plex.tv och med Trakt eftersom du har anslutit den. Din statistik och dina inställningar stannar på den här enheten."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible 没有分析、广告和追踪功能。因为你已连接，它会与你的 Plex 服务器、plex.tv 和 Trakt 通信。你的统计数据和设置只保存在这台设备上。"
+            "value" : "Crucible 没有广告、追踪功能和第三方分析。因为你已连接，它会与你的 Plex 服务器、plex.tv 和 Trakt 通信。你的统计数据和设置只保存在这台设备上。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crucible 沒有分析、廣告與追蹤功能。因為您已連接，它會與您的 Plex 伺服器、plex.tv 及 Trakt 通訊。您的統計資料與設定只保存在這台裝置上。"
+            "value" : "Crucible 沒有廣告、追蹤功能與第三方分析。因為您已連接，它會與您的 Plex 伺服器、plex.tv 及 Trakt 通訊。您的統計資料與設定只保存在這台裝置上。"
           }
         }
       }
@@ -131636,101 +131731,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "這裡尚無內容"
-          }
-        }
-      }
-    },
-    "Nothing Leaves This Device" : {
-      "comment" : "Privacy statement row title",
-      "localizations" : {
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Intet forlader denne enhed"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nichts verlässt dieses Gerät"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nada sale de este dispositivo"
-          }
-        },
-        "fi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mikään ei poistu tältä laitteelta"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rien ne quitte cet appareil"
-          }
-        },
-        "is" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ekkert yfirgefur þetta tæki"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Niente lascia questo dispositivo"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "このデバイスから外へは何も送信されません"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "기기 밖으로 나가는 정보는 없어요"
-          }
-        },
-        "nb" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ingenting forlater denne enheten"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nic nie opuszcza tego urządzenia"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nada sai deste dispositivo"
-          }
-        },
-        "sv" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Inget lämnar den här enheten"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "数据不会离开此设备"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "資料不會離開此裝置"
           }
         }
       }
@@ -229335,6 +229335,101 @@
         }
       }
     },
+    "Usage Counts" : {
+      "comment" : "Settings switch for anonymous usage counts and crash reports",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brugstal"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nutzungszahlen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recuentos de uso"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Käyttömäärät"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compteurs d'utilisation"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notkunartölur"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conteggi di utilizzo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "利用回数"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "사용 횟수"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bruksstatistikk"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liczniki użycia"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contagens de uso"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Användningsstatistik"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用次数"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用次數"
+          }
+        }
+      }
+    },
     "Use Settings for Everything" : {
       "comment" : "Menu action: a show or movie goes back to following Settings for every rule it had of its own",
       "extractionState" : "manual",
@@ -249195,6 +249290,101 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "約 %lld cd/m²"
+          }
+        }
+      }
+    },
+    "analytics, statistics, crash, report, diagnostics, privacy, counts, anonymous" : {
+      "comment" : "Search keywords for the Usage Counts switch, comma separated",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "analyse, statistik, nedbrud, rapport, diagnostik, privatliv, tal, anonym"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Analyse, Statistik, Absturz, Bericht, Diagnose, Datenschutz, Zahlen, anonym"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "analítica, estadísticas, cierre, informe, diagnóstico, privacidad, recuentos, anónimo"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "analytiikka, tilastot, kaatuminen, raportti, diagnostiikka, yksityisyys, määrät, nimetön"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "analyse, statistiques, plantage, rapport, diagnostic, confidentialité, comptes, anonyme"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "greining, tölfræði, hrun, skýrsla, greiningargögn, persónuvernd, tölur, nafnlaust"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "analisi, statistiche, arresto anomalo, rapporto, diagnostica, privacy, conteggi, anonimo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分析, 統計, クラッシュ, レポート, 診断, プライバシー, 集計, 匿名"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "분석, 통계, 충돌, 보고서, 진단, 개인정보, 집계, 익명"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "analyse, statistikk, krasj, rapport, diagnostikk, personvern, tall, anonym"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "analityka, statystyki, awaria, raport, diagnostyka, prywatność, liczniki, anonimowe"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "análise, estatísticas, travamento, relatório, diagnóstico, privacidade, contagens, anônimo"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "analys, statistik, krasch, rapport, diagnostik, integritet, siffror, anonym"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分析, 统计, 崩溃, 报告, 诊断, 隐私, 计数, 匿名"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分析, 統計, 當機, 報告, 診斷, 隱私, 計數, 匿名"
           }
         }
       }

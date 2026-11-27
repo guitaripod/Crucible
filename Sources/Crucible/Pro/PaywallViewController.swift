@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 @preconcurrency import UIKit
 
 /// The Crucible Pro sheet. It draws `PaywallModel` and nothing else: every phase, notice and busy state comes from the model,
@@ -84,6 +85,7 @@ final class PaywallViewController: UIViewController, UISheetPresentationControll
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("paywall")
         guard !didStart else { return }
         didStart = true
         model.start()

@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 @preconcurrency import UIKit
 
 /// Edit Details: a title's name, sort name, original name, year (for a movie) and summary. Saving sends only what changed
@@ -63,6 +64,11 @@ final class EditDetailsViewController: UIViewController {
             stack.leadingAnchor.constraint(equalTo: scroll.frameLayoutGuide.leadingAnchor, constant: Theme.Space.l),
             stack.trailingAnchor.constraint(equalTo: scroll.frameLayoutGuide.trailingAnchor, constant: -Theme.Space.l),
         ])
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("manage", feature: true)
     }
 
     private func addField(_ label: String, _ field: UITextField, _ value: String) {

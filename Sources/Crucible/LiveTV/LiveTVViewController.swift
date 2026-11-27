@@ -90,6 +90,11 @@ final class LiveTVViewController: UIViewController, UICollectionViewDelegate {
         guide.load()
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("live_tv", feature: true)
+    }
+
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         startClock()

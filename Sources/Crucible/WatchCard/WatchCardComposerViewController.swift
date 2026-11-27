@@ -78,6 +78,11 @@ final class WatchCardComposerViewController: UIViewController, UITextFieldDelega
         load(scope)
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("watch_card", feature: true)
+    }
+
     override func viewWillLayoutSubviews() {
         super.viewWillLayoutSubviews()
         updateAxis()

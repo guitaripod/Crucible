@@ -1,5 +1,6 @@
 import CrucibleCore
 import CrucibleDesign
+import MidgarCore
 @preconcurrency import UIKit
 
 /// The welcome a library gets the first time it opens on this device: where the viewer stands with Crucible Pro and what it holds for
@@ -69,6 +70,7 @@ final class WelcomeViewController: DemoSheetViewController {
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("welcome")
         guard !hasEntered else { return }
         hasEntered = true
         playEntrance()

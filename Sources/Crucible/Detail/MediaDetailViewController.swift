@@ -100,6 +100,11 @@ final class MediaDetailViewController: UICollectionViewController {
         followServerState()
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("detail")
+    }
+
     /// The title, its season or its show finished, paused or marked on any device reads the page again while it is on screen.
     private func followServerState() {
         serverState = ServerStateFollower(matching: { [weak self] change in

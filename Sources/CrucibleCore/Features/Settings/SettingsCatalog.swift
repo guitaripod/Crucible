@@ -164,7 +164,7 @@ package struct SettingsEntry: Hashable, Identifiable, Sendable {
         case .preference(let setting): return setting.title
         case .destination(let destination): return SettingsCatalog.title(destination)
         case .action(let action): return SettingsCatalog.title(action)
-        case .privacyStatement: return TraktAccount.isLinked ? String(localized: "No Tracking", comment: "Privacy statement row title while Trakt is connected") : String(localized: "Nothing Leaves This Device", comment: "Privacy statement row title")
+        case .privacyStatement: return String(localized: "No Tracking", comment: "Privacy statement row title while Trakt is connected")
         }
     }
 
@@ -271,6 +271,7 @@ package enum SettingsCatalog {
             Spec(item: .preference(.preferLocalConnection), category: .connection, section: nil, platforms: all),
             Spec(item: .preference(.allowRelayConnection), category: .connection, section: nil, platforms: all),
             Spec(item: .privacyStatement, category: .privacy, section: nil, platforms: all),
+            Spec(item: .preference(.usageCounts), category: .privacy, section: nil, platforms: both),
             Spec(item: .action(.clearSearchHistory), category: .privacy, section: nil, platforms: all),
             Spec(item: .action(.forgetFinishedTitles), category: .privacy, section: nil, platforms: all),
             Spec(item: .action(.clearImageCache), category: .privacy, section: nil, platforms: all),
@@ -476,7 +477,7 @@ package enum SettingsCatalog {
         TraktAccount.isLinked ? TraktCopy.privacyStatementConnected : privacyStatementLocal
     }
 
-    static let privacyStatementLocal = String(localized: "Crucible has no analytics, no ads and no tracking. It talks to your Plex server and to plex.tv, and keeps your history, statistics and settings on this device.", comment: "Privacy statement in Settings")
+    static let privacyStatementLocal = String(localized: "Crucible has no ads, no tracking and no third-party analytics. It talks to your Plex server and to plex.tv, and keeps your history, statistics and settings on this device.", comment: "Privacy statement in Settings")
 
     /// Words that find a setting besides its title, comma separated so translators can add their own synonyms.
     static func keywords(for item: SettingsItem) -> String {
@@ -517,6 +518,8 @@ package enum SettingsCatalog {
                 return String(localized: "network, LAN, remote, relay, Tailscale, wifi", comment: "Search keywords for connection settings, comma separated")
             case .translateAutomatically, .translationLanguage:
                 return TranslationCopy.keywords
+            case .usageCounts:
+                return String(localized: "analytics, statistics, crash, report, diagnostics, privacy, counts, anonymous", comment: "Search keywords for the Usage Counts switch, comma separated")
             }
         case .destination(let destination):
             switch destination {

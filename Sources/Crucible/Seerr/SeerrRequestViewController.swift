@@ -99,6 +99,11 @@ final class SeerrRequestViewController: UICollectionViewController {
         load(refresh: false)
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("seerr", feature: true)
+    }
+
     private func load(refresh: Bool) {
         Task { [weak self] in
             guard let self else { return }

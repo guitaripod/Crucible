@@ -59,6 +59,11 @@ final class TraktSettingsViewController: UICollectionViewController {
         observation = TraktAccount.shared.observe { [weak self] in self?.applySnapshot() }
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        MidgarSignals.noteScreen("trakt")
+    }
+
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         applySnapshot()
