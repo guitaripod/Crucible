@@ -21,11 +21,13 @@ struct kiln_video {
     mpv_render_context *render;
     int wakeup;
     atomic_bool frame_pending;
+    bool nvidia;
+    bool h264_off_vulkan;
     VkPhysicalDeviceFeatures2 features;
 };
 
 enum { OBSERVE_POSITION = 1, OBSERVE_DURATION, OBSERVE_PAUSE, OBSERVE_BUFFERING, OBSERVE_CACHE, OBSERVE_WIDTH, OBSERVE_HEIGHT,
-       OBSERVE_SEEKING, OBSERVE_HWDEC, OBSERVE_MUTE, OBSERVE_EOF };
+       OBSERVE_SEEKING, OBSERVE_HWDEC, OBSERVE_MUTE, OBSERVE_EOF, OBSERVE_FORMAT };
 
 /** The reply ids of the requests made without waiting: a property set mpv refuses is worth a line on stderr, while an
  * `af-command` sent before its filter runs fails as a matter of course. */
@@ -106,6 +108,7 @@ static const char *preferred_hwdec_interop(kiln_gpu *g) {
 kiln_video *kiln_video_create(kiln_gpu *g, char *error, size_t error_size) {
     kiln_video *v = calloc(1, sizeof(*v));
     v->wakeup = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+    v->nvidia = is_nvidia(g);
     v->mpv = mpv_create();
     if (!v->mpv || v->wakeup < 0) {
         fail(error, error_size, "mpv_create");
@@ -172,6 +175,7 @@ kiln_video *kiln_video_create(kiln_gpu *g, char *error, size_t error_size) {
     mpv_observe_property(v->mpv, OBSERVE_HWDEC, "hwdec-current", MPV_FORMAT_STRING);
     mpv_observe_property(v->mpv, OBSERVE_MUTE, "mute", MPV_FORMAT_FLAG);
     mpv_observe_property(v->mpv, OBSERVE_EOF, "eof-reached", MPV_FORMAT_FLAG);
+    mpv_observe_property(v->mpv, OBSERVE_FORMAT, "video-format", MPV_FORMAT_STRING);
     return v;
 }
 
@@ -204,6 +208,21 @@ static void apply_property(kiln_video_state *state, mpv_event_property *property
     }
 }
 
+/** Moves H.264 off Vulkan Video on NVIDIA, and back for any other codec. The driver (620.73) decodes H.264 streams made
+ * with x264's preset medium and no weighted prediction, which is what YouTube serves, wrongly from the first inter frame
+ * on: blocks of the wrong picture that stay on screen for as long as the stream plays, while HEVC and AV1 decode
+ * exactly. NVDEC through system memory decodes the same streams exactly and costs little at H.264's bit rates. mpv
+ * reopens its decoder when the video's format is first named, a few milliseconds into the file. */
+static void route_h264_away_from_vulkan(kiln_video *v, mpv_event_property *property) {
+    if (!v->nvidia || getenv("KILN_HWDEC") || !property->data) return;
+    const char *format = *(char **) property->data;
+    bool h264 = format && strcmp(format, "h264") == 0;
+    if (h264 == v->h264_off_vulkan) return;
+    v->h264_off_vulkan = h264;
+    const char *hwdec = h264 ? "nvdec-copy,auto-safe" : "vulkan,auto-safe";
+    mpv_set_property_async(v->mpv, REPLY_REPORTED, "hwdec", MPV_FORMAT_STRING, (void *) &hwdec);
+}
+
 uint32_t kiln_video_poll(kiln_video *v, kiln_video_state *state) {
     uint64_t count;
     while (read(v->wakeup, &count, sizeof count) > 0) {}
@@ -214,6 +233,10 @@ uint32_t kiln_video_poll(kiln_video *v, kiln_video_state *state) {
         switch (event->event_id) {
         case MPV_EVENT_PROPERTY_CHANGE: {
             mpv_event_property *property = event->data;
+            if (event->reply_userdata == OBSERVE_FORMAT) {
+                route_h264_away_from_vulkan(v, property);
+                break;
+            }
             if (event->reply_userdata == OBSERVE_EOF) {
                 if (property->data && *(int *) property->data) happened |= KILN_VIDEO_ENDED;
                 break;
