@@ -643,6 +643,11 @@ final class TransportView: View {
         isDesk && (volumeBand.contains(point) || deskFrame(of: .mute).contains(point))
     }
 
+    /// Whether the wheel at `point` steps the speed: over the desk's speed button.
+    func turnsSpeed(at point: Point) -> Bool {
+        isDesk && deskFrame(of: .control(.speed)).contains(point)
+    }
+
     /// Turns the volume by a wheel's notches (5% each) or a touchpad's glide.
     func turnVolume(_ event: ScrollEvent) {
         let step = event.isDiscrete ? Double(-event.notchesY + event.notchesX) * 5 : Double(-event.dy + event.dx) * 0.2

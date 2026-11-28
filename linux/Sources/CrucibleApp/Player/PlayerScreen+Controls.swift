@@ -208,26 +208,38 @@ extension PlayerScreen {
         }
     }
 
-    /// Whether `event` turns the volume rather than seeking. A run of wheel notches or a touchpad glide keeps what its first
-    /// event chose (the volume when it began over the shown transport's volume slider or mute button) until the fingers
-    /// lift or the wheel rests half a second, so the transport fading out under a volume change, or a seek bringing it up
-    /// under the pointer, never turns one into the other halfway.
-    func wheelTurnsVolume(_ event: ScrollEvent) -> Bool {
+    /// What `event` turns: the volume or the speed when a run of wheel notches or a touchpad glide began over the shown
+    /// transport's volume slider, mute button or speed button, otherwise the seek. The run keeps what its first event chose
+    /// until the fingers lift or the wheel rests half a second, so the transport fading out under a change, or a seek
+    /// bringing it up under the pointer, never turns one into another halfway.
+    func wheelTarget(for event: ScrollEvent) -> WheelTarget {
         guard !isMini else {
             wheelRun = nil
-            return false
+            return .seek
         }
         let now = Window.now()
-        let turnsVolume: Bool
+        let target: WheelTarget
         if let wheelRun, now - wheelRun.at < 0.5 {
-            turnsVolume = wheelRun.turnsVolume
+            target = wheelRun.target
         } else if transport.alpha > 0.01, let pointer = window?.pointerLocation {
-            turnsVolume = transport.turnsVolume(at: transport.convert(pointer, from: nil))
+            let local = transport.convert(pointer, from: nil)
+            target = transport.turnsVolume(at: local) ? .volume : transport.turnsSpeed(at: local) ? .speed : .seek
         } else {
-            turnsVolume = false
+            target = .seek
         }
-        wheelRun = event.ended ? nil : (turnsVolume, now)
-        return turnsVolume
+        wheelRun = event.ended ? nil : (target, now)
+        return target
+    }
+
+    /// Steps the speed through the offered speeds by a wheel's notches or a touchpad's glide, one speed a notch.
+    func turnSpeed(_ event: ScrollEvent) {
+        let step = event.isDiscrete ? Double(-event.notchesY + event.notchesX) : Double(-event.dy + event.dx) * 0.05
+        speedWheel += step
+        let whole = Int(speedWheel.rounded(.towardZero))
+        guard whole != 0 else { return }
+        speedWheel -= Double(whole)
+        stepSpeed(by: whole)
+        say(Self.speedTitle(speed), symbol: "gauge.with.dots.needle.67percent")
     }
 
     /// Lets the volume go to 200%; the player brings a volume past 100% back to it when the boost goes off.

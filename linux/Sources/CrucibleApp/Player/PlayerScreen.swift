@@ -758,7 +758,13 @@ final class PlayerScreen: View {
     private var lastPointer: Point?
     private var restingPointer: Point?
     /// What the wheel's current run drives (the volume, or else the playhead) and when its last event came.
-    var wheelRun: (turnsVolume: Bool, at: Double)?
+    var wheelRun: (target: WheelTarget, at: Double)?
+    /// The speed steps the wheel has gathered toward the next one, so a touchpad's small steps add up.
+    var speedWheel: Double = 0
+
+    enum WheelTarget {
+        case seek, volume, speed
+    }
 
     override func pointerMoved(to point: Point) {
         if isMini {
@@ -909,11 +915,17 @@ final class PlayerScreen: View {
     }
 
     /// The wheel or a touchpad does what Settings › Controls › Mouse says (by default seeks 5 s a notch), except a run
-    /// that began over the shown transport's volume slider or mute button, which turns the volume and keeps the transport
-    /// up while it does (`wheelTurnsVolume`).
+    /// that began over the shown transport's volume slider or mute button, which turns the volume, or its speed button, which
+    /// steps the speed, keeping the transport up while it does (`wheelTarget`).
     override func scrolled(_ event: ScrollEvent) -> Bool {
         let wheel = PlayerMouse.wheel
-        if wheelTurnsVolume(event) || (wheel == .volume && !isMini) {
+        let target = wheelTarget(for: event)
+        if target == .speed {
+            turnSpeed(event)
+            showChrome(autoHide: true, rest: Self.chromeRestOnBar)
+            return true
+        }
+        if target == .volume || (wheel == .volume && !isMini) {
             transport.turnVolume(event)
             showChrome(autoHide: true, rest: Self.chromeRestOnBar)
             return true
