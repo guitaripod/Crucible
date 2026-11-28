@@ -220,6 +220,7 @@
   "square.and.pencil": "square-pen",
   "square.grid.2x2": "layout-grid",
   "square.grid.3x3": "grid-3x3",
+  "square.on.square": "copy",
   "square.stack.3d.up": "layers-3",
   "star": "star",
   "star.bubble": "message-square-heart",
