@@ -592,6 +592,10 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
             pendingUpNext = offer
             return
         }
+        if startsInstantly(offer) {
+            autoPlayNext(offer)
+            return
+        }
         guard let playerVC, let host = playerVC.contentOverlayView else {
             Task { await dismissPlayer() }
             return
@@ -627,6 +631,11 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         shownUpNext = offer
         session.setUpNextVisible(true)
         overlay.begin()
+    }
+
+    /// Whether the countdown is set to Instant and the card would count, so the next episode starts without it.
+    private func startsInstantly(_ offer: UpNextOffer) -> Bool {
+        UpNextOffer.startsInstantly && offer.autoplays && !asksStillWatching && !session.stopsAtEndOfItem
     }
 
     func flushPendingUpNext() {

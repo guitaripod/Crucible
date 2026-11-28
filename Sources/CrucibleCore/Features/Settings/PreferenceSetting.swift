@@ -230,7 +230,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
             return .toggle(isOn: Preferences.mergesDuplicateTitles)
         case .upNextCountdown:
             return .choice(Preferences.upNextCountdownChoices.map {
-                SettingChoice(id: $0, title: String(localized: "\($0) Seconds", comment: "Up Next countdown option, e.g. 10 Seconds"), isSelected: $0 == Preferences.upNextCountdown)
+                SettingChoice(id: $0, title: PreferenceSetting.upNextCountdownTitle($0), isSelected: $0 == Preferences.upNextCountdown)
             })
         case .stillWatching:
             return .choice(StillWatchingRule.choices.map { limit in
@@ -435,7 +435,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
         .cellularQuality: .choice(qualityChoices(current: nil, same: String(localized: "Same as Away from Home", comment: "Quality option that follows the quality away from home"))),
         .autoplayNextEpisode: .toggle(isOn: true),
         .upNextCountdown: .choice(Preferences.upNextCountdownChoices.map {
-            SettingChoice(id: $0, title: String(localized: "\($0) Seconds", comment: "Up Next countdown option, e.g. 10 Seconds"), isSelected: $0 == 10)
+            SettingChoice(id: $0, title: PreferenceSetting.upNextCountdownTitle($0), isSelected: $0 == 10)
         }),
         .stillWatching: .choice(StillWatchingRule.choices.map { SettingChoice(id: $0, title: StillWatchingRule.label(for: $0), isSelected: $0 == StillWatchingRule.defaultLimit) }),
         .postPlaySuggestions: .toggle(isOn: true),
@@ -491,6 +491,13 @@ package enum PreferenceSetting: CaseIterable, Sendable {
                 SettingChoice(id: (TranslationLanguages.catalog.firstIndex(of: language.identifier) ?? 0) + 1, title: language.name, isSelected: language.identifier == chosen)
             }
         return [SettingChoice(id: 0, title: TranslationCopy.automaticLanguage(TranslationLanguages.name(automatic)), isSelected: chosen == nil)] + languages
+    }
+
+    /// "Instant" for the countdown that skips the Up Next card, "10 Seconds" for the rest.
+    private static func upNextCountdownTitle(_ seconds: Int) -> String {
+        seconds == 0
+            ? String(localized: "Instant", comment: "Up Next countdown option that starts the next episode as soon as the credits begin")
+            : String(localized: "\(seconds) Seconds", comment: "Up Next countdown option, e.g. 10 Seconds")
     }
 
     private static func skipChoices(current: Int) -> [SettingChoice] {

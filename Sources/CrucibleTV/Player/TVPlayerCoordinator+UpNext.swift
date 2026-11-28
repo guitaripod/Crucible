@@ -134,6 +134,11 @@ extension TVPlayerCoordinator {
             session.heal(reason: "Up Next proposal before the credits")
             return false
         }
+        if let offer = upNextOffer, upNextCard?.startsInstantly == true {
+            MidgarLog.notice("Up Next set to Instant ratingKey=\(request.ratingKey); starting the next episode without the card", category: .playback)
+            advance(to: offer)
+            return false
+        }
         MidgarLog.notice("Up Next proposal presented for ratingKey=\(request.ratingKey) stillWatching=\(asksStillWatching) unattended=\(unattendedEpisodes)", category: .playback)
         isUpNextCardVisible = true
         session?.setUpNextVisible(true)

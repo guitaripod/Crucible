@@ -52,6 +52,16 @@ final class TVUpNextViewController: AVContentProposalViewController {
     /// Counts down only when autoplay is on, VoiceOver is off, nobody needs asking and no sleep timer stops playback here: a
     /// countdown the viewer cannot see must not start the next episode under them, and neither may one nobody is awake for.
     private var isCounting: Bool {
+        counts(stillWatching: stillWatching, stopsAfterItem: stopsAfterItem)
+    }
+
+    /// Whether the countdown is set to Instant and the card, were it presented now, would count: the coordinator then starts
+    /// the next episode without presenting it.
+    var startsInstantly: Bool {
+        UpNextOffer.startsInstantly && counts(stillWatching: asksStillWatching?() ?? false, stopsAfterItem: stopsAfterThisItem?() ?? false)
+    }
+
+    private func counts(stillWatching: Bool, stopsAfterItem: Bool) -> Bool {
         let plays = leavingKeepsPlaying ? autoplays : autoplaysAtEnd
         return plays && !stopsAfterItem && !stillWatching && !UIAccessibility.isVoiceOverRunning
     }

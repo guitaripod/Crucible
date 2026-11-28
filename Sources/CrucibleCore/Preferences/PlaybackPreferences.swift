@@ -29,7 +29,7 @@ extension Preferences {
 
     /// The stored value meaning "the same as the setting above it".
     package static let sameQuality = -1
-    package static let upNextCountdownChoices = [5, 10, 15, 20, 30]
+    package static let upNextCountdownChoices = [0, 5, 10, 15, 20, 30]
 
     /// Quality away from home (a remote or relayed connection); nil follows the quality at home.
     package static var remoteQuality: Quality? {
@@ -48,10 +48,10 @@ extension Preferences {
         set { UserDefaults.standard.set(newValue.rawValue, forKey: subtitleSizeKey) }
     }
 
-    /// How long the Up Next card counts down before the next episode starts.
+    /// How long the Up Next card counts down before the next episode starts; 0 starts it at once, without the card.
     package static var upNextCountdown: Int {
         get {
-            let stored = UserDefaults.standard.integer(forKey: upNextCountdownKey)
+            guard let stored = UserDefaults.standard.object(forKey: upNextCountdownKey) as? Int else { return 10 }
             return upNextCountdownChoices.contains(stored) ? stored : 10
         }
         set { UserDefaults.standard.set(upNextCountdownChoices.contains(newValue) ? newValue : 10, forKey: upNextCountdownKey) }
