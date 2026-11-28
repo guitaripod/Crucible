@@ -6,7 +6,7 @@ import MidgarCore
 @preconcurrency import UIKit
 
 @MainActor
-final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerDelegate {
+final class PlayerCoordinator: NSObject {
     private static weak var resolvingCoordinator: PlayerCoordinator?
     /// How long a start may take before a spinner says so: a title that was made ready, or resolves quickly, shows none.
     private static let spinnerDelay: TimeInterval = 0.3
@@ -33,7 +33,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     private var upNextOverlay: UpNextOverlayView?
     private var postPlay: PostPlayViewController?
     private var postPlayTask: Task<Void, Never>?
-    private var pendingUpNext: UpNextOffer?
+    var pendingUpNext: UpNextOffer?
     private var foregroundObserver: (any NSObjectProtocol)?
     private var suspensionObservers: [any NSObjectProtocol] = []
     private(set) var isFinishing = false
@@ -49,8 +49,8 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
     var shownUpNext: UpNextOffer?
     private var skipToast: SkipToastView?
     private var advanceIndicator: AdvanceIndicator?
-    private(set) var isInPiP = false
-    private var pipRestoreInProgress = false
+    var isInPiP = false
+    var pipRestoreInProgress = false
     private weak var presentingVC: UIViewController?
     private weak var windowScene: UIWindowScene?
     private weak var spinnerView: UIActivityIndicatorView?
@@ -913,36 +913,6 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         upNextOverlay = nil
         shownUpNext = nil
         session.setUpNextVisible(false)
-    }
-
-    func playerViewControllerShouldAutomaticallyDismissAtPictureInPictureStart(
-        _ playerViewController: AVPlayerViewController
-    ) -> Bool {
-        false
-    }
-
-    func playerViewControllerWillStartPictureInPicture(_ playerViewController: AVPlayerViewController) {
-        isInPiP = true
-    }
-
-    func playerViewController(
-        _ playerViewController: AVPlayerViewController,
-        restoreUserInterfaceForPictureInPictureStopWithCompletionHandler completionHandler: @escaping (Bool) -> Void
-    ) {
-        pipRestoreInProgress = true
-        completionHandler(true)
-    }
-
-    func playerViewControllerDidStopPictureInPicture(_ playerViewController: AVPlayerViewController) {
-        isInPiP = false
-        if pipRestoreInProgress {
-            pipRestoreInProgress = false
-            flushPendingUpNext()
-            return
-        }
-        pendingUpNext = nil
-        guard !isFinishing else { return }
-        Task { @MainActor in await self.dismissPlayer() }
     }
 
     /// Ends playback once the full screen has gone without docking.

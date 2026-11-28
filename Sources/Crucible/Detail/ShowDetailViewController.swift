@@ -636,7 +636,7 @@ final class ShowDetailViewController: UICollectionViewController {
         return UIMenu(title: ShowUpNextCountdown.menuTitle(forShow: showKey, server: server), image: UIImage(systemName: "timer"), children: choices)
     }
 
-    private func rate(from source: UIView? = nil) {
+    func rate(from source: UIView? = nil) {
         guard let model else { return }
         rating.present(from: self, source: source ?? view, title: model.show.title, served: model.userRating)
     }
@@ -904,7 +904,7 @@ final class ShowDetailViewController: UICollectionViewController {
         reconfigure([.overview], animated: !UIAccessibility.isReduceMotionEnabled)
     }
 
-    private func playUpNext() {
+    func playUpNext() {
         guard let episode = model?.upNext?.episode else { return }
         quickPlay(episode)
     }
@@ -977,31 +977,5 @@ final class ShowDetailViewController: UICollectionViewController {
             }
             return UIMenu(children: children).addingNewWindow(for: episode)
         })
-    }
-}
-
-extension ShowDetailViewController: CommandHandling, MediaScreen {
-    var mediaRoute: (ratingKey: String, mediaType: String) { (showRatingKey, "show") }
-
-    func canPerform(_ command: AppCommand) -> Bool {
-        switch command {
-        case .play: return model?.isPrimaryEnabled == true && model?.upNext != nil
-        case .rate: return model != nil
-        case .refresh: return true
-        default: return false
-        }
-    }
-
-    func perform(_ command: AppCommand) {
-        switch command {
-        case .play: playUpNext()
-        case .rate: rate()
-        case .refresh: loadData()
-        default: break
-        }
-    }
-
-    func title(for command: AppCommand) -> String? {
-        command == .play ? model?.primaryTitle : nil
     }
 }
