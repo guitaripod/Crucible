@@ -1,4 +1,5 @@
 import Foundation
+import Synchronization
 import Testing
 @testable import CrucibleWeb
 
@@ -297,6 +298,21 @@ enum Fixture {
         #expect(reopened.isSavedForLater(entry.id))
         #expect(reopened.resumePosition(of: entry.id) == 120)
         #expect(reopened.continueWatching.map(\.entry.id) == [entry.id])
+    }
+
+    @Test func announcesReadingOnlyOnceTheInboxRevisionMoved() {
+        let file = temporaryFile()
+        defer { try? FileManager.default.removeItem(at: file.deletingLastPathComponent()) }
+        let library = WebLibrary(file: file)
+        let before = library.notificationRevision
+        let seen = Mutex<[Int]>([])
+        let observer = NotificationCenter.default.addObserver(forName: WebLibrary.didChange, object: library, queue: nil) { _ in
+            seen.withLock { $0.append(library.notificationRevision) }
+        }
+        defer { NotificationCenter.default.removeObserver(observer) }
+        library.markNotificationsRead(["a", "b"])
+        #expect(seen.withLock { $0 } == [before + 1])
+        #expect(library.notificationState.isRead("a") && library.notificationState.isRead("b"))
     }
 
     @Test func aFinishedVideoStartsOverAndLeavesWatchLater() {

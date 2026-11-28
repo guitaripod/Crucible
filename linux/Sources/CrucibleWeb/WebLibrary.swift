@@ -194,8 +194,9 @@ package final class WebLibrary: @unchecked Sendable {
             var state = contents.notifications ?? WebNotificationState()
             changed = state.markRead(ids, at: date)
             if changed { contents.notifications = state }
+        } then: {
+            if changed { self.bumpNotificationRevision() }
         }
-        if changed { bumpNotificationRevision() }
     }
 
     package func markNotificationsUnread(_ ids: [String]) {
@@ -207,8 +208,9 @@ package final class WebLibrary: @unchecked Sendable {
             var state = contents.notifications ?? WebNotificationState()
             changed = state.markUnread(ids)
             if changed { contents.notifications = state }
+        } then: {
+            if changed { self.bumpNotificationRevision() }
         }
-        if changed { bumpNotificationRevision() }
     }
 
     /// Keeps a channel's uploads out of the inbox without unfollowing the channel.
@@ -221,8 +223,9 @@ package final class WebLibrary: @unchecked Sendable {
             var state = contents.notifications ?? WebNotificationState()
             changed = state.setMuted(isMuted, channelID: channelID)
             if changed { contents.notifications = state }
+        } then: {
+            if changed { self.bumpNotificationRevision() }
         }
-        if changed { bumpNotificationRevision() }
     }
 
     package func isNotificationMuted(channelID: String) -> Bool {
@@ -253,8 +256,9 @@ package final class WebLibrary: @unchecked Sendable {
             var state = contents.notifications ?? WebNotificationState()
             state.markRead(merged.filter(\.isRead).map(\.id), at: now)
             contents.notifications = state
+        } then: {
+            self.bumpNotificationRevision()
         }
-        bumpNotificationRevision()
     }
 
     // MARK: Watch Later
@@ -344,10 +348,13 @@ package final class WebLibrary: @unchecked Sendable {
                 contents.notifications = notifications
                 readChanged = true
             }
+        } then: {
+            if readChanged { self.bumpNotificationRevision() }
+            self.lock.withLock {
+                if watchChanged { self.watchGeneration &+= 1 }
+                self.watchIndex = nil
+            }
         }
-        if readChanged { bumpNotificationRevision() }
-        if watchChanged { lock.withLock { watchGeneration &+= 1 } }
-        lock.withLock { watchIndex = nil }
     }
 
     package func removeFromHistory(_ id: String) {
@@ -355,9 +362,12 @@ package final class WebLibrary: @unchecked Sendable {
         change { contents in
             if contents.history.first(where: { $0.entry.id == id })?.isFinished == true { watchedChanged = true }
             contents.history.removeAll { $0.entry.id == id }
+        } then: {
+            self.lock.withLock {
+                if watchedChanged { self.watchGeneration &+= 1 }
+                self.watchIndex = nil
+            }
         }
-        if watchedChanged { lock.withLock { watchGeneration &+= 1 } }
-        lock.withLock { watchIndex = nil }
     }
 
     package func clearHistory() {
@@ -365,9 +375,12 @@ package final class WebLibrary: @unchecked Sendable {
         change { contents in
             watchedChanged = contents.history.contains(where: \.isFinished)
             contents.history = []
+        } then: {
+            self.lock.withLock {
+                if watchedChanged { self.watchGeneration &+= 1 }
+                self.watchIndex = nil
+            }
         }
-        if watchedChanged { lock.withLock { watchGeneration &+= 1 } }
-        lock.withLock { watchIndex = nil }
     }
 
     /// A position under ten seconds is a video opened by mistake, not one to carry on with.
@@ -381,13 +394,16 @@ package final class WebLibrary: @unchecked Sendable {
 
     // MARK: Keeping
 
-    private func change(_ body: (inout Contents) -> Void) {
+    /// Applies `body`, then `settle` (the revision counters the change moved), and only then tells observers, so a
+    /// screen that compares those counters on the notice sees the new ones.
+    private func change(_ body: (inout Contents) -> Void, then settle: () -> Void = {}) {
         let schedule = lock.withLock {
             body(&contents)
             defer { writeScheduled = true }
             return !writeScheduled
         }
         if schedule { writer.asyncAfter(deadline: .now() + 0.4) { [weak self] in self?.write() } }
+        settle()
         NotificationCenter.default.post(name: Self.didChange, object: self)
     }
 
