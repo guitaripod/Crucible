@@ -281,6 +281,20 @@ package final class WebLibrary: @unchecked Sendable {
         change { $0.watchLater.removeAll { $0.id == id } }
     }
 
+    /// Takes several videos out of Watch Later at once, as one change.
+    package func removeFromWatchLater(ids: some Collection<String>) {
+        guard !ids.isEmpty else { return }
+        let gone = Set(ids)
+        change { $0.watchLater.removeAll { gone.contains($0.id) } }
+    }
+
+    /// Puts Watch Later back as it was before a clear, keeping what was saved since in front.
+    package func restoreToWatchLater(_ previous: [WebEntry]) {
+        guard !previous.isEmpty else { return }
+        let known = Set(previous.map(\.id))
+        change { $0.watchLater = $0.watchLater.filter { !known.contains($0.id) } + previous }
+    }
+
     // MARK: Downloads
 
     /// The videos saved to this machine whose files are still there, the newest first.

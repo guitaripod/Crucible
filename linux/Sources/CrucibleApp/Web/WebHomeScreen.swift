@@ -297,10 +297,8 @@ enum WebScreens {
         }
     }
 
-    static func watchLater() -> WebListScreen {
-        WebListScreen(title: WebCopy.watchLater, empty: .init(symbol: "clock", message: String(localized: "Save a video for later from its menu.", comment: "Empty Watch Later"))) { _ in
-            WebService.shared.library.watchLater
-        }
+    static func watchLater() -> WebWatchLaterScreen {
+        WebWatchLaterScreen()
     }
 
     static func history() -> WebListScreen {

@@ -755,3 +755,63 @@ enum Fixture {
         #expect(library.watch(of: "b") == nil)
     }
 }
+
+@Suite struct WatchLaterGuideTests {
+    private func video(_ id: String, _ seconds: Double?, live: Bool = false) -> WebEntry {
+        WebEntry(id: id, url: "https://www.youtube.com/watch?v=\(id)", kind: .video, title: id, duration: seconds, isLive: live)
+    }
+
+    private func watch(_ entry: WebEntry, at position: Double, finished: Bool = false) -> WebWatch {
+        WebWatch(entry: entry, position: position, duration: entry.duration ?? 0, watchedAt: Date(timeIntervalSince1970: position), isFinished: finished)
+    }
+
+    @Test func groupsByLengthAndKeepsWatchedAtTheFoot() {
+        let quick = video("quick", 240), medium = video("medium", 1200), long = video("long", 2400), huge = video("huge", 7200)
+        let begun = video("begun", 1500), done = video("done", 300), live = video("live", nil, live: true)
+        let watches = [begun.id: watch(begun, at: 600), done.id: watch(done, at: 300, finished: true)]
+        let guide = WatchLaterGuide(saved: [done, huge, live, long, begun, medium, quick], watch: { watches[$0] })
+        #expect(guide.sections.map(\.part) == [.resume, .underTen, .tenToThirty, .thirtyToSixty, .overHour, .live, .watched])
+        #expect(guide.sections[0].items.map(\.entry.id) == ["begun"])
+        #expect(guide.sections[0].remaining == 900)
+        #expect(guide.queue.map(\.id) == ["begun", "quick", "medium", "long", "huge"])
+        #expect(guide.watched.map(\.id) == ["done"])
+    }
+
+    @Test func dimsWhatNeedsMoreTimeThanTheViewerHas() {
+        let short = video("short", 600), long = video("long", 3000), unknown = video("unknown", nil)
+        let guide = WatchLaterGuide(saved: [long, short, unknown], watch: { _ in nil }, budget: .halfHour)
+        #expect(guide.fitting == 2)
+        #expect(guide.overBudget.map(\.id) == ["long"])
+        #expect(guide.queue.map(\.id) == ["short", "unknown"])
+    }
+
+    @Test func countsOnlyWhatIsLeftOfABegunVideo() {
+        let entry = video("a", 1800)
+        let guide = WatchLaterGuide(saved: [entry], watch: { _ in WebWatch(entry: entry, position: 1500, duration: 1800, watchedAt: Date(), isFinished: false) },
+                                    budget: .quarterHour)
+        #expect(guide.remaining == 300)
+        #expect(guide.fitting == 1)
+    }
+
+    @Test func ordersByLengthWithUnknownLast() {
+        let a = video("a", 900), b = video("b", 300), c = video("c", nil), d = video("d", 700)
+        let shortest = WatchLaterGuide(saved: [a, b, c, d], watch: { _ in nil }, order: .shortest)
+        #expect(shortest.queue.map(\.id) == ["b", "d", "a", "c"])
+        let longest = WatchLaterGuide(saved: [a, b, c, d], watch: { _ in nil }, order: .longest)
+        #expect(longest.queue.map(\.id) == ["b", "a", "d", "c"])
+    }
+
+    @Test func undoPutsTheListBackWithNewerSavesInFront() throws {
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent("wl-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: file) }
+        let library = WebLibrary(file: file)
+        let a = video("a", 100), b = video("b", 100), c = video("c", 100)
+        library.saveForLater(a)
+        library.saveForLater(b)
+        let before = library.watchLater
+        library.removeFromWatchLater(ids: ["a", "b"])
+        library.saveForLater(c)
+        library.restoreToWatchLater(before)
+        #expect(library.watchLater.map(\.id) == ["c", "b", "a"])
+    }
+}
