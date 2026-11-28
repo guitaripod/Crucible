@@ -371,6 +371,12 @@ package final class WebLibrary: @unchecked Sendable {
         }
     }
 
+    /// Marks `entry` watched to its end, which takes it out of Watch Later.
+    package func markWatched(_ entry: WebEntry, at date: Date = Date()) {
+        let length = max(entry.duration ?? watch(of: entry.id)?.duration ?? 0, 1)
+        record(entry, position: length, duration: length, at: date)
+    }
+
     package func removeFromHistory(_ id: String) {
         var watchedChanged = false
         change { contents in

@@ -98,6 +98,10 @@ enum WebActions {
             items.append(.init(id: "later", title: saved ? String(localized: "Remove from Watch Later", comment: "Web video menu")
                                                         : String(localized: "Watch Later", comment: "Web video menu: save the video for later"),
                                symbol: saved ? "minus.circle" : "clock"))
+            let watched = watch?.isFinished == true
+            items.append(.init(id: "watched", title: watched ? String(localized: "Mark as Unwatched", comment: "Web video menu: forget that the video was watched")
+                                                             : String(localized: "Mark as Watched", comment: "Web video menu: count the video as watched"),
+                               symbol: watched ? "eye.slash" : "eye"))
             items.append(.init(id: "details", title: String(localized: "View Details"), symbol: "info.circle"))
             if WebDownloads.shared.isRunning(entry.id) {
                 items.append(.init(id: "download.cancel", title: WebDownloads.cancelTitle, symbol: "xmark.circle"))
@@ -140,6 +144,9 @@ enum WebActions {
             case "open": open(entry, from: view)
             case "later":
                 if library.isSavedForLater(entry.id) { library.removeFromWatchLater(entry.id) } else { library.saveForLater(entry) }
+                afterChange?()
+            case "watched":
+                if watch?.isFinished == true { library.removeFromHistory(entry.id) } else { library.markWatched(entry) }
                 afterChange?()
             case "details": view.rootView?.push(WebVideoScreen(entry: entry))
             case "download": WebDownloads.shared.start(entry, in: window)

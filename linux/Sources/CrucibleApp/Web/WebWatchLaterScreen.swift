@@ -125,6 +125,11 @@ final class WebWatchLaterScreen: ScreenView, Reloadable {
             WebActions.play(entry, queue: self.queue(after: entry), from: self)
             return true
         }
+        shelf.onToggleWatched = { [weak self] card in
+            guard let self, let entry = self.entries[card.id], entry.kind == .video else { return }
+            let library = WebService.shared.library
+            if library.watch(of: entry.id)?.isFinished == true { library.removeFromHistory(entry.id) } else { library.markWatched(entry) }
+        }
         shelf.onContextMenu = { [weak self] card, point in
             guard let self, let entry = self.entries[card.id] else { return }
             WebActions.presentMenu(for: entry, at: point, in: self)
@@ -181,6 +186,7 @@ final class WebWatchLaterScreen: ScreenView, Reloadable {
     private func card(_ item: WatchLaterGuide.Item, part: WatchLaterGuide.Part) -> CardItem {
         var card = WebCards.card(item.entry)
         card.isDimmed = item.isWatched || !item.fits
+        card.canToggleWatched = item.entry.kind == .video
         if part == .resume, let left = item.remaining, let runtime = HomeFormat.runtime(left) {
             let remaining = String(localized: "\(runtime) left", comment: "A saved web video the viewer began: the time still to watch")
             card.detail = [remaining, card.detail].compactMap { $0 }.joined(separator: " · ")
