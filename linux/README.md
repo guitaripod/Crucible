@@ -1,5 +1,9 @@
 # Crucible for Linux
 
+Install it on Arch from the AUR with `yay -S crucible-plex` (or `crucible-plex-git` for master), or anywhere else from the
+`crucible-linux-X.Y.Z-x86_64.tar.zst` of the newest `linux-X.Y.Z` release on GitHub: unpack it and run its `install.sh`,
+after which Settings › Software Update keeps it current. Its version follows the iPhone and Apple TV app's.
+
 The Linux client's sources. Its targets are declared in the repository's root `Package.swift` (on Linux only), so they
 reach CrucibleCore's package-level API. Design and plan: `../docs/LINUX.md`.
 
