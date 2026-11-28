@@ -3,17 +3,25 @@ import CrucibleUI
 import CrucibleWeb
 import Foundation
 import Kiln
+import MidgarCore
 
 /// Watch Later as a guide: what the viewer began comes first, then what is left by how long it takes, live shows, and
 /// what they watched already at the foot, dimmed. Telling it how much time there is dims every video that needs more, Play
 /// All queues what is left, and Clear takes out what was watched or is too long, with an Undo.
 @MainActor
 final class WebWatchLaterScreen: ScreenView, Reloadable {
+    /// Where the saved videos come from: this machine's own list, or the signed-in account's Watch Later on YouTube,
+    /// which this app can read but not change.
+    enum Source {
+        case library, account
+    }
+
     private enum ChipID {
         static let play = "play"
         static let shuffle = "shuffle"
         static let time = "time"
         static let order = "order"
+        static let group = "group"
         static let clear = "clear"
         static let undo = "undo"
     }
@@ -23,17 +31,23 @@ final class WebWatchLaterScreen: ScreenView, Reloadable {
     private let chips = ChipRowView()
     private let status = MarginedStatusView()
     private let state = StateView()
-    private var shelves: [WatchLaterGuide.Part: ShelfView] = [:]
+    private let source: Source
+    private var shelves: [String: ShelfView] = [:]
+    private var accountEntries: [WebEntry] = []
+    private var hasLoaded = false
+    private var loadTask: Task<Void, Never>?
     private var guide = WatchLaterGuide(saved: [], watch: { _ in nil })
     private var entries: [String: WebEntry] = [:]
     private var budget = WebSettings.watchLaterBudget
     private var order = WebSettings.watchLaterOrder
+    private var grouping = WebSettings.watchLaterGrouping
     private var undo: [WebEntry] = []
     private var hasRendered = false
     private var observer: NSObjectProtocol?
 
-    override init(frame: Rect = .zero) {
-        super.init(frame: frame)
+    init(source: Source = .library) {
+        self.source = source
+        super.init(frame: .zero)
         [page, state].forEach(addSubview)
         state.isHidden = true
         page.onScroll = { [weak self] offset in self?.rootView?.contentScrolled(offset: offset) }
@@ -41,28 +55,55 @@ final class WebWatchLaterScreen: ScreenView, Reloadable {
         observer = NotificationCenter.default.addObserver(forName: WebLibrary.didChange, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.libraryChanged() }
         }
+        if source == .library { hasLoaded = true }
         render()
     }
 
     isolated deinit {
         if let observer { NotificationCenter.default.removeObserver(observer) }
+        loadTask?.cancel()
     }
 
     override var preferredFocusView: View? {
         if !state.isHidden { return state }
-        return guide.sections.compactMap { shelves[$0.part] }.first { !$0.items.isEmpty } ?? chips
+        return guide.sections.compactMap { shelves[$0.id] }.first { !$0.items.isEmpty } ?? chips
     }
 
     override func screenDidAppear() {
-        render()
+        if source == .account { load(fresh: false) } else { render() }
     }
 
     override func screenWillDisappear() {
         undo = []
+        loadTask?.cancel()
     }
 
     func reload() {
-        render()
+        if source == .account { load(fresh: true) } else { render() }
+    }
+
+    private func load(fresh: Bool) {
+        loadTask?.cancel()
+        loadTask = Task { [weak self] in
+            guard let self else { return }
+            do {
+                let listed = try await WebService.shared.listing(":ytwatchlater", limit: 500, fresh: fresh).entries.filter { !$0.isShort }
+                guard !Task.isCancelled else { return }
+                var seen = Set<String>()
+                self.accountEntries = listed.filter { seen.insert($0.id).inserted }
+                self.hasLoaded = true
+                self.render()
+            } catch {
+                guard !Task.isCancelled, !self.hasLoaded else { return }
+                MidgarLog.error("The account's Watch Later failed to load: \(error)", category: .networking)
+                self.state.isHidden = false
+                self.state.show(.error(title: String(localized: "Couldn’t Load"), message: WebService.message(for: error),
+                                       retryTitle: String(localized: "Retry"), retry: { [weak self] in
+                                           self?.state.show(.loading(title: nil))
+                                           self?.load(fresh: true)
+                                       }))
+            }
+        }
     }
 
     private func libraryChanged() {
@@ -70,11 +111,11 @@ final class WebWatchLaterScreen: ScreenView, Reloadable {
         render()
     }
 
-    private func shelf(for part: WatchLaterGuide.Part) -> ShelfView {
-        if let shelf = shelves[part] { return shelf }
+    private func shelf(for section: WatchLaterGuide.Section) -> ShelfView {
+        if let shelf = shelves[section.id] { return shelf }
         let shelf = ShelfView(header: nil, style: .episode)
         shelf.wraps = true
-        shelf.collapsedLines = part == .watched ? 1 : 2
+        shelf.collapsedLines = section.part == .watched ? 1 : 2
         shelf.onActivate = { [weak self] card in
             guard let self, let entry = self.entries[card.id] else { return }
             WebActions.open(entry, queue: self.queue(after: entry), from: self)
@@ -88,7 +129,7 @@ final class WebWatchLaterScreen: ScreenView, Reloadable {
             guard let self, let entry = self.entries[card.id] else { return }
             WebActions.presentMenu(for: entry, at: point, in: self)
         }
-        shelves[part] = shelf
+        shelves[section.id] = shelf
         return shelf
     }
 
@@ -100,14 +141,19 @@ final class WebWatchLaterScreen: ScreenView, Reloadable {
     }
 
     private func render() {
-        let saved = WebService.shared.library.watchLater
         let library = WebService.shared.library
-        let fresh = WatchLaterGuide(saved: saved, watch: { library.watch(of: $0) }, budget: budget, order: order)
+        let saved = source == .library ? library.watchLater : accountEntries
+        let fresh = WatchLaterGuide(saved: saved, watch: { library.watch(of: $0) }, budget: budget, order: order, grouping: grouping)
         let changed = fresh.sections != guide.sections
         guide = fresh
         entries = Dictionary(saved.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         renderChrome()
         guard changed || !hasRendered else { return }
+        if !hasLoaded {
+            state.isHidden = false
+            state.show(.loading(title: nil))
+            return
+        }
         hasRendered = true
         if guide.isEmpty {
             state.isHidden = false
@@ -115,16 +161,19 @@ final class WebWatchLaterScreen: ScreenView, Reloadable {
                               message: String(localized: "Save a video for later from its menu.", comment: "Empty Watch Later"),
                               symbol: "clock", action: nil))
             page.setSections([heading, chips])
+            shelves = [:]
         } else {
             state.isHidden = true
             var visible: [View] = [heading, chips, status]
             for section in guide.sections {
-                let shelf = shelf(for: section.part)
-                shelf.header = SectionHeader(title: Self.title(of: section.part), secondaryText: Self.detail(of: section))
+                let shelf = shelf(for: section)
+                shelf.header = SectionHeader(title: Self.title(of: section), secondaryText: Self.detail(of: section))
                 shelf.setItems(section.items.map { card($0, part: section.part) })
                 visible.append(shelf)
             }
             page.setSections(visible)
+            let live = Set(guide.sections.map(\.id))
+            for id in shelves.keys where !live.contains(id) { shelves[id] = nil }
         }
         page.setNeedsLayout()
     }
@@ -149,10 +198,13 @@ final class WebWatchLaterScreen: ScreenView, Reloadable {
             .init(id: ChipID.shuffle, title: String(localized: "Shuffle", comment: "Watch Later: plays the videos left in a random order"),
                   symbol: "shuffle", isDimmed: queue.count < 2),
             .init(id: ChipID.time, title: Self.title(of: budget), isSelected: budget != .any, opensMenu: true),
+            .init(id: ChipID.group, title: Self.title(of: grouping), opensMenu: true),
             .init(id: ChipID.order, title: Self.title(of: order), opensMenu: true),
-            .init(id: ChipID.clear, title: String(localized: "Clear", comment: "Watch Later: opens a menu of ways to take videos out"),
-                  isDimmed: guide.isEmpty, opensMenu: true),
         ]
+        if source == .library {
+            listed.append(.init(id: ChipID.clear, title: String(localized: "Clear", comment: "Watch Later: opens a menu of ways to take videos out"),
+                                isDimmed: guide.isEmpty, opensMenu: true))
+        }
         if !undo.isEmpty {
             listed.append(.init(id: ChipID.undo, title: String(localized: "Undo Remove (\(undo.count))", comment: "Watch Later: puts back the videos just cleared"),
                                 symbol: "arrow.uturn.backward"))
@@ -171,6 +223,7 @@ final class WebWatchLaterScreen: ScreenView, Reloadable {
         case ChipID.play: play(guide.queue)
         case ChipID.shuffle: play(guide.queue.shuffled())
         case ChipID.time: presentTimeMenu()
+        case ChipID.group: presentGroupMenu()
         case ChipID.order: presentOrderMenu()
         case ChipID.clear: presentClearMenu()
         case ChipID.undo:
@@ -195,6 +248,20 @@ final class WebWatchLaterScreen: ScreenView, Reloadable {
             guard let self, let raw = Int(item.id), let chosen = WatchLaterBudget(rawValue: raw) else { return }
             self.budget = chosen
             WebSettings.watchLaterBudget = chosen
+            self.render()
+        }
+        menu.present(in: window)
+    }
+
+    private func presentGroupMenu() {
+        guard let window else { return }
+        let items = WatchLaterGrouping.allCases.map { MenuView.Item(id: $0.rawValue, title: Self.title(of: $0), isChecked: $0 == grouping) }
+        let menu = MenuView(title: String(localized: "Group", comment: "Watch Later: menu that groups the videos"), items: items,
+                            anchor: chips.frameInWindow(of: ChipID.group) ?? frameInWindow)
+        menu.onSelect = { [weak self] item in
+            guard let self, let chosen = WatchLaterGrouping(rawValue: item.id) else { return }
+            self.grouping = chosen
+            WebSettings.watchLaterGrouping = chosen
             self.render()
         }
         menu.present(in: window)
@@ -303,8 +370,15 @@ private final class MarginedStatusView: View {
 }
 
 private extension WebWatchLaterScreen {
+    static func title(of section: WatchLaterGuide.Section) -> String {
+        if section.part == .channel { return section.channel ?? "" }
+        return title(of: section.part)
+    }
+
     static func title(of part: WatchLaterGuide.Part) -> String {
         switch part {
+        case .channel: ""
+        case .otherChannels: String(localized: "Other Channels", comment: "Watch Later: channels with a single saved video")
         case .resume: String(localized: "Pick Up Where You Left Off", comment: "Watch Later: videos the viewer began")
         case .underTen: String(localized: "Under 10 Minutes", comment: "Watch Later: short videos")
         case .tenToThirty: String(localized: "10 to 30 Minutes", comment: "Watch Later: medium videos")
@@ -326,6 +400,13 @@ private extension WebWatchLaterScreen {
         }
     }
 
+    static func title(of grouping: WatchLaterGrouping) -> String {
+        switch grouping {
+        case .length: String(localized: "Group by Length", comment: "Watch Later: groups the videos by how long they take")
+        case .channel: String(localized: "Group by Channel", comment: "Watch Later: groups the videos by their channel")
+        }
+    }
+
     static func title(of order: WatchLaterOrder) -> String {
         switch order {
         case .recent: String(localized: "Recently Saved", comment: "Watch Later: newest saved first")
@@ -341,7 +422,7 @@ private extension WebWatchLaterScreen {
     }
 
     static func detail(of section: WatchLaterGuide.Section) -> String {
-        guard section.part != .watched, section.part != .live, section.part != .unknown, let time = HomeFormat.runtime(section.remaining) else { return count(section.items.count) }
+        guard section.part != .watched, section.part != .live, section.part != .unknown, section.part != .otherChannels, let time = HomeFormat.runtime(section.remaining) else { return count(section.items.count) }
         return String(localized: "\(count(section.items.count)) · \(time)", comment: "A Watch Later part: how many videos and how long they take together")
     }
 

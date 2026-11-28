@@ -230,7 +230,7 @@ final class WebHomeScreen: ScreenView, Reloadable {
         case "history": rootView?.push(WebScreens.history())
         case "later": rootView?.push(WebScreens.watchLater())
         case "downloads": rootView?.push(WebScreens.downloads())
-        case "account.later": rootView?.push(WebScreens.account(":ytwatchlater", title: WebCopy.watchLater))
+        case "account.later": rootView?.push(WebWatchLaterScreen(source: .account))
         case "account.liked": rootView?.push(WebScreens.account(":ytfav", title: String(localized: "Liked Videos", comment: "YouTube chip: the signed-in account's liked videos")))
         case "settings": rootView?.push(WebSettingsScreen())
         default: break

@@ -59,6 +59,11 @@ enum WebSettings {
         set { defaults.set(newValue.rawValue, forKey: "web.watchLater.order") }
     }
 
+    static var watchLaterGrouping: WatchLaterGrouping {
+        get { defaults.string(forKey: "web.watchLater.grouping").flatMap(WatchLaterGrouping.init) ?? .length }
+        set { defaults.set(newValue.rawValue, forKey: "web.watchLater.grouping") }
+    }
+
     /// The kinds of stretch SponsorBlock is asked for: paid promotion and self-promotion, reminders to subscribe, and
     /// intros, outros and previews.
     static let sponsorCategories: [SponsorBlock.Category] = [.sponsor, .selfPromotion, .interaction, .intro, .outro, .preview]

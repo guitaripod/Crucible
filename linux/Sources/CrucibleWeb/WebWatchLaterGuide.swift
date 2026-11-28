@@ -17,12 +17,19 @@ package enum WatchLaterOrder: String, CaseIterable, Sendable {
     case recent, oldest, shortest, longest
 }
 
+/// How the videos that are neither begun, live nor watched are grouped.
+package enum WatchLaterGrouping: String, CaseIterable, Sendable {
+    case length, channel
+}
+
 /// Watch Later laid out as a guide: what the viewer already began first, then what is left by how long it takes, then
 /// what is live or upcoming, and last what they have watched already.
 package struct WatchLaterGuide: Sendable {
     /// A band of the guide.
     package enum Part: String, CaseIterable, Sendable {
-        case resume, underTen, tenToThirty, thirtyToSixty, overHour, unknown, live, watched
+        case resume, channel, otherChannels, underTen, tenToThirty, thirtyToSixty, overHour, unknown, live, watched
+
+        fileprivate var isByLength: Bool { [.underTen, .tenToThirty, .thirtyToSixty, .overHour, .unknown].contains(self) }
     }
 
     /// One saved video with what the guide knows of it.
@@ -38,7 +45,11 @@ package struct WatchLaterGuide: Sendable {
 
     package struct Section: Sendable, Hashable {
         package var part: Part
+        /// The channel of a `.channel` section.
+        package var channel: String?
         package var items: [Item]
+
+        package var id: String { part.rawValue + (channel ?? "") }
 
         /// What the section takes to watch, counting only videos whose length is known.
         package var remaining: Double { items.reduce(0) { $0 + ($1.remaining ?? 0) } }
@@ -47,7 +58,8 @@ package struct WatchLaterGuide: Sendable {
     package let sections: [Section]
     package let budget: WatchLaterBudget
 
-    package init(saved: [WebEntry], watch: (String) -> WebWatch?, budget: WatchLaterBudget = .any, order: WatchLaterOrder = .recent) {
+    package init(saved: [WebEntry], watch: (String) -> WebWatch?, budget: WatchLaterBudget = .any, order: WatchLaterOrder = .recent,
+                  grouping: WatchLaterGrouping = .length) {
         self.budget = budget
         var ordered = saved
         switch order {
@@ -57,13 +69,40 @@ package struct WatchLaterGuide: Sendable {
         case .longest: ordered = Self.sorted(saved) { $0 > $1 }
         }
         var bands: [Part: [Item]] = [:]
+        var channels: [String: [Item]] = [:]
+        var names: [String: String] = [:]
         for entry in ordered {
-            let seen = watch(entry.id)
-            let item = Self.item(entry, watch: seen, budget: budget)
-            bands[Self.part(of: item), default: []].append(item)
+            let item = Self.item(entry, watch: watch(entry.id), budget: budget)
+            let part = Self.part(of: item)
+            if grouping == .channel, part.isByLength {
+                let key = entry.channelID ?? entry.channel ?? ""
+                names[key] = names[key] ?? entry.channel
+                channels[key, default: []].append(item)
+            } else {
+                bands[part, default: []].append(item)
+            }
         }
         bands[.resume]?.sort { ($0.watch?.watchedAt ?? .distantPast) > ($1.watch?.watchedAt ?? .distantPast) }
-        sections = Part.allCases.compactMap { part in bands[part].map { Section(part: part, items: $0) } }
+        var built: [Section] = []
+        func add(_ part: Part) {
+            if let items = bands[part] { built.append(Section(part: part, items: items)) }
+        }
+        add(.resume)
+        if grouping == .channel {
+            let ranked = channels.filter { $0.value.count > 1 }.sorted { lhs, rhs in
+                lhs.value.count != rhs.value.count ? lhs.value.count > rhs.value.count
+                    : (names[lhs.key] ?? "").localizedCaseInsensitiveCompare(names[rhs.key] ?? "") == .orderedAscending
+            }
+            for (key, items) in ranked { built.append(Section(part: .channel, channel: names[key] ?? key, items: items)) }
+            let position = Dictionary(ordered.enumerated().map { ($1.id, $0) }, uniquingKeysWith: { first, _ in first })
+            let singles = channels.values.filter { $0.count == 1 }.map { $0[0] }.sorted { (position[$0.entry.id] ?? 0) < (position[$1.entry.id] ?? 0) }
+            if !singles.isEmpty { built.append(Section(part: .otherChannels, items: singles)) }
+        } else {
+            [Part.underTen, .tenToThirty, .thirtyToSixty, .overHour, .unknown].forEach(add)
+        }
+        add(.live)
+        add(.watched)
+        sections = built
     }
 
     /// Every saved video in the guide's order.

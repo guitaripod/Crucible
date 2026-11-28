@@ -815,3 +815,19 @@ enum Fixture {
         #expect(library.watchLater.map(\.id) == ["c", "b", "a"])
     }
 }
+
+@Suite struct WatchLaterChannelGroupingTests {
+    private func video(_ id: String, _ channel: String, _ seconds: Double) -> WebEntry {
+        WebEntry(id: id, url: "https://www.youtube.com/watch?v=\(id)", kind: .video, title: id, channel: channel, channelID: channel, duration: seconds)
+    }
+
+    @Test func groupsByChannelBiggestFirstWithSinglesTogether() {
+        let saved = [video("a", "Solo", 100), video("b", "Duo", 100), video("c", "Trio", 100), video("d", "Duo", 2000),
+                     video("e", "Trio", 100), video("f", "Trio", 5000), video("g", "Alone", 300)]
+        let guide = WatchLaterGuide(saved: saved, watch: { _ in nil }, grouping: .channel)
+        #expect(guide.sections.map(\.part) == [.channel, .channel, .otherChannels])
+        #expect(guide.sections.map(\.channel) == ["Trio", "Duo", nil])
+        #expect(guide.sections[2].items.map(\.entry.id) == ["a", "g"])
+        #expect(guide.queue.count == 7)
+    }
+}
