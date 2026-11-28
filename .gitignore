@@ -26,3 +26,7 @@ DerivedData/
 /marketing/shots/Sources/Localizable.xcstrings
 /.asc
 /Sources/CrucibleCore/Features/Trakt/TraktClientID.swift
+
+/project.yml
+/CrucibleIOS.xcodeproj/
+/CrucibleTV.xcodeproj/
