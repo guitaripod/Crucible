@@ -31,9 +31,13 @@ final class WebStoryboardLoader {
 
     /// The sharpest storyboard of `video` whose sheets are few enough to fetch one at a time while scrubbing.
     init?(video: WebVideo, window: Window?) {
-        guard let storyboard = video.storyboards.last(where: { $0.sheets.count <= 400 }) ?? video.storyboards.first else { return nil }
+        guard let storyboard = Self.preferred(in: video) else { return nil }
         self.storyboard = storyboard
         self.window = window
+    }
+
+    static func preferred(in video: WebVideo) -> WebStoryboard? {
+        video.storyboards.last(where: { $0.sheets.count <= 400 }) ?? video.storyboards.first
     }
 
     /// The still for `seconds` into the video, or the nearest one held while it loads; nil when there is none to show.

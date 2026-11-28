@@ -5,6 +5,7 @@ import Foundation
 import FoundationNetworking
 #endif
 import CrucibleCore
+import Kiln
 
 /// Pictures from the web (thumbnails, channel pictures, storyboards). Their addresses carry a mark the artwork fetcher
 /// reads, so they are fetched as a browser would and never with the Plex account's headers, whatever their host or path.
@@ -57,8 +58,27 @@ enum WebArtwork {
         url.fragment?.hasPrefix(mark) ?? false
     }
 
+    private static let cropMark = "crucible-web-crop"
+
+    /// The address of one still on a storyboard sheet: the sheet's own, marked with the still's place in it, so the
+    /// fetcher hands back just that still.
+    static func still(_ still: WebStoryboard.Still, of storyboard: WebStoryboard) -> String? {
+        guard storyboard.sheets.indices.contains(still.sheet), var components = URLComponents(string: storyboard.sheets[still.sheet].url) else { return nil }
+        components.fragment = "\(cropMark)-\(still.x)-\(still.y)-\(still.width)-\(still.height)"
+        return components.url?.absoluteString
+    }
+
+    /// The place in its sheet that a marked still address names.
+    private static func crop(of url: URL) -> (x: Int, y: Int, width: Int, height: Int)? {
+        guard let fragment = url.fragment, fragment.hasPrefix(cropMark + "-") else { return nil }
+        let numbers = fragment.dropFirst(cropMark.count + 1).split(separator: "-").compactMap { Int($0) }
+        guard numbers.count == 4, numbers[2] > 0, numbers[3] > 0 else { return nil }
+        return (numbers[0], numbers[1], numbers[2], numbers[3])
+    }
+
     /// Fetches a marked address, trying each of its candidates in turn.
     static func fetch(_ url: URL) async throws -> Data {
+        if let crop = crop(of: url) { return try await still(from: url, crop: crop) }
         var candidates: [URL] = []
         if var components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
             let rest = (components.fragment ?? "").split(separator: ",").dropFirst().compactMap { String($0).removingPercentEncoding }
@@ -85,5 +105,41 @@ enum WebArtwork {
         let (data, response) = try await HTTPSession.current.data(for: request)
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { throw URLError(.badServerResponse) }
         return data
+    }
+
+    private static func still(from url: URL, crop: (x: Int, y: Int, width: Int, height: Int)) async throws -> Data {
+        var sheet = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        sheet?.fragment = nil
+        guard let address = sheet?.url else { throw URLError(.badURL) }
+        let decoded = try await Sheets.shared.sheet(at: address)
+        guard crop.x + crop.width <= decoded.width, crop.y + crop.height <= decoded.height else { throw URLError(.cannotDecodeContentData) }
+        var pixels = [UInt8](repeating: 0, count: crop.width * crop.height * 4)
+        for row in 0..<crop.height {
+            let from = ((crop.y + row) * decoded.width + crop.x) * 4
+            pixels.replaceSubrange(row * crop.width * 4..<(row + 1) * crop.width * 4, with: decoded.pixels[from..<from + crop.width * 4])
+        }
+        guard let png = PNGWriter.encode(rgba8: pixels, width: crop.width, height: crop.height) else { throw URLError(.cannotDecodeContentData) }
+        return png
+    }
+
+    /// The storyboard sheets being cut into chapter stills: one fetch per sheet however many chapters sit on it.
+    private actor Sheets {
+        static let shared = Sheets()
+        private var tasks: [URL: Task<DecodedImage, Error>] = [:]
+        private var order: [URL] = []
+
+        func sheet(at url: URL) async throws -> DecodedImage {
+            if let task = tasks[url] { return try await task.value }
+            let task = Task { try ImageDecoder.decode(try await WebArtwork.data(from: url, timeout: 10)) }
+            tasks[url] = task
+            order.append(url)
+            while order.count > 4 { tasks[order.removeFirst()] = nil }
+            do {
+                return try await task.value
+            } catch {
+                tasks[url] = nil
+                throw error
+            }
+        }
     }
 }

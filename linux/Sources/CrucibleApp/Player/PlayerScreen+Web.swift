@@ -206,8 +206,11 @@ extension PlayerScreen {
             }
         }
         let subtitles = (web?.subtitles ?? []).enumerated().compactMap { Self.subtitleStream($1, id: $0 + 1) }
+        let storyboard = WebStoryboardLoader.preferred(in: video)
         let chapters = video.chapters.enumerated().map { index, chapter in
-            PlexChapter(index: index + 1, tag: chapter.title, startTimeOffset: Int(chapter.start * 1000), endTimeOffset: Int(chapter.end * 1000), thumb: nil)
+            var still: String?
+            if let storyboard, let found = storyboard.still(at: chapter.start) { still = WebArtwork.still(found, of: storyboard) }
+            return PlexChapter(index: index + 1, tag: chapter.title, startTimeOffset: Int(chapter.start * 1000), endTimeOffset: Int(chapter.end * 1000), thumb: still)
         }
         return ResolvedStream(url: URL(string: video.pageURL) ?? URL(fileURLWithPath: "/"), isDirectPlay: true, sessionId: "", subtitles: subtitles,
                               audioTracks: audio, markers: [], media: Self.media(of: selection, frameRate: frameRate), chapters: chapters,

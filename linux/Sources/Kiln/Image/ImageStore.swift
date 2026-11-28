@@ -95,6 +95,15 @@ public enum PNGWriter {
         return Data(bytes: bytes, count: length)
     }
 
+    /// The PNG file's bytes for opaque or straight-alpha 8-bit RGBA rows; nil when encoding fails.
+    public static func encode(rgba8 pixels: [UInt8], width: Int, height: Int) -> Data? {
+        var length = 0
+        guard pixels.count >= width * height * 4,
+              let bytes = kiln_image_encode_png(pixels, Int32(width), Int32(height), &length) else { return nil }
+        defer { free(bytes) }
+        return Data(bytes: bytes, count: length)
+    }
+
     /// Linear light from a capture as opaque 8-bit sRGB, clipped to the reference white.
     private static func srgbBytes(linear pixels: [Float], width: Int, height: Int) -> [UInt8] {
         var bytes = [UInt8](repeating: 0, count: width * height * 4)

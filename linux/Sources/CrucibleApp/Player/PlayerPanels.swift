@@ -101,11 +101,17 @@ final class PlayerInfoPanel: View {
         }
         tabs.setChips(chips)
         chapters.setItems(content.chapters.enumerated().map { index, chapter in
-            CardItem(id: "chapter.\(index)", artwork: chapter.thumb.map { .path($0, .backdrop) },
+            CardItem(id: "chapter.\(index)", artwork: chapter.thumb.map { Self.chapterArtwork($0) },
                      title: chapter.tag ?? String(localized: "Chapter \(index + 1)"), subtitle: TransportView.clock(chapter.startSecs),
                      placeholderSymbol: "film")
         })
         showTab()
+    }
+
+    /// A chapter's picture: a still cut from a web video's storyboard, or the server's own.
+    private static func chapterArtwork(_ path: String) -> ArtworkSource {
+        if let url = URL(string: path), WebArtwork.isWeb(url) { return .url(url) }
+        return .path(path, .backdrop)
     }
 
     private func select(_ next: Tab) {
