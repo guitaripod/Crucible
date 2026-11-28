@@ -146,7 +146,7 @@ final class WebWatchLaterScreen: ScreenView, Reloadable {
         let fresh = WatchLaterGuide(saved: saved, watch: { library.watch(of: $0) }, budget: budget, order: order, grouping: grouping)
         let changed = fresh.sections != guide.sections
         guide = fresh
-        entries = Dictionary(saved.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        entries = Dictionary(saved.map { (WebCards.prefix + $0.id, $0) }, uniquingKeysWith: { first, _ in first })
         renderChrome()
         guard changed || !hasRendered else { return }
         if !hasLoaded {
