@@ -1,0 +1,27 @@
+WHAT'S NEW IN 2.16.0 (iPhone and iPad; follows 2.15.1)
+- Up Next per show: a show can keep its own Up Next countdown over the one in Settings, and the new Instant choice starts the next episode without the card.
+- Hide This Title: when a converted stream arrives with no picture, the alert offers to hide the title on every device connected to the server; Settings > Incompatible Titles brings it back.
+- iPad: the sections sit in the system sidebar in wide windows, and Trakt comment lists keep to a readable width.
+- A Usage Counts switch in Settings, for the anonymous usage counts and crash reports described under OTHER NOTES.
+
+Crucible is a client for the user's own Plex Media Server and has no content of its own. Plex needs a Plex Pass or Remote Watch Pass to stream away from home, so I cannot give App Review a working account and server. The demo runs a fictional Plex server inside the app (Guideline 2.1(a)): no account, server or network needed.
+
+START THE DEMO
+Welcome screen > "Try the demo" > "Start exploring". Account types and settings are under You.
+
+ACCOUNT TYPES
+1. Server owner ("Demo"): everything unlocked plus owner tools (Manage in a title's long-press menu and a library's header, Stop Stream in Server Activity, Server Dashboard under You).
+2. Plex Home member with a PIN: You > Switch Profile > Sam, PIN 1234.
+3. Managed profile: Kids, no PIN. Switch Profile > Demo returns.
+4. Free install: You > Preview Free Version locks What to Watch, Write a Recap, every Trakt comment, What People Say, member pages, Statistics past Week, the library filter, the Year in Review poster and Top Shelf; the locks open the paywall.
+
+WHERE THE NEW THINGS ARE
+- Up Next per show: open any demo show, then its menu > Up Next: choose a countdown or Instant. Instant starts the next episode without the Up Next card; Settings keeps the default countdown for every other show.
+- Hide This Title: a title's menu > Mark Incompatible hides it from Home, search and the libraries; on a real server the mark is a Plex label every device reads. Settings > Incompatible Titles lists it with Show Again. The same choice appears in the alert when a converted stream arrives with no picture, which needs a real server.
+- Settings > Usage Counts turns off the anonymous usage counts and crash reports.
+
+CRUCIBLE PRO
+com.guitaripod.crucible.pro.lifetime, non-consumable, $17.99 (rises to $39.99 on December 7, 2026); com.guitaripod.crucible.pro.yearly, auto-renewable, $7.99 a year ($14.99 for new subscribers from December 7, 2026), no free trial. Both approved; universal purchase covers Apple TV. Playback is never gated.
+
+OTHER NOTES
+Local network access reaches servers on the home network; App Transport Security allows arbitrary loads because Plex servers on private addresses use HTTP or self-signed HTTPS. No third-party SDK. Data: an anonymous Midgar ID for purchases; anonymous usage counts (which screens are opened), crash reports and performance figures sent to my own server only from App Store installs, with no identifier, never shared, and off with Settings > Usage Counts; and, only when the person asks Crucible's AI, what the privacy policy and App Privacy answers describe; what they write in Trakt Community goes to their own Trakt account. Crucible uses Trakt but is not endorsed or certified by Trakt.
