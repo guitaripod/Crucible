@@ -48,7 +48,8 @@ extension TVPlayerCoordinator {
         let card = TVUpNextViewController(
             offer: offer,
             hasCredits: hasCredits,
-            autoplaysAtEnd: AutoplayRule.autoplays(reason: .playbackEnded, isQueue: offer.queue != nil)
+            autoplaysAtEnd: AutoplayRule.autoplays(reason: .playbackEnded, isQueue: offer.queue != nil),
+            countdown: ShowUpNextCountdown.effective(forShow: request.showRatingKey, server: ServerBootstrap.savedMachineIdentifier)
         )
         card.onDeferred = { [weak self] in self?.upNextCardWasDeferred() }
         card.isAtEndOfItem = { [weak self] in self?.isItemNearEnd ?? false }

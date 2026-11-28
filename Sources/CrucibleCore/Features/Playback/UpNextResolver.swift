@@ -11,9 +11,6 @@ package struct UpNextOffer: Sendable {
     /// How long the card counts down, as chosen in Settings (10 seconds unless changed).
     package static var countdownSeconds: Int { Preferences.upNextCountdown }
 
-    /// Whether Settings asks for the next episode the moment the credits begin, with no card counting down first.
-    package static var startsInstantly: Bool { countdownSeconds == 0 }
-
     package let episode: PlexMetadata
     package let seasonRatingKey: String
     package let reason: Reason

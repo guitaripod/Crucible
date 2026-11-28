@@ -254,12 +254,10 @@ struct SettingsCatalogTests {
     @Test func theInstantCountdownIsKeptApartFromAnUnsetOne() throws {
         try isolated {
             #expect(UpNextOffer.countdownSeconds == 10)
-            #expect(!UpNextOffer.startsInstantly)
             let instant = try #require(PreferenceSetting.upNextCountdown.choices.first { $0.id == 0 })
             #expect(instant.title == "Instant")
             PreferenceSetting.upNextCountdown.select(instant)
             #expect(UpNextOffer.countdownSeconds == 0)
-            #expect(UpNextOffer.startsInstantly)
             #expect(PreferenceSetting.upNextCountdown.valueLabel == "Instant")
             PreferenceSetting.upNextCountdown.restoreDefault()
             #expect(UpNextOffer.countdownSeconds == 10)

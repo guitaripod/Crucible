@@ -32,13 +32,17 @@ final class TVUpNextViewController: AVContentProposalViewController {
     private var stopsAfterItem = false
     private let thumb = UIImageView()
     private var countdownTask: Task<Void, Never>?
-    private var remaining = UpNextOffer.countdownSeconds
+    private let countdown: Int
+    private var remaining: Int
     private var playButton: UIButton?
     private var leaveButton: UIButton?
 
     /// `autoplaysAtEnd` is whether the end of the item plays on by itself, which a card shown there follows instead of what
     /// the credits do: an item with no credits never reaches them, and Skip Credits has nothing to skip.
-    init(offer: UpNextOffer, hasCredits: Bool, autoplaysAtEnd: Bool) {
+    /// `countdown` is how many seconds it counts before playing on: the show's own choice or Settings'.
+    init(offer: UpNextOffer, hasCredits: Bool, autoplaysAtEnd: Bool, countdown: Int) {
+        self.countdown = countdown
+        remaining = countdown
         episode = offer.episode
         autoplays = offer.autoplays
         self.autoplaysAtEnd = autoplaysAtEnd
@@ -58,7 +62,7 @@ final class TVUpNextViewController: AVContentProposalViewController {
     /// Whether the countdown is set to Instant and the card, were it presented now, would count: the coordinator then starts
     /// the next episode without presenting it.
     var startsInstantly: Bool {
-        UpNextOffer.startsInstantly && counts(stillWatching: asksStillWatching?() ?? false, stopsAfterItem: stopsAfterThisItem?() ?? false)
+        countdown == 0 && counts(stillWatching: asksStillWatching?() ?? false, stopsAfterItem: stopsAfterThisItem?() ?? false)
     }
 
     private func counts(stillWatching: Bool, stopsAfterItem: Bool) -> Bool {
@@ -141,7 +145,7 @@ final class TVUpNextViewController: AVContentProposalViewController {
     }
 
     private func announce() {
-        let seconds = isCounting ? UpNextOffer.countdownSeconds : nil
+        let seconds = isCounting ? countdown : nil
         let text = stillWatching
             ? UpNextText.stillWatchingAnnouncement(code: code, title: episode.title)
             : UpNextText.announcement(code: code, title: episode.title, seconds: seconds, isEpisode: code != nil)
@@ -235,7 +239,7 @@ final class TVUpNextViewController: AVContentProposalViewController {
     private func startCountdown() {
         updateSecondaryText()
         guard isCounting, countdownTask == nil else { return }
-        remaining = UpNextOffer.countdownSeconds
+        remaining = countdown
         countdownTask = Task { [weak self] in
             while let self, self.remaining > 0 {
                 self.updateSecondaryText()

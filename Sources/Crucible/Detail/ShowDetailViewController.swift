@@ -608,6 +608,7 @@ final class ShowDetailViewController: UICollectionViewController {
                     })
                 }
                 elements.append(PlaylistMenu.addMenu(for: [show], api: api, host: self))
+                elements.append(self.upNextCountdownMenu())
                 elements.append(IncompatibleMenuAction.action(for: show, api: api, host: self) { [weak self] in self?.loadData() })
                 async let offersSeasons = SeerrPhoneActions.offersMoreSeasons(for: show, api: api)
                 async let listed = WatchlistScreen.isListed(show, api: api)
@@ -621,6 +622,18 @@ final class ShowDetailViewController: UICollectionViewController {
                 completion(elements)
             }
         }])
+    }
+
+    /// The Up Next countdown this show keeps over Settings, Instant included; the menu names the show's own choice.
+    private func upNextCountdownMenu() -> UIMenu {
+        let server = ServerBootstrap.savedMachineIdentifier
+        let showKey = showRatingKey
+        let choices = ShowUpNextCountdown.choices(forShow: showKey, server: server).map { choice in
+            UIAction(title: choice.title, state: choice.isSelected ? .on : .off) { _ in
+                ShowUpNextCountdown.set(choice.seconds, forShow: showKey, server: server)
+            }
+        }
+        return UIMenu(title: ShowUpNextCountdown.menuTitle(forShow: showKey, server: server), image: UIImage(systemName: "timer"), children: choices)
     }
 
     private func rate(from source: UIView? = nil) {

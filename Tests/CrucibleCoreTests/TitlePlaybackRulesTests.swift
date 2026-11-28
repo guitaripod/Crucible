@@ -16,6 +16,21 @@ struct TitlePlaybackRulesTests {
         #expect(old.countdown(settings: 5) == 5)
     }
 
+    @Test func aShowOnAppleDevicesKeepsItsOwnCountdownPerServer() throws {
+        let defaults = try #require(UserDefaults(suiteName: "show-countdown-\(UUID().uuidString)"))
+        #expect(ShowUpNextCountdown.seconds(forShow: "42", server: "a", defaults: defaults) == nil)
+        #expect(ShowUpNextCountdown.choices(forShow: "42", server: "a", defaults: defaults).first?.isSelected == true)
+        ShowUpNextCountdown.set(0, forShow: "42", server: "a", defaults: defaults)
+        #expect(ShowUpNextCountdown.effective(forShow: "42", server: "a", defaults: defaults) == 0)
+        #expect(ShowUpNextCountdown.seconds(forShow: "42", server: "b", defaults: defaults) == nil)
+        #expect(ShowUpNextCountdown.choices(forShow: "42", server: "a", defaults: defaults).first { $0.isSelected }?.seconds == 0)
+        #expect(ShowUpNextCountdown.menuTitle(forShow: "42", server: "a", defaults: defaults) == "Up Next: Instant")
+        ShowUpNextCountdown.set(7, forShow: "42", server: "a", defaults: defaults)
+        #expect(ShowUpNextCountdown.seconds(forShow: "42", server: "a", defaults: defaults) == nil)
+        ShowUpNextCountdown.set(nil, forShow: "42", server: "a", defaults: defaults)
+        #expect(ShowUpNextCountdown.seconds(forShow: "42", server: "a", defaults: defaults) == nil)
+    }
+
     @Test func everyMarkerKindHasASetting() {
         #expect(SkipKind(.intro) == .intro)
         #expect(SkipKind(.recap) == .recap)

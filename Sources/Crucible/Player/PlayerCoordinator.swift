@@ -612,7 +612,7 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
                 asksStillWatching: asksStillWatching,
                 hasCredits: offer.reason == .credits
             ),
-            countdownSeconds: UpNextOffer.countdownSeconds,
+            countdownSeconds: upNextCountdown,
             onPlayNext: { [weak self] byViewer in
                 if byViewer { self?.playNext(offer, byViewer: true) } else { self?.autoPlayNext(offer) }
             },
@@ -633,9 +633,14 @@ final class PlayerCoordinator: NSObject, @preconcurrency AVPlayerViewControllerD
         overlay.begin()
     }
 
+    /// How long the Up Next card counts down for this show: its own choice, or Settings'.
+    private var upNextCountdown: Int {
+        ShowUpNextCountdown.effective(forShow: request.showRatingKey, server: ServerBootstrap.savedMachineIdentifier)
+    }
+
     /// Whether the countdown is set to Instant and the card would count, so the next episode starts without it.
     private func startsInstantly(_ offer: UpNextOffer) -> Bool {
-        UpNextOffer.startsInstantly && offer.autoplays && !asksStillWatching && !session.stopsAtEndOfItem
+        upNextCountdown == 0 && offer.autoplays && !asksStillWatching && !session.stopsAtEndOfItem
     }
 
     func flushPendingUpNext() {

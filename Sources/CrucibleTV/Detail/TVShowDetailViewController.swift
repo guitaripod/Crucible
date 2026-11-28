@@ -527,6 +527,7 @@ final class TVShowDetailViewController: TVDetailViewController {
                 TVPlaylistPicker.present(adding: [show], env: env, from: self)
             }
         ))
+        actions.append(upNextCountdownAction())
         actions.append(TVIncompatibleAction.button(for: show, env: env, host: self, reload: { [weak self] in self?.reload() }))
         if let manage = TVManageMenus.itemMenu(for: show, env: env, host: self, leavesScreenWhenDeleted: true, reload: { [weak self] in self?.reload() }) {
             actions.append(TVDetailAction(kind: .manage, title: ManageCopy.menuTitle, symbol: "wrench.and.screwdriver", menu: manage))
@@ -584,6 +585,21 @@ final class TVShowDetailViewController: TVDetailViewController {
         sections.append(UIMenu(options: .displayInline, children: [shield]))
         let title = model.essentials.map { EssentialsCopy.title + " · " + EssentialsCopy.sourceLine($0.guide) } ?? EssentialsCopy.title
         return UIMenu(title: title, children: sections)
+    }
+
+    /// The Up Next countdown this show keeps over Settings, Instant included; the button names the show's own choice.
+    private func upNextCountdownAction() -> TVDetailAction {
+        let server = ServerBootstrap.savedMachineIdentifier
+        let showKey = showKey
+        let choices = ShowUpNextCountdown.choices(forShow: showKey, server: server).map { choice in
+            UIAction(title: choice.title, state: choice.isSelected ? .on : .off) { [weak self] _ in
+                ShowUpNextCountdown.set(choice.seconds, forShow: showKey, server: server)
+                self?.rebuild()
+            }
+        }
+        let title = ShowUpNextCountdown.menuTitle(forShow: showKey, server: server)
+        return TVDetailAction(kind: .upNext, title: title, symbol: "timer", menu: UIMenu(title: PreferenceSetting.upNextCountdown.title, children: choices),
+                              accessibilityLabel: title)
     }
 
     private func saveEssentials(_ choice: EssentialsChoice) {
