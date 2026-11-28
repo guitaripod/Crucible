@@ -1,6 +1,6 @@
-pkgbase = crucible-git
+pkgbase = crucible-plex-git
 	pkgdesc = Plex client in the Apple TV design, with Liquid Glass and HDR video (Wayland, Vulkan)
-	pkgver = 0.1.0.r0.g0000000
+	pkgver = 2.16.0.r1333.gef07989d
 	pkgrel = 1
 	url = https://github.com/guitaripod/Crucible
 	arch = x86_64
@@ -45,7 +45,8 @@ pkgbase = crucible-git
 	optdepends = yt-dlp: YouTube and other web video
 	optdepends = deno: lets yt-dlp read YouTube
 	optdepends = noto-fonts-cjk: Chinese, Japanese and Korean titles and names
-	provides = crucible
+	provides = crucible-plex
+	conflicts = crucible-plex
 	conflicts = crucible
 	options = !lto
 	options = !debug
@@ -53,4 +54,4 @@ pkgbase = crucible-git
 	source = git+https://github.com/guitaripod/Crucible.git
 	sha256sums = SKIP
 
-pkgname = crucible-git
+pkgname = crucible-plex-git
