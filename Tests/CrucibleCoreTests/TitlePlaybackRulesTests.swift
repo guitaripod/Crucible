@@ -3,6 +3,19 @@ import Testing
 @testable import CrucibleCore
 
 struct TitlePlaybackRulesTests {
+    @Test func aShowsOwnCountdownWinsOverSettingsAndOldDataFollowsSettings() throws {
+        var rules = TitlePlaybackRules()
+        #expect(rules.countdown(settings: 10) == 10)
+        rules.upNextCountdown = 0
+        #expect(rules.hasRules)
+        #expect(rules.countdown(settings: 10) == 0)
+        rules.upNextCountdown = 7
+        #expect(rules.countdown(settings: 15) == 15)
+        let old = try JSONDecoder().decode(TitlePlaybackRules.self, from: Data(#"{"skips":{},"matchContent":false,"autoplay":true}"#.utf8))
+        #expect(old.upNextCountdown == nil)
+        #expect(old.countdown(settings: 5) == 5)
+    }
+
     @Test func everyMarkerKindHasASetting() {
         #expect(SkipKind(.intro) == .intro)
         #expect(SkipKind(.recap) == .recap)

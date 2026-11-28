@@ -143,6 +143,8 @@ package struct TitlePlaybackRules: Codable, Equatable, Sendable {
     package var isShow: Bool?
     package var skips: [String: SkipMode] = [:]
     package var autoplay: Bool?
+    /// Seconds the Up Next card counts down for this show, 0 for Instant; nil follows Settings.
+    package var upNextCountdown: Int?
     package var matchContent = false
 
     package init(name: String? = nil, isShow: Bool? = nil) {
@@ -156,11 +158,16 @@ package struct TitlePlaybackRules: Codable, Equatable, Sendable {
     }
 
     /// Whether anything differs from Settings, which is when the rules are worth keeping.
-    package var hasRules: Bool { !skips.isEmpty || autoplay != nil || matchContent }
+    package var hasRules: Bool { !skips.isEmpty || autoplay != nil || upNextCountdown != nil || matchContent }
 
     /// The mode for `kind`: this title's own, or `settings`.
     package func mode(for kind: SkipKind, settings: SkipMode) -> SkipMode { self[kind] ?? settings }
 
     /// Whether the next episode starts on its own: this show's own choice, or `settings`.
     package func autoplays(settings: Bool) -> Bool { autoplay ?? settings }
+
+    /// How long the Up Next card counts down: this show's own choice while it is still one Settings offers, or `settings`.
+    package func countdown(settings: Int) -> Int {
+        upNextCountdown.flatMap { Preferences.upNextCountdownChoices.contains($0) ? $0 : nil } ?? settings
+    }
 }

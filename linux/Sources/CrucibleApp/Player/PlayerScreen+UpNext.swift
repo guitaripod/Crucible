@@ -36,7 +36,7 @@ extension PlayerScreen {
             return
         }
         card?.removeFromSuperview()
-        let next = UpNextCard(offer: offer, asksStillWatching: run.asksStillWatching, stopsAfterItem: sleepTimer?.stopsAtEndOfItem == true)
+        let next = UpNextCard(offer: offer, countdown: upNextCountdown, asksStillWatching: run.asksStillWatching, stopsAfterItem: sleepTimer?.stopsAtEndOfItem == true)
         next.onPlay = { [weak self] byViewer in self?.playNext(offer, byViewer: byViewer) }
         next.onLeave = { [weak self] in
             self?.viewerActed()
@@ -50,9 +50,12 @@ extension PlayerScreen {
         showChrome(autoHide: true)
     }
 
+    /// How long the Up Next card counts down for this show: its own choice, or Settings'.
+    var upNextCountdown: Int { titleRules.countdown(settings: UpNextOffer.countdownSeconds) }
+
     /// Whether the countdown is set to Instant and the card would count, so the next episode starts without it.
     private func startsInstantly(_ offer: UpNextOffer) -> Bool {
-        UpNextOffer.startsInstantly && offer.autoplays && !run.asksStillWatching && sleepTimer?.stopsAtEndOfItem != true
+        upNextCountdown == 0 && offer.autoplays && !run.asksStillWatching && sleepTimer?.stopsAtEndOfItem != true
     }
 
     /// `CRUCIBLE_UPNEXT_DEMO=1` with a local file shows the Up Next card two seconds in, for headless checks of its look.

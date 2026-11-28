@@ -126,6 +126,7 @@ final class TitleRulesScreen: GroupedSettingsPage {
     private enum RowID {
         static let skipPrefix = "skip."
         static let autoplay = "autoplay"
+        static let countdown = "countdown"
         static let matchContent = "matchContent"
         static let volume = "volume"
         static let languages = "languages"
@@ -174,6 +175,12 @@ final class TitleRulesScreen: GroupedSettingsPage {
             let selected = rules.autoplay.map { $0 ? 1 : 2 } ?? 0
             return (titles, selected, { [weak self] index in self?.change { $0.autoplay = index == 0 ? nil : index == 1 } })
         }
+        if id == RowID.countdown {
+            let choices = Preferences.upNextCountdownChoices
+            let titles = [TitleRulesCopy.countdownDetail(nil)] + choices.map(PreferenceSetting.upNextCountdownTitle)
+            let selected = rules.upNextCountdown.flatMap { choices.firstIndex(of: $0) }.map { $0 + 1 } ?? 0
+            return (titles, selected, { [weak self] index in self?.change { $0.upNextCountdown = index == 0 ? nil : choices[index - 1] } })
+        }
         return nil
     }
 
@@ -191,10 +198,12 @@ final class TitleRulesScreen: GroupedSettingsPage {
                            symbol: Symbol(kind.symbol))
         }
         sections.append(Section(title: String(localized: "Skipping", comment: "Settings section for skip intro and skip credits"), rows: skipping))
-        if isShow, let found = options(for: RowID.autoplay) {
+        if isShow, let autoplay = options(for: RowID.autoplay), let countdown = options(for: RowID.countdown) {
             sections.append(Section(title: String(localized: "Up Next"), rows: [
                 .choice(id: RowID.autoplay, title: PreferenceSetting.autoplayNextEpisode.title, subtitle: PreferenceSetting.autoplayNextEpisode.explanation,
-                        options: found.titles, selected: found.selected, symbol: "play"),
+                        options: autoplay.titles, selected: autoplay.selected, symbol: "play"),
+                .choice(id: RowID.countdown, title: PreferenceSetting.upNextCountdown.title, subtitle: PreferenceSetting.upNextCountdown.explanation,
+                        options: countdown.titles, selected: countdown.selected, symbol: "timer"),
             ]))
         }
         sections.append(Section(title: String(localized: "Video", comment: "Stream Info label"), rows: [

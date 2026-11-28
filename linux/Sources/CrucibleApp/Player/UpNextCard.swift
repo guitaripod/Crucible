@@ -17,6 +17,7 @@ final class UpNextCard: View {
     private let artwork = ArtworkView()
     private let play: ButtonView
     private let leave: ButtonView
+    private let countdown: Float
     private var remaining: Float
     private var counting: Bool
     private let asksStillWatching: Bool
@@ -25,11 +26,13 @@ final class UpNextCard: View {
     /// The text column's tone: the card's, or dark where glare in the picture lies right under the text.
     private var textTone = GlassTone()
 
-    init(offer: UpNextOffer, asksStillWatching: Bool = false, stopsAfterItem: Bool = false) {
+    /// `countdown` is how many seconds it counts before playing on: the show's own choice or Settings'.
+    init(offer: UpNextOffer, countdown: Int = UpNextOffer.countdownSeconds, asksStillWatching: Bool = false, stopsAfterItem: Bool = false) {
         self.offer = offer
         self.asksStillWatching = asksStillWatching
         counting = offer.autoplays && !asksStillWatching && !stopsAfterItem
-        remaining = Float(UpNextOffer.countdownSeconds)
+        self.countdown = Float(countdown)
+        remaining = Float(countdown)
         play = ButtonView(style: .primary, title: UpNextText.playTitle(asksStillWatching: asksStillWatching), symbol: "play.fill")
         leave = ButtonView(style: .glass, title: UpNextText.leaveTitle(keepsCreditsPlaying: !offer.playbackEnded))
         super.init()
@@ -81,8 +84,7 @@ final class UpNextCard: View {
     override func drawOverlay(_ context: inout DrawContext) {
         guard counting else { return }
         let metrics = Theme.current.metrics
-        let total = Float(UpNextOffer.countdownSeconds)
-        let progress = 1 - max(remaining, 0) / max(total, 1)
+        let progress = 1 - max(remaining, 0) / max(countdown, 1)
         let bar = Rect(x: artwork.frame.minX + metrics.tv(14), y: artwork.frame.maxY - metrics.tv(22), width: artwork.frame.width - metrics.tv(28),
                        height: metrics.progressBarThickness)
         ProgressBarStyle.draw(progress: progress, in: bar, onArt: true, context: &context)

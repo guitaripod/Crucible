@@ -119,6 +119,9 @@ extension PlayerScreen {
                     .action(Action(TitleRulesCopy.onOff(false), isChecked: current == false, keepsOpen: true) { [weak self] in self?.changeTitleRules { $0.autoplay = false } }),
                 ]
             })
+            entries.append(.submenu(PreferenceSetting.upNextCountdown.title, detail: TitleRulesCopy.countdownDetail(rules.upNextCountdown), symbol: "timer") {
+                [weak self] in self?.countdownEntries() ?? []
+            })
         }
         if Preferences.matchesContent {
             entries.append(.action(Action(PreferenceSetting.matchContent.title, symbol: "tv", isChecked: rules.matchContent, keepsOpen: true) {
@@ -133,6 +136,22 @@ extension PlayerScreen {
                 self.changeTitleRules { $0 = TitlePlaybackRules() }
                 if wasMatching, let stream = self.stream { self.engageMatchContent(stream) }
             }))
+        }
+        return entries
+    }
+
+    /// The Up Next countdowns this show can keep: Settings' own (named), then each length.
+    private func countdownEntries() -> [ContextMenuView.Entry] {
+        let current = titleRules.upNextCountdown
+        let settings = UpNextOffer.countdownSeconds
+        var entries: [ContextMenuView.Entry] = [
+            .action(ContextMenuView.Action(TitleRulesCopy.followingSettings(PreferenceSetting.upNextCountdownTitle(settings)), isChecked: current == nil,
+                                           keepsOpen: true) { [weak self] in self?.changeTitleRules { $0.upNextCountdown = nil } }),
+        ]
+        entries += Preferences.upNextCountdownChoices.map { seconds in
+            .action(ContextMenuView.Action(PreferenceSetting.upNextCountdownTitle(seconds), isChecked: current == seconds, keepsOpen: true) {
+                [weak self] in self?.changeTitleRules { $0.upNextCountdown = seconds }
+            })
         }
         return entries
     }
@@ -192,6 +211,11 @@ enum TitleRulesCopy {
     /// "Default (Show Button)": the choice that follows Settings, naming what Settings say.
     static func followingSettings(_ value: String) -> String {
         String(localized: "Default (\(value))", comment: "Choice that follows Settings, with what Settings say, e.g. Default (Show Button)")
+    }
+
+    /// The show's own countdown, or "Default (10 Seconds)" while it follows Settings.
+    static func countdownDetail(_ seconds: Int?) -> String {
+        seconds.map(PreferenceSetting.upNextCountdownTitle) ?? followingSettings(PreferenceSetting.upNextCountdownTitle(UpNextOffer.countdownSeconds))
     }
 
     static func onOff(_ isOn: Bool) -> String { isOn ? String(localized: "On") : String(localized: "Off") }
@@ -281,6 +305,7 @@ enum TitleRulesCopy {
     static func summary(of rules: TitlePlaybackRules) -> String {
         var parts = SkipKind.allCases.compactMap { kind in rules[kind].map { labelled(kind.title, $0.title) } }
         if let autoplay = rules.autoplay { parts.append(labelled(PreferenceSetting.autoplayNextEpisode.title, onOff(autoplay))) }
+        if let seconds = rules.upNextCountdown { parts.append(labelled(PreferenceSetting.upNextCountdown.title, PreferenceSetting.upNextCountdownTitle(seconds))) }
         if rules.matchContent { parts.append(PreferenceSetting.matchContent.title) }
         return parts.joined(separator: " · ")
     }

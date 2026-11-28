@@ -494,7 +494,7 @@ package enum PreferenceSetting: CaseIterable, Sendable {
     }
 
     /// "Instant" for the countdown that skips the Up Next card, "10 Seconds" for the rest.
-    private static func upNextCountdownTitle(_ seconds: Int) -> String {
+    package static func upNextCountdownTitle(_ seconds: Int) -> String {
         seconds == 0
             ? String(localized: "Instant", comment: "Up Next countdown option that starts the next episode as soon as the credits begin")
             : String(localized: "\(seconds) Seconds", comment: "Up Next countdown option, e.g. 10 Seconds")
