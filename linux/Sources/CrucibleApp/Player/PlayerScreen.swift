@@ -667,7 +667,7 @@ final class PlayerScreen: View {
         case .up, .down:
             let volume = min(max(player.state.volume + (event.key == .up ? 5 : -5), 0), player.maximumVolume)
             setViewerVolume(volume)
-            say(String(localized: "Volume \(Int(volume))%", comment: "Player message with the volume, as in \"Volume 55%\""), symbol: volume <= 0 ? "speaker.slash" : "speaker.wave.2")
+            say(String(localized: "Volume \(Int(volume))%", comment: "Player message with the volume, as in \"Volume 55%\""), symbol: volume <= 0 ? "speaker.slash" : "speaker.wave.2", near: .volume)
             return true
         case Key.character("m"):
             toggleMute()
@@ -758,6 +758,8 @@ final class PlayerScreen: View {
     private var lastPointer: Point?
     private var restingPointer: Point?
     /// What the wheel's current run drives (the volume, or else the playhead) and when its last event came.
+    /// The transport control the toast on show sits above.
+    var toastNear: TransportView.Near?
     var wheelRun: (target: WheelTarget, at: Double)?
     /// The speed steps the wheel has gathered toward the next one, so a touchpad's small steps add up.
     var speedWheel: Double = 0

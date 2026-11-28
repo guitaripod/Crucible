@@ -71,7 +71,7 @@ extension PlayerScreen {
         tweaks.title.audioDelay = Self.sync(value)
         player?.set("audio-delay", String(format: "%.3f", tweaks.title.audioDelay))
         saveTitleTweaks()
-        say(Self.syncMessage(String(localized: "Sound", comment: "Player sync message subject: the sound"), tweaks.title.audioDelay), symbol: "waveform")
+        say(Self.syncMessage(String(localized: "Sound", comment: "Player sync message subject: the sound"), tweaks.title.audioDelay), symbol: "waveform", near: .audio)
     }
 
     func setSubtitleDelay(_ value: Double) {
@@ -79,7 +79,7 @@ extension PlayerScreen {
         player?.set("sub-delay", String(format: "%.3f", tweaks.title.subtitleDelay))
         saveTitleTweaks()
         say(Self.syncMessage(String(localized: "Subtitles", comment: "Player sync message subject: the subtitles"), tweaks.title.subtitleDelay),
-            symbol: "captions.bubble")
+            symbol: "captions.bubble", near: .subtitles)
     }
 
     /// A sync value rounded to milliseconds within ten seconds either way.
@@ -127,7 +127,7 @@ extension PlayerScreen {
         say(raised == 0
                 ? String(localized: "Subtitles at the Bottom", comment: "Player message after moving the subtitles back down")
                 : String(localized: "Subtitles \(raised)% Higher", comment: "Player message after moving the subtitles, with how much higher they sit"),
-            symbol: "captions.bubble")
+            symbol: "captions.bubble", near: .subtitles)
     }
 
     /// How far the subtitles sit above where the file puts them, for the stepper: "0" or "+10%".
@@ -140,7 +140,7 @@ extension PlayerScreen {
         Preferences.subtitleSize = size
         player?.set("sub-scale", String(format: "%.2f", Double(size.rawValue) / 100))
         say(String(localized: "Subtitles \(size.title)", comment: "Player message after changing the subtitle size, as in \"Subtitles Large\""),
-            symbol: "textformat.size")
+            symbol: "textformat.size", near: .subtitles)
     }
 
     /// Shows or hides the subtitles: the track chosen last comes back, or the one in the viewer's language.
@@ -148,15 +148,15 @@ extension PlayerScreen {
         guard let stream else { return }
         if borrowedSubtitle != nil {
             returnBorrowedSubtitle()
-            say(String(localized: "Subtitles Off", comment: "Player message"), symbol: "captions.bubble")
+            say(String(localized: "Subtitles Off", comment: "Player message"), symbol: "captions.bubble", near: .subtitles)
         } else if stream.chosenSubtitleId != nil {
             choose(track: nil, audio: false)
-            say(String(localized: "Subtitles Off", comment: "Player message"), symbol: "captions.bubble")
+            say(String(localized: "Subtitles Off", comment: "Player message"), symbol: "captions.bubble", near: .subtitles)
         } else if let pick = lastChosenSubtitle ?? captionChoice(in: stream)?.id {
             choose(track: pick, audio: false)
             let track = stream.subtitles.first { $0.id == pick }
             let title = track?.displayTitle ?? track?.language ?? ""
-            say(String(localized: "Subtitles: \(title)", comment: "Player message after turning subtitles on, with the track"), symbol: "captions.bubble.fill")
+            say(String(localized: "Subtitles: \(title)", comment: "Player message after turning subtitles on, with the track"), symbol: "captions.bubble.fill", near: .subtitles)
         }
     }
 
@@ -197,7 +197,7 @@ extension PlayerScreen {
         tweaks.taste.dialogue = dialogue
         applyAudioFilters()
         saveTaste()
-        say(Self.dialogueTitle(dialogue), symbol: "waveform")
+        say(Self.dialogueTitle(dialogue), symbol: "waveform", near: .audio)
     }
 
     static func dialogueTitle(_ dialogue: PlayerTweaks.Dialogue) -> String {
@@ -239,7 +239,7 @@ extension PlayerScreen {
         guard whole != 0 else { return }
         speedWheel -= Double(whole)
         stepSpeed(by: whole)
-        say(Self.speedTitle(speed), symbol: "gauge.with.dots.needle.67percent")
+        say(Self.speedTitle(speed), symbol: "gauge.with.dots.needle.67percent", near: .speed)
     }
 
     /// Lets the volume go to 200%; the player brings a volume past 100% back to it when the boost goes off.
@@ -249,7 +249,7 @@ extension PlayerScreen {
         applyAudioFilters()
         saveTaste()
         say(on ? String(localized: "Volume Boost On", comment: "Player message") : String(localized: "Volume Boost Off", comment: "Player message"),
-            symbol: "speaker.wave.3")
+            symbol: "speaker.wave.3", near: .volume)
     }
 
     /// The sound's filters: the dialogue chain, which the player follows with Volume Boost's gain and limiter while it is on.
@@ -473,7 +473,7 @@ extension PlayerScreen {
         let muting = !player.state.isMuted
         player.setMuted(muting)
         say(muting ? String(localized: "Mute") : String(localized: "Unmute", comment: "Player button: turn the sound back on"),
-            symbol: muting ? "speaker.slash" : "speaker.wave.2")
+            symbol: muting ? "speaker.slash" : "speaker.wave.2", near: .volume)
     }
 
     /// Matches the screen to `stream` when Match Content is on for this title, and otherwise puts back what an earlier
@@ -571,8 +571,10 @@ extension PlayerScreen {
 
     // MARK: Feedback
 
-    /// Says on the picture what an action did.
-    func say(_ message: String, symbol: Symbol? = nil) {
+    /// Says on the picture what an action did: above the transport's `near` control when the desk shows one, otherwise
+    /// at the top.
+    func say(_ message: String, symbol: Symbol? = nil, near: TransportView.Near? = nil) {
+        toastNear = near
         let shown = toast ?? {
             let view = PlayerToast()
             addSubview(view)
@@ -588,7 +590,12 @@ extension PlayerScreen {
         guard let toast, let scale = window?.scale else { return }
         let metrics = Theme.current.metrics
         let size = toast.preferredSize(scale: scale)
-        toast.frame = Rect(x: 0, y: metrics.tv(48), width: bounds.width, height: size.height)
+        if !isMini, let near = toastNear, let anchor = transport.toastAnchor(near) {
+            let x = min(max(transport.frame.x + anchor.midX - size.width / 2, metrics.tv(24)), bounds.width - size.width - metrics.tv(24))
+            toast.frame = Rect(x: x.rounded(), y: transport.frame.y + anchor.y - size.height - metrics.tv(16), width: size.width, height: size.height)
+        } else {
+            toast.frame = Rect(x: 0, y: metrics.tv(48), width: bounds.width, height: size.height)
+        }
         toast.setNeedsDisplay()
     }
 }

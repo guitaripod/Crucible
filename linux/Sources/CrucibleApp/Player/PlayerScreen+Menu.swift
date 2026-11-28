@@ -242,7 +242,7 @@ extension PlayerScreen {
         [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].map { value in
             .action(ContextMenuView.Action(Self.speedTitle(value), isChecked: abs(value - speed) < 0.01) { [weak self] in
                 self?.setSpeed(value)
-                self?.say(String(localized: "Speed \(Self.speedTitle(value))", comment: "Player message with the speed"), symbol: "gauge.with.dots.needle.67percent")
+                self?.say(String(localized: "Speed \(Self.speedTitle(value))", comment: "Player message with the speed"), symbol: "gauge.with.dots.needle.67percent", near: .speed)
             })
         }
     }

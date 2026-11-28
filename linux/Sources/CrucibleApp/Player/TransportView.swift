@@ -643,6 +643,23 @@ final class TransportView: View {
         isDesk && (volumeBand.contains(point) || deskFrame(of: .mute).contains(point))
     }
 
+    /// The controls a message about a change can sit above.
+    enum Near {
+        case volume, speed, audio, subtitles
+    }
+
+    /// Where a message about `near` goes, in this view's points: the volume slider (or the mute button in a window too
+    /// narrow for one) or the menu button, on the desk only.
+    func toastAnchor(_ near: Near) -> Rect? {
+        guard isDesk else { return nil }
+        switch near {
+        case .volume: return hasVolumeSlider ? volumeTrack : deskFrame(of: .mute)
+        case .speed: return deskFrame(of: .control(.speed))
+        case .audio: return deskFrame(of: .control(.audio))
+        case .subtitles: return deskFrame(of: .control(.subtitles))
+        }
+    }
+
     /// Whether the wheel at `point` steps the speed: over the desk's speed button.
     func turnsSpeed(at point: Point) -> Bool {
         isDesk && deskFrame(of: .control(.speed)).contains(point)
