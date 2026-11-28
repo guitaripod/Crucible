@@ -9,8 +9,8 @@ import MidgarCore
 
 /// The player's menus, info panel, sleep timer, breaks and what's next, on top of the playback in `PlayerScreen`.
 extension PlayerScreen {
-    /// The speeds the player offers, the Apple TV's own set.
-    static let speeds: [Double] = [0.5, 1, 1.25, 1.5, 2]
+    /// The speeds the player offers: the Apple TV's own set, and well slower and faster for the wheel, the menu and [ and ].
+    static let speeds: [Double] = [0.1, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4, 6, 8, 10]
 
     // MARK: Menus
 
@@ -140,7 +140,7 @@ extension PlayerScreen {
 
     /// The next speed up or down the list, for [ and ].
     func stepSpeed(by step: Int) {
-        let index = Self.speeds.firstIndex { abs($0 - speed) < 0.01 } ?? 1
+        let index = Self.speeds.firstIndex { abs($0 - speed) < 0.01 } ?? Self.speeds.firstIndex(of: 1) ?? 0
         setSpeed(Self.speeds[min(max(index + step, 0), Self.speeds.count - 1)])
     }
 
