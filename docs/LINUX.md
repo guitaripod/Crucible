@@ -9,7 +9,7 @@ Design for a Linux client that looks and behaves like the Apple TV app, on a des
 | # | Decision | Decided |
 | --- | --- | --- |
 | D1 | Crucible Pro on Linux | 2026-11-15: the Linux client is free throughout, as Flaccy's Linux client is (Midgar decisions). No paywall, no Pro surfaces, no store code. Its AI (What to Watch, described recaps, Previously On from dialogue) runs on the person's own model under D38: the paired Crucible Server's model, or any OpenAI-compatible address and key the person gives. The Linux build bundles the prompts from `tools/ai/` and never calls Midgar's hosted Haiku, which stays behind Pro on Apple |
-| D2 | Distribution | 2026-11-15: AUR package `crucible` plus a GitHub Release tarball with in-app update (the Tailscode Linux pattern) first; Flathub after audio passthrough is proven inside the sandbox |
+| D2 | Distribution | 2026-11-15: AUR package `crucible-plex` (the AUR name `crucible` belongs to an unrelated launcher) plus a GitHub Release tarball with in-app update (the Tailscode Linux pattern) first; Flathub after audio passthrough is proven inside the sandbox |
 | D3 | Language | 2026-11-15: Swift (§2) |
 | D4 | Primary input | 2026-11-15: mouse and keyboard first. Gamepad, remote-style keys and the TV are a plus, never at the desk's expense (§5.4) |
 | D5 | Glass | 2026-11-15: Kiln draws Liquid Glass, not a blur stand-in (§5.7) |

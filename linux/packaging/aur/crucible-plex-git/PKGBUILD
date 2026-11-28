@@ -1,5 +1,5 @@
 # Maintainer: guitaripod
-pkgname=crucible-git
+pkgname=crucible-plex-git
 pkgver=0.1.0.r0.g0000000
 pkgrel=1
 pkgdesc="Plex client in the Apple TV design, with Liquid Glass and HDR video (Wayland, Vulkan)"
@@ -13,8 +13,8 @@ optdepends=('noto-fonts-emoji: emoji in comments, reactions and titles drawn in 
             'deno: lets yt-dlp read YouTube'
             'noto-fonts-cjk: Chinese, Japanese and Korean titles and names')
 makedepends=('git' 'meson' 'ninja' 'patchelf' 'imagemagick' 'vulkan-headers' 'swift-language' 'cargo')
-provides=('crucible')
-conflicts=('crucible')
+provides=('crucible-plex')
+conflicts=('crucible-plex' 'crucible')
 options=('!lto' '!debug' '!strip')
 source=("git+$url.git")
 sha256sums=('SKIP')

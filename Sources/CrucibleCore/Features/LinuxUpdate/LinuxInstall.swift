@@ -82,7 +82,7 @@ package enum LinuxUpdateOffer: Equatable, Sendable {
     /// A build directory, where an update would land on the build it is running.
     case developerBuild
 
-    /// `package` is the pacman package that owns the executable (`crucible` or `crucible-git`) and `helper` the AUR
+    /// `package` is the pacman package that owns the executable (`crucible-plex` or `crucible-plex-git`; the AUR name `crucible` belongs to an unrelated package) and `helper` the AUR
     /// helper on the PATH, either nil when unknown.
     package static func make(kind: LinuxInstallKind, current: LinuxVersion, newest: LinuxRelease?, package: String?, helper: String?) -> LinuxUpdateOffer {
         let newer = newest.flatMap { $0.version > current ? $0 : nil }
@@ -93,7 +93,7 @@ package enum LinuxUpdateOffer: Equatable, Sendable {
             return .command(sourceCommand(checkout: checkout), newer)
         case .packaged:
             guard let newer else { return .upToDate }
-            return .command(packageCommand(package: package ?? "crucible", helper: helper), newer)
+            return .command(packageCommand(package: package ?? "crucible-plex", helper: helper), newer)
         case .tarball:
             return newer.map(LinuxUpdateOffer.install) ?? .upToDate
         case .standalone:
